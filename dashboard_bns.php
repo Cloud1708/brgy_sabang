@@ -20,6 +20,8 @@ $csrf = $_SESSION['csrf_token'];
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
+<!-- FullCalendar CSS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
 <style>
   html, body { height:100%; overflow:hidden; }
   body.dashboard-body { background:#f4f7f4; }
@@ -122,7 +124,6 @@ $csrf = $_SESSION['csrf_token'];
 
     <div class="menu-section-title">Nutrition Event Scheduling</div>
     <ul class="nav-menu">
-      <li><a href="#" data-module="opt_plus" data-label="OPT Plus Sessions"><i class="bi bi-calendar2-week"></i><span>OPT Plus Sessions</span></a></li>
       <li><a href="#" data-module="feeding_programs" data-label="Feeding Programs"><i class="bi bi-egg-fried"></i><span>Feeding Programs</span></a></li>
       <li><a href="#" data-module="weighing_schedules" data-label="Weighing Schedules"><i class="bi bi-calendar2-check"></i><span>Weighing Schedules</span></a></li>
       <li><a href="#" data-module="nutrition_education" data-label="Nutrition Education"><i class="bi bi-megaphone"></i><span>Nutrition Education</span></a></li>
@@ -176,10 +177,14 @@ $csrf = $_SESSION['csrf_token'];
   const titleEl = document.getElementById('currentModuleTitle');
 
   const api = {
-    mothers: 'bns_modules/api_mothers.php',
-    children: 'bns_modules/api_children.php',
-    wfl: 'bns_modules/api_wfl_status_types.php',
-    nutrition: 'bns_modules/api_nutrition.php'
+  mothers: 'bns_modules/api_mothers.php',
+  children: 'bns_modules/api_children.php',
+  wfl: 'bns_modules/api_wfl_status_types.php',
+  nutrition: 'bns_modules/api_nutrition.php',
+  feeding_programs: 'bns_modules/api_feeding_programs.php',
+  weighing_schedules: 'bns_modules/api_weighing_schedules.php',
+  nutrition_education: 'bns_modules/api_nutrition_education.php',
+  events: 'bns_modules/api_events.php'
   };
 
   function fetchJSON(url, options = {}) {
@@ -207,10 +212,538 @@ $csrf = $_SESSION['csrf_token'];
       child_profiles: renderChildrenModule,
       weighing_sessions: renderWeighingModule,
       wfl_status: renderWflStatusModule, /* kept (no menu link now) */
-      nutrition_classification: renderNutritionClassificationModule
+      nutrition_classification: renderNutritionClassificationModule,
+      feeding_programs: renderFeedingProgramsModule,
+      weighing_schedules: renderWeighingSchedulesModule,
+      nutrition_education: renderNutritionEducationModule,
+      nutrition_calendar: renderNutritionCalendarModule
     };
     if (handlers[mod]) handlers[mod](label);
     else moduleContent.innerHTML = `<div class="card border-0 shadow-sm"><div class="card-body small"><h5 class="mb-2">${label}</h5><p>Placeholder module (walang implementation pa).</p></div></div>`;
+
+  // Nutrition Calendar module
+  function renderNutritionCalendarModule(label) {
+    showLoading(label);
+    // Wait for FullCalendar script to load if not present
+    function loadCalendar() {
+      moduleContent.innerHTML = `
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h5 class="fw-semibold mb-3"><i class="bi bi-calendar3 me-2"></i>${label}</h5>
+            <div id="nutritionCalendar"></div>
+          </div>
+        </div>`;
+      const calendarEl = document.getElementById('nutritionCalendar');
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 600,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        eventTimeFormat: {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+          fetchJSON(api.events)
+            .then(data => {
+              // Map events to FullCalendar format
+              const fcEvents = data.map(ev => ({
+                id: ev.id,
+                title: ev.title,
+                start: ev.start,
+                description: ev.description,
+                extendedProps: ev
+              }));
+              successCallback(fcEvents);
+            })
+            .catch(failureCallback);
+        },
+        eventClick: function(info) {
+          const ev = info.event.extendedProps;
+          let html = `<strong>${info.event.title}</strong><br>`;
+          if (ev.description) html += `<div class='small mb-1'>${escapeHtml(ev.description)}</div>`;
+          html += `<div><b>Date:</b> ${info.event.startStr}</div>`;
+          if (ev.time) html += `<div><b>Time:</b> ${ev.time}</div>`;
+          if (ev.location) html += `<div><b>Location:</b> ${escapeHtml(ev.location)}</div>`;
+          if (ev.target_audience) html += `<div><b>Audience:</b> ${escapeHtml(ev.target_audience)}</div>`;
+          // Show as Bootstrap modal or alert
+          alert(html.replace(/<[^>]+>/g, '\n').replace(/<br>/g, '\n'));
+        }
+      });
+      calendar.render();
+    }
+    if (typeof FullCalendar === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js';
+      script.onload = loadCalendar;
+      document.body.appendChild(script);
+    } else {
+      loadCalendar();
+    }
+  }
+  function renderNutritionEducationModule(label) {
+    showLoading(label);
+    fetchJSON(api.nutrition_education)
+      .then(data => {
+        moduleContent.innerHTML = `
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                  <h6 class="fw-semibold mb-3">Add / Edit Nutrition Education</h6>
+                  <form id="nutritionEduForm" class="small">
+                    <input type="hidden" name="event_id" id="nutrition_edu_event_id">
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Title</label>
+                      <input type="text" name="event_title" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Description</label>
+                      <textarea name="event_description" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Date</label>
+                      <input type="date" name="event_date" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Time</label>
+                      <input type="time" name="event_time" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Location</label>
+                      <input type="text" name="location" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Target Audience</label>
+                      <input type="text" name="target_audience" class="form-control form-control-sm">
+                    </div>
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" name="is_published" id="is_published_nutrition_edu" checked>
+                      <label class="form-check-label small" for="is_published_nutrition_edu">Published</label>
+                    </div>
+                    <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
+                    <div class="d-grid">
+                      <button class="btn btn-success btn-sm" type="submit">Save</button>
+                      <button class="btn btn-secondary btn-sm mt-1 d-none" type="button" id="nutritionEduCancelEdit">Cancel Edit</button>
+                    </div>
+                    <div class="form-text text-success mt-1 d-none" id="nutritionEduSuccess">Saved!</div>
+                    <div class="form-text text-danger mt-1 d-none" id="nutritionEduError"></div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="card shadow-sm border-0">
+                <div class="card-body">
+                  <h6 class="fw-semibold mb-3">Upcoming Nutrition Education Events</h6>
+                  <div class="table-responsive" style="max-height:430px; overflow:auto;">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                      <thead class="table-light">
+                        <tr><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Audience</th><th></th></tr>
+                      </thead>
+                      <tbody>
+                        ${data.events.map(ev=>`
+                          <tr>
+                            <td>${escapeHtml(ev.event_title)}</td>
+                            <td>${ev.event_date}</td>
+                            <td>${ev.event_time}</td>
+                            <td>${escapeHtml(ev.location||'')}</td>
+                            <td>${escapeHtml(ev.target_audience||'')}</td>
+                            <td>
+                              <button class="btn btn-sm btn-outline-primary me-1" data-edit="${ev.event_id}"><i class="bi bi-pencil"></i></button>
+                              <button class="btn btn-sm btn-outline-danger" data-delete="${ev.event_id}"><i class="bi bi-trash"></i></button>
+                            </td>
+                          </tr>`).join('')}
+                        ${data.events.length===0?'<tr><td colspan="6" class="text-center small text-muted">No nutrition education events.</td></tr>':''}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+
+        // Form submit
+        document.getElementById('nutritionEduForm').addEventListener('submit', e => {
+          e.preventDefault();
+          const form = e.target;
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+          data.is_published = form.is_published_nutrition_edu.checked ? 1 : 0;
+          fetch(api.nutrition_education, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
+            body: JSON.stringify(data)
+          })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(() => {
+              document.getElementById('nutritionEduSuccess').classList.remove('d-none');
+              document.getElementById('nutritionEduError').classList.add('d-none');
+              form.reset();
+              document.getElementById('nutrition_edu_event_id').value = '';
+              document.getElementById('nutritionEduCancelEdit').classList.add('d-none');
+              renderNutritionEducationModule(label);
+            })
+            .catch(err => {
+              const el = document.getElementById('nutritionEduError');
+              el.textContent = err.message;
+              el.classList.remove('d-none');
+            });
+        });
+
+        // Edit button
+        moduleContent.querySelectorAll('button[data-edit]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const event = data.events.find(ev => ev.event_id == btn.getAttribute('data-edit'));
+            if (!event) return;
+            const form = document.getElementById('nutritionEduForm');
+            form.event_id.value = event.event_id;
+            form.event_title.value = event.event_title;
+            form.event_description.value = event.event_description;
+            form.event_date.value = event.event_date;
+            form.event_time.value = event.event_time;
+            form.location.value = event.location;
+            form.target_audience.value = event.target_audience;
+            form.is_published_nutrition_edu.checked = event.is_published == 1;
+            document.getElementById('nutritionEduCancelEdit').classList.remove('d-none');
+          });
+        });
+        // Cancel edit
+        document.getElementById('nutritionEduCancelEdit').addEventListener('click', () => {
+          const form = document.getElementById('nutritionEduForm');
+          form.reset();
+          form.event_id.value = '';
+          document.getElementById('nutritionEduCancelEdit').classList.add('d-none');
+        });
+        // Delete button
+        moduleContent.querySelectorAll('button[data-delete]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (!confirm('Delete this nutrition education event?')) return;
+            fetch(api.nutrition_education, {
+              method: 'DELETE',
+              headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
+              body: JSON.stringify({ event_id: btn.getAttribute('data-delete') })
+            })
+              .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+              .then(() => renderNutritionEducationModule(label))
+              .catch(err => alert('Error: ' + err.message));
+          });
+        });
+      })
+      .catch(err => {
+        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
+      });
+  }
+  function renderWeighingSchedulesModule(label) {
+    showLoading(label);
+    fetchJSON(api.weighing_schedules)
+      .then(data => {
+        moduleContent.innerHTML = `
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                  <h6 class="fw-semibold mb-3">Add / Edit Weighing Schedule</h6>
+                  <form id="weighingForm" class="small">
+                    <input type="hidden" name="event_id" id="weighing_event_id">
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Title</label>
+                      <input type="text" name="event_title" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Description</label>
+                      <textarea name="event_description" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Date</label>
+                      <input type="date" name="event_date" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Time</label>
+                      <input type="time" name="event_time" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Location</label>
+                      <input type="text" name="location" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Target Audience</label>
+                      <input type="text" name="target_audience" class="form-control form-control-sm">
+                    </div>
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" name="is_published" id="is_published_weighing" checked>
+                      <label class="form-check-label small" for="is_published_weighing">Published</label>
+                    </div>
+                    <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
+                    <div class="d-grid">
+                      <button class="btn btn-success btn-sm" type="submit">Save</button>
+                      <button class="btn btn-secondary btn-sm mt-1 d-none" type="button" id="weighingCancelEdit">Cancel Edit</button>
+                    </div>
+                    <div class="form-text text-success mt-1 d-none" id="weighingSuccess">Saved!</div>
+                    <div class="form-text text-danger mt-1 d-none" id="weighingError"></div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="card shadow-sm border-0">
+                <div class="card-body">
+                  <h6 class="fw-semibold mb-3">Upcoming Weighing Schedules</h6>
+                  <div class="table-responsive" style="max-height:430px; overflow:auto;">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                      <thead class="table-light">
+                        <tr><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Audience</th><th></th></tr>
+                      </thead>
+                      <tbody>
+                        ${data.events.map(ev=>`
+                          <tr>
+                            <td>${escapeHtml(ev.event_title)}</td>
+                            <td>${ev.event_date}</td>
+                            <td>${ev.event_time}</td>
+                            <td>${escapeHtml(ev.location||'')}</td>
+                            <td>${escapeHtml(ev.target_audience||'')}</td>
+                            <td>
+                              <button class="btn btn-sm btn-outline-primary me-1" data-edit="${ev.event_id}"><i class="bi bi-pencil"></i></button>
+                              <button class="btn btn-sm btn-outline-danger" data-delete="${ev.event_id}"><i class="bi bi-trash"></i></button>
+                            </td>
+                          </tr>`).join('')}
+                        ${data.events.length===0?'<tr><td colspan="6" class="text-center small text-muted">No weighing schedules.</td></tr>':''}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+
+        // Form submit
+        document.getElementById('weighingForm').addEventListener('submit', e => {
+          e.preventDefault();
+          const form = e.target;
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+          data.is_published = form.is_published_weighing.checked ? 1 : 0;
+          fetch(api.weighing_schedules, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
+            body: JSON.stringify(data)
+          })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(() => {
+              document.getElementById('weighingSuccess').classList.remove('d-none');
+              document.getElementById('weighingError').classList.add('d-none');
+              form.reset();
+              document.getElementById('weighing_event_id').value = '';
+              document.getElementById('weighingCancelEdit').classList.add('d-none');
+              renderWeighingSchedulesModule(label);
+            })
+            .catch(err => {
+              const el = document.getElementById('weighingError');
+              el.textContent = err.message;
+              el.classList.remove('d-none');
+            });
+        });
+
+        // Edit button
+        moduleContent.querySelectorAll('button[data-edit]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const event = data.events.find(ev => ev.event_id == btn.getAttribute('data-edit'));
+            if (!event) return;
+            const form = document.getElementById('weighingForm');
+            form.event_id.value = event.event_id;
+            form.event_title.value = event.event_title;
+            form.event_description.value = event.event_description;
+            form.event_date.value = event.event_date;
+            form.event_time.value = event.event_time;
+            form.location.value = event.location;
+            form.target_audience.value = event.target_audience;
+            form.is_published_weighing.checked = event.is_published == 1;
+            document.getElementById('weighingCancelEdit').classList.remove('d-none');
+          });
+        });
+        // Cancel edit
+        document.getElementById('weighingCancelEdit').addEventListener('click', () => {
+          const form = document.getElementById('weighingForm');
+          form.reset();
+          form.event_id.value = '';
+          document.getElementById('weighingCancelEdit').classList.add('d-none');
+        });
+        // Delete button
+        moduleContent.querySelectorAll('button[data-delete]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (!confirm('Delete this weighing schedule?')) return;
+            fetch(api.weighing_schedules, {
+              method: 'DELETE',
+              headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
+              body: JSON.stringify({ event_id: btn.getAttribute('data-delete') })
+            })
+              .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+              .then(() => renderWeighingSchedulesModule(label))
+              .catch(err => alert('Error: ' + err.message));
+          });
+        });
+      })
+      .catch(err => {
+        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
+      });
+  }
+  function renderFeedingProgramsModule(label) {
+    showLoading(label);
+    fetchJSON(api.feeding_programs)
+      .then(data => {
+        moduleContent.innerHTML = `
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                  <h6 class="fw-semibold mb-3">Add / Edit Feeding Program</h6>
+                  <form id="feedingForm" class="small">
+                    <input type="hidden" name="event_id" id="feeding_event_id">
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Title</label>
+                      <input type="text" name="event_title" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Description</label>
+                      <textarea name="event_description" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Date</label>
+                      <input type="date" name="event_date" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Time</label>
+                      <input type="time" name="event_time" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Location</label>
+                      <input type="text" name="location" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small mb-1">Target Audience</label>
+                      <input type="text" name="target_audience" class="form-control form-control-sm">
+                    </div>
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" name="is_published" id="is_published" checked>
+                      <label class="form-check-label small" for="is_published">Published</label>
+                    </div>
+                    <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
+                    <div class="d-grid">
+                      <button class="btn btn-success btn-sm" type="submit">Save</button>
+                      <button class="btn btn-secondary btn-sm mt-1 d-none" type="button" id="feedingCancelEdit">Cancel Edit</button>
+                    </div>
+                    <div class="form-text text-success mt-1 d-none" id="feedingSuccess">Saved!</div>
+                    <div class="form-text text-danger mt-1 d-none" id="feedingError"></div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-8">
+              <div class="card shadow-sm border-0">
+                <div class="card-body">
+                  <h6 class="fw-semibold mb-3">Upcoming Feeding Programs</h6>
+                  <div class="table-responsive" style="max-height:430px; overflow:auto;">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                      <thead class="table-light">
+                        <tr><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Audience</th><th></th></tr>
+                      </thead>
+                      <tbody>
+                        ${data.events.map(ev=>`
+                          <tr>
+                            <td>${escapeHtml(ev.event_title)}</td>
+                            <td>${ev.event_date}</td>
+                            <td>${ev.event_time}</td>
+                            <td>${escapeHtml(ev.location||'')}</td>
+                            <td>${escapeHtml(ev.target_audience||'')}</td>
+                            <td>
+                              <button class="btn btn-sm btn-outline-primary me-1" data-edit="${ev.event_id}"><i class="bi bi-pencil"></i></button>
+                              <button class="btn btn-sm btn-outline-danger" data-delete="${ev.event_id}"><i class="bi bi-trash"></i></button>
+                            </td>
+                          </tr>`).join('')}
+                        ${data.events.length===0?'<tr><td colspan="6" class="text-center small text-muted">No feeding programs.</td></tr>':''}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+
+        // Form submit
+        document.getElementById('feedingForm').addEventListener('submit', e => {
+          e.preventDefault();
+          const form = e.target;
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+          data.is_published = form.is_published.checked ? 1 : 0;
+          fetch(api.feeding_programs, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
+            body: JSON.stringify(data)
+          })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(() => {
+              document.getElementById('feedingSuccess').classList.remove('d-none');
+              document.getElementById('feedingError').classList.add('d-none');
+              form.reset();
+              document.getElementById('feeding_event_id').value = '';
+              document.getElementById('feedingCancelEdit').classList.add('d-none');
+              renderFeedingProgramsModule(label);
+            })
+            .catch(err => {
+              const el = document.getElementById('feedingError');
+              el.textContent = err.message;
+              el.classList.remove('d-none');
+            });
+        });
+
+        // Edit button
+        moduleContent.querySelectorAll('button[data-edit]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const event = data.events.find(ev => ev.event_id == btn.getAttribute('data-edit'));
+            if (!event) return;
+            const form = document.getElementById('feedingForm');
+            form.event_id.value = event.event_id;
+            form.event_title.value = event.event_title;
+            form.event_description.value = event.event_description;
+            form.event_date.value = event.event_date;
+            form.event_time.value = event.event_time;
+            form.location.value = event.location;
+            form.target_audience.value = event.target_audience;
+            form.is_published.checked = event.is_published == 1;
+            document.getElementById('feedingCancelEdit').classList.remove('d-none');
+          });
+        });
+        // Cancel edit
+        document.getElementById('feedingCancelEdit').addEventListener('click', () => {
+          const form = document.getElementById('feedingForm');
+          form.reset();
+          form.event_id.value = '';
+          document.getElementById('feedingCancelEdit').classList.add('d-none');
+        });
+        // Delete button
+        moduleContent.querySelectorAll('button[data-delete]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (!confirm('Delete this feeding program?')) return;
+            fetch(api.feeding_programs, {
+              method: 'DELETE',
+              headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
+              body: JSON.stringify({ event_id: btn.getAttribute('data-delete') })
+            })
+              .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+              .then(() => renderFeedingProgramsModule(label))
+              .catch(err => alert('Error: ' + err.message));
+          });
+        });
+      })
+      .catch(err => {
+        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
+      });
+  }
   }
 
   function renderMothersModule(label){
@@ -622,5 +1155,6 @@ $csrf = $_SESSION['csrf_token'];
   });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- FullCalendar JS (loaded dynamically if needed) -->
 </body>
 </html>

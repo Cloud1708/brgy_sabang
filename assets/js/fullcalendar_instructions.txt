@@ -1,0 +1,4 @@
+/* FullCalendar v6.1.8 CDN links for quick integration. For production, download and serve locally if needed. */
+// Add these to your HTML <head> or before </body> in dashboard_bns.php
+// <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
+// <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
