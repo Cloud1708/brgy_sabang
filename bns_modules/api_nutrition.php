@@ -9,53 +9,59 @@ function fail($m,$c=400){ http_response_code($c); echo json_encode(['success'=>f
 $method = $_SERVER['REQUEST_METHOD'];
 $mysqli->set_charset('utf8mb4');
 
-/**
- * Provisional BMI-based classification.
- * Replace with WHO Weight-for-Length/Height standards later.
+/*
+ * PROVISIONAL AUTO CLASSIFICATION
+ * (Replace later with WHO weight-for-length / BMI-for-age standards)
+ * Using simple BMI thresholds:
+ *  <12.5  SAM
+ *  12.5–<13.0 MAM
+ *  13.0–<13.5 UW
+ *  13.5–<17.5 NOR
+ *  17.5–<19.0 OW
+ *  >=19.0 OB
  */
-function provisional_classify($weightKg, $lengthCm) {
+function provisional_classify(float $weightKg, float $lengthCm): ?string {
     if ($weightKg <= 0 || $lengthCm <= 0) return null;
     $m = $lengthCm / 100;
     if ($m <= 0) return null;
     $bmi = $weightKg / ($m*$m);
-
-    if ($bmi < 12.5)       return 'SAM';
-    if ($bmi < 13.0)       return 'MAM';
-    if ($bmi < 13.5)       return 'UW';
-    if ($bmi < 17.5)       return 'NOR';
-    if ($bmi < 19.0)       return 'OW';
+    if ($bmi < 12.5) return 'SAM';
+    if ($bmi < 13.0) return 'MAM';
+    if ($bmi < 13.5) return 'UW';
+    if ($bmi < 17.5) return 'NOR';
+    if ($bmi < 19.0) return 'OW';
     return 'OB';
 }
 
 if ($method==='GET') {
 
-    /* NEW: on-the-fly classification */
+    // Quick classification endpoint for front-end auto-fill
     if (isset($_GET['classify'])) {
-        $weight = isset($_GET['weight']) ? (float)$_GET['weight'] : 0;
-        $length = isset($_GET['length']) ? (float)$_GET['length'] : 0;
-        if ($weight <= 0 || $length <= 0) fail('Invalid weight/length');
-
-        $code = provisional_classify($weight,$length);
+        $w = isset($_GET['weight']) ? (float)$_GET['weight'] : 0;
+        $l = isset($_GET['length']) ? (float)$_GET['length'] : 0;
+        if ($w <= 0 || $l <= 0) fail('Invalid weight/length');
+        $code = provisional_classify($w,$l);
         if (!$code) echo json_encode(['success'=>true,'status'=>null]);
 
-        // Fetch mapping
-        $stmt = $mysqli->prepare("SELECT status_id, status_description FROM wfl_ht_status_types WHERE status_code=? LIMIT 1");
+        $stmt = $mysqli->prepare("SELECT status_id,status_description FROM wfl_ht_status_types WHERE status_code=? LIMIT 1");
         $stmt->bind_param('s',$code);
         $stmt->execute();
         $stmt->bind_result($sid,$sdesc);
         if ($stmt->fetch()) {
+            $bmi = $w / pow($l/100,2);
             echo json_encode([
                 'success'=>true,
                 'status_code'=>$code,
                 'status_id'=>$sid,
                 'status_description'=>$sdesc,
-                'bmi'=>round($weight / pow($length/100,2),2)
+                'bmi'=>round($bmi,2)
             ]);
             $stmt->close();
             exit;
         }
         $stmt->close();
-        echo json_encode(['success'=>true,'status_code'=>$code,'status_id'=>null,'status_description'=>null]); exit;
+        echo json_encode(['success'=>true,'status_code'=>$code,'status_id'=>null,'status_description'=>null]);
+        exit;
     }
 
     if (isset($_GET['recent'])) {
@@ -98,10 +104,10 @@ if ($method==='GET') {
         echo json_encode(['success'=>true,'summary'=>$rows]); exit;
     }
 
+    // Combined (consolidated table) dataset (optional – only used if you added it)
     if (isset($_GET['combined'])) {
         $date = $_GET['date'] ?? date('Y-m-d');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/',$date)) $date = date('Y-m-d');
-
         $sql = "
           SELECT c.child_id,
                  c.full_name AS child_name,
@@ -133,11 +139,7 @@ if ($method==='GET') {
         $rows=[];
         while($r=$res->fetch_assoc()) $rows[]=$r;
         $stmt->close();
-        echo json_encode([
-          'success'=>true,
-          'request_date'=>$date,
-          'children'=>$rows
-        ]);
+        echo json_encode(['success'=>true,'request_date'=>$date,'children'=>$rows]);
         exit;
     }
 
@@ -145,21 +147,26 @@ if ($method==='GET') {
 }
 
 if ($method==='POST') {
+
+    // BULK (from consolidated sheet) JSON upsert
     $raw = file_get_contents('php://input');
-    $isJson = strlen(trim($raw)) && (str_starts_with(trim($raw),'[') || str_contains($raw,'"bulk"'));
+    $maybeJson = trim($raw);
+    $isBulk = $maybeJson !== '' && (str_starts_with($maybeJson,'{') || str_starts_with($maybeJson,'[')) && strpos($maybeJson,'"bulk"') !== false;
 
-    if ($isJson) {
-        $data = json_decode($raw,true);
-        if (!is_array($data)) fail('Invalid JSON');
-        $records = isset($data['bulk']) && is_array($data['bulk']) ? $data['bulk'] : (is_array($data)?$data:[]);
-        if (empty($records)) fail('No payload');
-
+    if ($isBulk) {
+        $payload = json_decode($raw,true);
+        if (!is_array($payload)) fail('Invalid JSON');
+        $records = isset($payload['bulk']) && is_array($payload['bulk']) ? $payload['bulk'] : [];
+        if (!$records) fail('No payload');
         $hdr = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
         if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'],$hdr)) {
             fail('CSRF failed',419);
         }
 
-        $inserted=0; $updated=0; $saved=0;
+        // Pre-map status codes
+        $map=[]; $rs=$mysqli->query("SELECT status_id,status_code FROM wfl_ht_status_types");
+        while($x=$rs->fetch_assoc()) $map[$x['status_code']]=$x['status_id'];
+
         $stmtAge = $mysqli->prepare("SELECT TIMESTAMPDIFF(MONTH,birth_date,?) FROM children WHERE child_id=? LIMIT 1");
         $ins = $mysqli->prepare("
           INSERT INTO nutrition_records
@@ -175,33 +182,28 @@ if ($method==='POST') {
         ");
         if(!$stmtAge || !$ins) fail('Prepare failed');
 
-        // Preload status code -> id map
-        $map=[]; $rs=$mysqli->query("SELECT status_id,status_code FROM wfl_ht_status_types");
-        while($x=$rs->fetch_assoc()) $map[$x['status_code']]=$x['status_id'];
-
+        $saved=$inserted=$updated=0;
         foreach($records as $r){
-            $child_id = (int)($r['child_id'] ?? 0);
+            $cid = (int)($r['child_id'] ?? 0);
             $date = $r['weighing_date'] ?? '';
-            if ($child_id<=0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$date)) continue;
+            if ($cid<=0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$date)) continue;
 
-            $weight = isset($r['weight_kg']) && $r['weight_kg']!=='' ? (float)$r['weight_kg'] : null;
-            $length = isset($r['length_height_cm']) && $r['length_height_cm']!=='' ? (float)$r['length_height_cm'] : null;
+            $w = isset($r['weight_kg']) && $r['weight_kg']!=='' ? (float)$r['weight_kg'] : null;
+            $l = isset($r['length_height_cm']) && $r['length_height_cm']!=='' ? (float)$r['length_height_cm'] : null;
 
-            // Auto classify if status not explicitly provided
+            // Auto classify if not supplied
             $status_id = null;
             if (isset($r['wfl_ht_status_id']) && $r['wfl_ht_status_id']!=='') {
                 $status_id = (int)$r['wfl_ht_status_id'];
-            } else {
-                if ($weight && $length) {
-                    $code = provisional_classify($weight,$length);
-                    if ($code && isset($map[$code])) $status_id = $map[$code];
-                }
+            } elseif ($w && $l) {
+                $code = provisional_classify($w,$l);
+                if ($code && isset($map[$code])) $status_id = $map[$code];
             }
 
-            $remarks = ''; // reserved
-            $recorded_by = (int)($_SESSION['user_id'] ?? 0);
+            $remarks = ''; // optional field for bulk mode
+            $rec_by = (int)($_SESSION['user_id'] ?? 0);
 
-            $stmtAge->bind_param('si',$date,$child_id);
+            $stmtAge->bind_param('si',$date,$cid);
             $stmtAge->execute();
             $stmtAge->bind_result($age_mo);
             if(!$stmtAge->fetch()){ $stmtAge->free_result(); continue; }
@@ -209,14 +211,7 @@ if ($method==='POST') {
 
             $ins->bind_param(
                 'isiddisi',
-                $child_id,
-                $date,
-                $age_mo,
-                $weight,
-                $length,
-                $status_id,
-                $remarks,
-                $recorded_by
+                $cid,$date,$age_mo,$w,$l,$status_id,$remarks,$rec_by
             );
             if($ins->execute()){
                 $saved++;
@@ -224,11 +219,11 @@ if ($method==='POST') {
                 elseif ($ins->affected_rows === 2) $updated++;
             }
         }
-        $stmtAge->close();
-        $ins->close();
+        $stmtAge->close(); $ins->close();
         echo json_encode(['success'=>true,'saved'=>$saved,'inserted'=>$inserted,'updated'=>$updated]); exit;
     }
 
+    // Single form submission (auto classify if status not provided)
     if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) ||
         !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         fail('CSRF failed',419);
@@ -243,7 +238,6 @@ if ($method==='POST') {
 
     if ($child_id<=0 || !$weighing_date) fail('Missing required fields');
 
-    // Auto classify if not provided
     if (!$status_id && $weight && $length) {
         $code = provisional_classify($weight,$length);
         if ($code) {
@@ -282,7 +276,12 @@ if ($method==='POST') {
     }
     $id = $stmt->insert_id;
     $stmt->close();
-    echo json_encode(['success'=>true,'record_id'=>$id,'age_in_months'=>$age_months,'auto_status_id'=>$status_id]); exit;
+    echo json_encode([
+        'success'=>true,
+        'record_id'=>$id,
+        'age_in_months'=>$age_months,
+        'auto_status_id'=>$status_id
+    ]); exit;
 }
 
 fail('Method not allowed',405);
