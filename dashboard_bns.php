@@ -21,187 +21,71 @@ $csrf = $_SESSION['csrf_token'];
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
 <style>
-  html, body {
-    height:100%;
-    overflow:hidden; /* Prevent body scroll */
-  }
-  body.dashboard-body {
-    background:#f4f7f4;
-  }
-  .layout-wrapper {
-    display:flex;
-    height:100vh; /* Lock full viewport height */
-    width:100%;
-  }
+  html, body { height:100%; overflow:hidden; }
+  body.dashboard-body { background:#f4f7f4; }
+  .layout-wrapper { display:flex; height:100vh; width:100%; overflow:hidden; }
   .sidebar {
-    width:270px;
-    flex:0 0 270px;
-    background:#0b3d23;
-    color:#fff;
-    display:flex;
-    flex-direction:column;
-    overflow-y:auto;          /* Sidebar scroll only */
-    overflow-x:hidden;
-    scrollbar-width:thin;
-    scrollbar-color:#1fae63 #0b3d23;
-    position:relative;
+    width:270px; flex:0 0 270px; background:#0b3d23; color:#fff;
+    display:flex; flex-direction:column;
+    overflow-y:auto; overflow-x:hidden;
+    scrollbar-width:thin; scrollbar-color:#28c76f #0b3d23;
   }
-  .sidebar::-webkit-scrollbar {
-    width:7px;
-  }
-  .sidebar::-webkit-scrollbar-track {
-    background:#0b3d23;
-  }
-  .sidebar::-webkit-scrollbar-thumb {
-    background:#1fae63aa;
-    border-radius:4px;
-  }
-  .sidebar::-webkit-scrollbar-thumb:hover {
-    background:#25c775;
-  }
-
-  /* Fading hint at bottom when scrollable */
+  .sidebar::-webkit-scrollbar { width:7px; }
+  .sidebar::-webkit-scrollbar-track { background:#0b3d23; }
+  .sidebar::-webkit-scrollbar-thumb { background:#28c76faa; border-radius:4px; }
+  .sidebar::-webkit-scrollbar-thumb:hover { background:#2fe57f; }
   .sidebar::after {
-    content:'';
-    position:sticky;
-    bottom:0;
-    left:0;
-    right:0;
-    height:22px;
+    content:''; position:sticky; bottom:0; left:0; right:0; height:22px;
+    background:linear-gradient(to bottom, rgba(11,61,35,0), rgba(11,61,35,.9));
     pointer-events:none;
-    background:linear-gradient(to bottom, rgba(11,61,35,0), rgba(11,61,35,0.85));
   }
-
   .sidebar .brand {
-    padding:1.05rem 1.15rem;
-    font-weight:600;
-    font-size:.95rem;
-    display:flex;
-    gap:.75rem;
-    align-items:flex-start;
-    line-height:1.2;
-    background:rgba(255,255,255,.08);
+    padding:1.05rem 1.15rem; font-weight:600; font-size:.95rem;
+    display:flex; gap:.75rem; align-items:flex-start; background:rgba(255,255,255,.08); line-height:1.2;
   }
   .brand .emoji { font-size:1.45rem; line-height:1; }
   .brand small { font-weight:400; opacity:.85; display:block; font-size:.65rem; margin-top:.15rem; }
-
-  .menu-section-title {
-    font-size:.60rem;
-    letter-spacing:.09em;
-    text-transform:uppercase;
-    opacity:.55;
-    padding:.75rem 1.1rem .4rem;
-    font-weight:600;
-    flex-shrink:0;
-  }
-  .nav-menu {
-    list-style:none;
-    margin:0;
-    padding:0 .3rem .75rem;
-  }
+  .menu-section-title { font-size:.60rem; letter-spacing:.09em; text-transform:uppercase; opacity:.55; padding:.75rem 1.1rem .4rem; font-weight:600; flex-shrink:0; }
+  .nav-menu { list-style:none; margin:0; padding:0 .3rem 1rem; }
   .nav-menu li a {
-    display:flex;
-    align-items:center;
-    gap:.6rem;
-    padding:.50rem .95rem;
-    font-size:.79rem;
-    color:#e3efe8;
-    border-left:3px solid transparent;
-    text-decoration:none;
-    border-radius:.3rem;
-    transition:.12s background,.12s color;
+    display:flex; align-items:center; gap:.6rem; padding:.50rem .95rem;
+    font-size:.79rem; color:#e3efe8; border-left:3px solid transparent;
+    text-decoration:none; border-radius:.3rem; transition:.12s background,.12s color;
   }
   .nav-menu li a .bi { font-size:.95rem; opacity:.85; }
   .nav-menu li a:hover { background:rgba(255,255,255,.10); color:#fff; }
   .nav-menu li a.active {
     background:linear-gradient(90deg,#1fae6333,#1fae6014);
-    border-left-color:#28c76f;
-    color:#fff;
-    font-weight:600;
+    border-left-color:#28c76f; color:#fff; font-weight:600;
   }
-
-  .sidebar-footer {
-    margin-top:auto;
-    padding:.75rem 1rem .95rem;
-    font-size:.63rem;
-    opacity:.55;
-    flex-shrink:0;
-  }
-
-  .content-area {
-    flex:1;
-    min-width:0;
-    display:flex;
-    flex-direction:column;
-    overflow:hidden; /* Prevent main scroll */
-    position:relative;
-  }
-  .topbar {
-    background:#ffffff;
-    border-bottom:1px solid #dfe7dd;
-    padding:.55rem 1.2rem;
-    display:flex;
-    align-items:center;
-    gap:1rem;
-    flex-shrink:0;
-  }
-  main {
-    flex:1;
-    overflow:hidden; /* Keep static; set to auto if you later want content scroll */
-    display:flex;
-    flex-direction:column;
-  }
-  #moduleContent {
-    flex:1;
-    overflow:auto; /* If you prefer even this NOT to scroll, change to hidden */
-  }
-
+  .sidebar-footer { margin-top:auto; padding:.75rem 1rem .95rem; font-size:.63rem; opacity:.55; flex-shrink:0; }
+  .content-area { flex:1; min-width:0; display:flex; flex-direction:column; background:#f4f7f4; overflow:hidden; }
+  .topbar { background:#ffffff; border-bottom:1px solid #dfe7dd; padding:.55rem 1.2rem; display:flex; align-items:center; gap:1rem; flex-shrink:0; }
   .page-title { font-size:.92rem; font-weight:600; margin:0; color:#114d2c; }
-  .badge-role { background:#28c76f; }
-
+  main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  #moduleContent { flex:1; overflow:hidden; }
   .loading-state { padding:2.7rem 1.5rem; text-align:center; color:#6c757d; }
-  .module-hint {
-    font-size:.7rem;
-    background:#fff;
-    border:1px dashed #b7d5c1;
-    padding:.6rem .75rem;
-    border-radius:.4rem;
-    margin-bottom:1.25rem;
-    color:#285f3c;
-  }
+  .module-hint { font-size:.7rem; background:#fff; border:1px dashed #b7d5c1; padding:.6rem .75rem; border-radius:.4rem; margin-bottom:1.25rem; color:#285f3c; }
+  .form-text { font-size:.65rem; }
   .status-badge { font-size:.6rem; }
-
-  .mobile-backdrop-close {
-    position:absolute;
-    top:.55rem;
-    right:.55rem;
-    border:none;
-    background:transparent;
-    color:#fff;
-    font-size:1.25rem;
-    display:none;
-  }
+  .auto-status-box { background:#f8f9fa; border:1px dashed #b7c9b9; padding:.45rem .6rem; border-radius:.35rem; font-size:.7rem; min-height:38px; display:flex; flex-direction:column; justify-content:center; }
+  .auto-status-code { font-weight:600; font-size:.75rem; }
+  .auto-status-desc { font-size:.6rem; color:#55695a; }
+  .auto-status-loading { font-size:.6rem; color:#888; }
+  .mobile-backdrop-close { position:absolute; top:.55rem; right:.55rem; border:none; background:transparent; color:#fff; font-size:1.25rem; display:none; }
   .sidebar.show .mobile-backdrop-close { display:block; }
-
   @media (max-width: 991.98px) {
-    html,body { overflow:hidden; }
+    html, body { overflow:hidden; }
     .sidebar {
-      position:fixed;
-      z-index:1045;
-      transform:translateX(-100%);
-      transition:.33s cubic-bezier(.4,.0,.2,1);
-      height:100vh;
-      top:0;
-      left:0;
+      position:fixed; z-index:1045; transform:translateX(-100%);
+      transition:.33s cubic-bezier(.4,.0,.2,1); top:0; left:0; bottom:0;
       box-shadow:0 0 0 400vmax rgba(0,0,0,0);
     }
-    .sidebar.show {
-      transform:translateX(0);
-      box-shadow:0 0 0 400vmax rgba(0,0,0,.35);
-    }
+    .sidebar.show { transform:translateX(0); box-shadow:0 0 0 400vmax rgba(0,0,0,.35); }
     .topbar { position:fixed; top:0; left:0; right:0; z-index:1020; }
     .content-area { padding-top:54px; }
   }
+  .badge-role { background:#28c76f; }
 </style>
 </head>
 <body class="dashboard-body">
@@ -232,6 +116,7 @@ $csrf = $_SESSION['csrf_token'];
       <li><a href="#" data-module="mothers_caregivers" data-label="Mother/Caregiver Details"><i class="bi bi-person-hearts"></i><span>Mother/Caregiver Details</span></a></li>
       <li><a href="#" data-module="child_profiles" data-label="Child Information"><i class="bi bi-people"></i><span>Child Information</span></a></li>
       <li><a href="#" data-module="weighing_sessions" data-label="Weighing Sessions"><i class="bi bi-clipboard2-data"></i><span>Weighing Sessions</span></a></li>
+      <!-- REMOVED: WFL / Height Status menu item -->
       <li><a href="#" data-module="nutrition_classification" data-label="Nutrition Classification"><i class="bi bi-tags"></i><span>Nutrition Classification</span></a></li>
     </ul>
 
@@ -298,14 +183,8 @@ $csrf = $_SESSION['csrf_token'];
   };
 
   function fetchJSON(url, options = {}) {
-    options.headers = Object.assign({
-      'X-Requested-With':'fetch',
-      'X-CSRF-Token': window.__BNS_CSRF
-    }, options.headers || {});
-    return fetch(url, options).then(r=>{
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      return r.json();
-    });
+    options.headers = Object.assign({'X-Requested-With':'fetch','X-CSRF-Token': window.__BNS_CSRF}, options.headers || {});
+    return fetch(url, options).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
   }
 
   function setActive(link){
@@ -327,18 +206,11 @@ $csrf = $_SESSION['csrf_token'];
       mothers_caregivers: renderMothersModule,
       child_profiles: renderChildrenModule,
       weighing_sessions: renderWeighingModule,
+      wfl_status: renderWflStatusModule, /* kept (no menu link now) */
       nutrition_classification: renderNutritionClassificationModule
     };
-    if (handlers[mod]) {
-      handlers[mod](label);
-    } else {
-      moduleContent.innerHTML = `<div class="card border-0 shadow-sm">
-        <div class="card-body small">
-          <h5 class="mb-2">${label}</h5>
-          <p>Placeholder module (walang implementation pa).</p>
-        </div>
-      </div>`;
-    }
+    if (handlers[mod]) handlers[mod](label);
+    else moduleContent.innerHTML = `<div class="card border-0 shadow-sm"><div class="card-body small"><h5 class="mb-2">${label}</h5><p>Placeholder module (walang implementation pa).</p></div></div>`;
   }
 
   function renderMothersModule(label){
@@ -360,7 +232,7 @@ $csrf = $_SESSION['csrf_token'];
                     <div class="mb-2">
                       <label class="form-label small mb-1">Purok (manual input)</label>
                       <input type="text" name="purok_name" class="form-control form-control-sm" required placeholder="Hal: Purok 1 / Riverside">
-                      <div class="form-text">I-type lang ang pangalan. Kung bago ito, auto-add sa list.</div>
+                      <div class="form-text">I-type lang ang pangalan. Kung bago ito, auto-add.</div>
                     </div>
                     <div class="mb-2">
                       <label class="form-label small mb-1">Address Details</label>
@@ -387,9 +259,7 @@ $csrf = $_SESSION['csrf_token'];
                   <div class="table-responsive" style="max-height:430px; overflow:auto;">
                     <table class="table table-sm table-hover align-middle mb-0">
                       <thead class="table-light">
-                        <tr>
-                          <th>Name</th><th>Purok</th><th>Contact</th><th>Children</th><th>Created</th>
-                        </tr>
+                        <tr><th>Name</th><th>Purok</th><th>Contact</th><th>Children</th><th>Created</th></tr>
                       </thead>
                       <tbody>
                         ${data.mothers.map(m=>`
@@ -399,8 +269,7 @@ $csrf = $_SESSION['csrf_token'];
                             <td>${escapeHtml(m.contact_number||'')}</td>
                             <td>${m.children_count}</td>
                             <td><small>${m.created_at}</small></td>
-                          </tr>
-                        `).join('')}
+                          </tr>`).join('')}
                         ${data.mothers.length===0?'<tr><td colspan="5" class="text-center small text-muted">No records.</td></tr>':''}
                       </tbody>
                     </table>
@@ -412,7 +281,7 @@ $csrf = $_SESSION['csrf_token'];
         document.getElementById('motherForm').addEventListener('submit', e=>{
           e.preventDefault();
           const fd = new FormData(e.target);
-          fetch(api.mothers,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}})
+            fetch(api.mothers,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}})
             .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
             .then(()=>{
               document.getElementById('motherSuccess').classList.remove('d-none');
@@ -421,9 +290,9 @@ $csrf = $_SESSION['csrf_token'];
               renderMothersModule(label);
             })
             .catch(err=>{
-              const errEl = document.getElementById('motherError');
-              errEl.textContent = err.message;
-              errEl.classList.remove('d-none');
+              const el=document.getElementById('motherError');
+              el.textContent=err.message;
+              el.classList.remove('d-none');
             });
         });
       })
@@ -485,11 +354,9 @@ $csrf = $_SESSION['csrf_token'];
                 <div class="table-responsive" style="max-height:430px; overflow:auto;">
                   <table class="table table-sm table-hover mb-0">
                     <thead class="table-light">
-                      <tr>
-                        <th>Name</th><th>Sex</th><th>Birth Date</th><th>Age (mo)</th><th>Mother</th><th>Last Weigh</th>
-                      </tr>
+                      <tr><th>Name</th><th>Sex</th><th>Birth Date</th><th>Age (mo)</th><th>Mother</th><th>Last Weigh</th></tr>
                     </thead>
-                    <tbody id="childRows">
+                    <tbody>
                       ${data.children.map(c=>`
                         <tr>
                           <td>${escapeHtml(c.full_name)}</td>
@@ -498,8 +365,7 @@ $csrf = $_SESSION['csrf_token'];
                           <td>${c.age_months}</td>
                           <td>${escapeHtml(c.mother_name||'')}</td>
                           <td><small>${c.last_weighing_date||'<span class="text-muted">—</span>'}</small></td>
-                        </tr>
-                      `).join('')}
+                        </tr>`).join('')}
                       ${data.children.length===0?'<tr><td colspan="6" class="text-center small text-muted">No children yet.</td></tr>':''}
                     </tbody>
                   </table>
@@ -519,8 +385,8 @@ $csrf = $_SESSION['csrf_token'];
             renderChildrenModule(label);
           })
           .catch(err=>{
-            const el = document.getElementById('childError');
-            el.textContent = err.message;
+            const el=document.getElementById('childError');
+            el.textContent=err.message;
             el.classList.remove('d-none');
           });
       });
@@ -555,28 +421,36 @@ $csrf = $_SESSION['csrf_token'];
                     <input type="date" name="weighing_date" class="form-control form-control-sm" required value="<?= date('Y-m-d'); ?>">
                   </div>
                   <div class="mb-2">
-                    <label class="form-label small mb-1">Weight (kg)</label>
-                    <input type="number" step="0.01" min="0" name="weight_kg" class="form-control form-control-sm" required>
+                    <label class="form-label small mb-1 d-flex justify-content-between">
+                      <span>Weight (kg)</span>
+                      <span class="text-muted fw-normal" style="font-size:.6rem">Auto classify below</span>
+                    </label>
+                    <input type="number" step="0.01" min="0" name="weight_kg" id="weightInput" class="form-control form-control-sm" required>
                   </div>
                   <div class="mb-2">
                     <label class="form-label small mb-1">Length/Height (cm)</label>
-                    <input type="number" step="0.1" min="0" name="length_height_cm" class="form-control form-control-sm" required>
+                    <input type="number" step="0.1" min="0" name="length_height_cm" id="lengthInput" class="form-control form-control-sm" required>
+                  </div>
+                  <input type="hidden" name="wfl_ht_status_id" id="wflStatusHidden">
+                  <div class="mb-2">
+                    <label class="form-label small mb-1">Auto WFL / HT Status</label>
+                    <div class="auto-status-box" id="autoStatusBox">
+                      <span class="text-muted">Maglagay ng Weight at Height para ma-compute.</span>
+                    </div>
                   </div>
                   <div class="mb-2">
                     <label class="form-label small mb-1">Remarks</label>
                     <textarea name="remarks" class="form-control form-control-sm" rows="2"></textarea>
                   </div>
                   <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
-                  <div class="d-grid">
-                    <button class="btn btn-success btn-sm" type="submit">Save Record</button>
-                  </div>
+                  <div class="d-grid"><button class="btn btn-success btn-sm" type="submit">Save Record</button></div>
                   <div class="form-text text-success mt-1 d-none" id="weighSuccess">Saved!</div>
                   <div class="form-text text-danger mt-1 d-none" id="weighError"></div>
                 </form>
               </div>
             </div>
             <div class="alert alert-info small mb-0">
-              Age in months auto-computed server-side.
+              Age in months auto-computed server-side. Status = provisional BMI mapping (placeholder).
             </div>
           </div>
           <div class="col-lg-8">
@@ -586,9 +460,7 @@ $csrf = $_SESSION['csrf_token'];
                 <div class="table-responsive" style="max-height:470px; overflow:auto;">
                   <table class="table table-sm table-hover mb-0">
                     <thead class="table-light">
-                      <tr>
-                        <th>Date</th><th>Child</th><th>Age (mo)</th><th>Wt (kg)</th><th>Ht (cm)</th><th>Status</th><th>Remarks</th>
-                      </tr>
+                      <tr><th>Date</th><th>Child</th><th>Age (mo)</th><th>Wt (kg)</th><th>Ht (cm)</th><th>Status</th><th>Remarks</th></tr>
                     </thead>
                     <tbody id="weighRows">
                       ${records.records.map(r=>`
@@ -600,8 +472,7 @@ $csrf = $_SESSION['csrf_token'];
                           <td>${r.length_height_cm ?? ''}</td>
                           <td>${r.status_code ? `<span class="badge bg-secondary-subtle border text-dark status-badge">${r.status_code}</span>` : '<span class="text-muted">—</span>'}</td>
                           <td><small>${r.remarks?escapeHtml(r.remarks):''}</small></td>
-                        </tr>
-                      `).join('')}
+                        </tr>`).join('')}
                       ${records.records.length===0?'<tr><td colspan="7" class="text-center small text-muted">No records.</td></tr>':''}
                     </tbody>
                   </table>
@@ -610,6 +481,47 @@ $csrf = $_SESSION['csrf_token'];
             </div>
           </div>
         </div>`;
+
+      const weightEl = document.getElementById('weightInput');
+      const lengthEl = document.getElementById('lengthInput');
+      const statusHidden = document.getElementById('wflStatusHidden');
+      const statusBox = document.getElementById('autoStatusBox');
+      let classifyTimer = null;
+
+      function classify() {
+        const w = parseFloat(weightEl.value);
+        const l = parseFloat(lengthEl.value);
+        statusHidden.value = '';
+        statusBox.innerHTML = `<span class="auto-status-loading">Computing…</span>`;
+        if(!w || !l){
+          statusBox.innerHTML = `<span class="text-muted">Maglagay ng Weight at Height para ma-compute.</span>`;
+          return;
+        }
+        fetchJSON(api.nutrition+`?classify=1&weight=${encodeURIComponent(w)}&length=${encodeURIComponent(l)}`)
+          .then(res=>{
+            if(res && res.status_id){
+              statusHidden.value = res.status_id;
+              statusBox.innerHTML = `
+                <span class="auto-status-code">${escapeHtml(res.status_code)}</span>
+                <span class="auto-status-desc">${escapeHtml(res.status_description||'')}</span>
+                <span class="text-muted" style="font-size:.55rem">BMI: ${res.bmi ?? ''}</span>`;
+            } else if (res && res.status_code){
+              statusBox.innerHTML = `<span class="auto-status-code">${escapeHtml(res.status_code)}</span>
+                <span class="auto-status-desc text-warning">Status code not in DB list.</span>`;
+            } else {
+              statusBox.innerHTML = `<span class="text-muted">Walang classification.</span>`;
+            }
+          })
+          .catch(()=> statusBox.innerHTML = `<span class="text-danger" style="font-size:.6rem">Error computing.</span>`);
+      }
+
+      [weightEl,lengthEl].forEach(inp=>{
+        inp.addEventListener('input', ()=>{
+          if (classifyTimer) clearTimeout(classifyTimer);
+          classifyTimer = setTimeout(classify, 500);
+        });
+      });
+
       document.getElementById('weighForm').addEventListener('submit', e=>{
         e.preventDefault();
         const fd = new FormData(e.target);
@@ -618,14 +530,39 @@ $csrf = $_SESSION['csrf_token'];
             document.getElementById('weighSuccess').classList.remove('d-none');
             document.getElementById('weighError').classList.add('d-none');
             e.target.reset();
+            statusHidden.value='';
+            statusBox.innerHTML = `<span class="text-muted">Maglagay ng Weight at Height para ma-compute.</span>`;
             renderWeighingModule(label);
           })
           .catch(err=>{
-            const el = document.getElementById('weighError');
-            el.textContent = err.message;
+            const el=document.getElementById('weighError');
+            el.textContent=err.message;
             el.classList.remove('d-none');
           });
       });
+    }).catch(err=>{
+      moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
+    });
+  }
+
+  function renderWflStatusModule(label){
+    showLoading(label);
+    fetchJSON(api.wfl).then(data=>{
+      moduleContent.innerHTML = `
+        <div class="card border-0 shadow-sm"><div class="card-body small">
+          <h6 class="fw-semibold mb-3">${label}</h6>
+          <div class="row">
+            ${data.status_types.map(s=>`
+              <div class="col-md-4 mb-3">
+                <div class="p-2 bg-white border rounded h-100">
+                  <div class="fw-semibold">${s.status_code}</div>
+                  <div class="text-muted">${escapeHtml(s.status_description)}</div>
+                  <div><span class="badge bg-light text-dark mt-1">${s.status_category}</span></div>
+                </div>
+              </div>`).join('')}
+            ${data.status_types.length===0?'<div class="col-12 text-muted">No status types.</div>':''}
+          </div>
+        </div></div>`;
     }).catch(err=>{
       moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
     });
@@ -636,24 +573,21 @@ $csrf = $_SESSION['csrf_token'];
     fetchJSON(api.nutrition+'?classification_summary=1')
       .then(data=>{
         moduleContent.innerHTML = `
-          <div class="card border-0 shadow-sm">
-            <div class="card-body small">
-              <h6 class="fw-semibold mb-3">${label}</h6>
-              <p class="text-muted mb-2">Latest status per child distribution (based on most recent nutrition record).</p>
-              <div class="row g-3">
-                ${data.summary.map(s=>`
-                  <div class="col-sm-6 col-md-4 col-lg-3">
-                    <div class="p-3 bg-white border rounded h-100">
-                      <div class="fw-semibold">${escapeHtml(s.status_code||'UNSET')}</div>
-                      <div class="text-muted">${escapeHtml(s.status_description||'No status')}</div>
-                      <div class="display-6 fw-semibold mt-2">${s.child_count}</div>
-                    </div>
+          <div class="card border-0 shadow-sm"><div class="card-body small">
+            <h6 class="fw-semibold mb-3">${label}</h6>
+            <p class="text-muted mb-2">Latest status per child distribution (most recent record).</p>
+            <div class="row g-3">
+              ${data.summary.map(s=>`
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                  <div class="p-3 bg-white border rounded h-100">
+                    <div class="fw-semibold">${escapeHtml(s.status_code||'UNSET')}</div>
+                    <div class="text-muted">${escapeHtml(s.status_description||'No status')}</div>
+                    <div class="display-6 fw-semibold mt-2">${s.child_count}</div>
                   </div>
-                `).join('')}
-                ${data.summary.length===0?'<div class="col-12 text-muted">No data.</div>':''}
-              </div>
+                </div>`).join('')}
+              ${data.summary.length===0?'<div class="col-12 text-muted">No data.</div>':''}
             </div>
-          </div>`;
+          </div></div>`;
       })
       .catch(err=>{
         moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
@@ -663,10 +597,8 @@ $csrf = $_SESSION['csrf_token'];
   function escapeHtml(str){
     if(str===undefined || str===null) return '';
     return str.toString()
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
       .replace(/'/g,'&#39;');
   }
 
@@ -675,9 +607,7 @@ $csrf = $_SESSION['csrf_token'];
       e.preventDefault();
       setActive(a);
       loadModule(a.dataset.module, a.dataset.label);
-      if (window.innerWidth < 992) {
-        document.getElementById('sidebar').classList.remove('show');
-      }
+      if (window.innerWidth < 992) document.getElementById('sidebar').classList.remove('show');
     });
   });
 
