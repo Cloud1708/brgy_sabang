@@ -362,7 +362,7 @@ $csrf = $_SESSION['csrf_token'];
                           <td>${escapeHtml(c.full_name)}</td>
                           <td class="text-capitalize">${c.sex}</td>
                           <td><small>${c.birth_date}</small></td>
-                          <td>${c.age_months}</td>
+                          <td>${c.age_months > 59 ? '<span style="color:red;font-weight:bold">OA</span>' : c.age_months}</td>
                           <td>${escapeHtml(c.mother_name||'')}</td>
                           <td><small>${c.last_weighing_date||'<span class="text-muted">—</span>'}</small></td>
                         </tr>`).join('')}

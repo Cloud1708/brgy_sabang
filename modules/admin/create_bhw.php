@@ -22,7 +22,7 @@ $csrf = $_SESSION['csrf_token'] ?? '';
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-semibold">Barangay</label>
-          <input type="text" name="barangay" class="form-control form-control-sm" placeholder="Sabang" required>
+          <input type="text" name="barangay" class="form-control form-control-sm" value="Sabang" readonly required>
         </div>
         <div class="col-md-4">
           <label class="form-label small fw-semibold">Username</label>
