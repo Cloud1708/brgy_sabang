@@ -9,7 +9,6 @@ header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors','0');
 error_reporting(E_ALL);
 
-/* Uniform JSON-only error output */
 set_error_handler(function($sev,$msg,$file,$line){
     http_response_code(500);
     echo json_encode([
@@ -39,6 +38,50 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 /* =================== GET =================== */
 if ($method === 'GET') {
+
+    // Global list of all health records (now includes LMP & EDD)
+    if (isset($_GET['all'])) {
+        $limit = isset($_GET['limit']) ? max(1,min(1000,(int)$_GET['limit'])) : 500;
+
+        $rows=[];
+        $sql = "
+          SELECT hr.health_record_id,
+                 hr.mother_id,
+                 m.full_name,
+                 hr.consultation_date,
+                 hr.last_menstruation_date,
+                 hr.expected_delivery_date,
+                 hr.pregnancy_age_weeks,
+                 hr.age,
+                 hr.height_cm,
+                 hr.weight_kg,
+                 hr.blood_pressure_systolic,
+                 hr.blood_pressure_diastolic,
+                 (hr.vaginal_bleeding + hr.urinary_infection + hr.high_blood_pressure +
+                  hr.fever_38_celsius + hr.pallor + hr.abnormal_abdominal_size +
+                  hr.abnormal_presentation + hr.absent_fetal_heartbeat + hr.swelling +
+                  hr.vaginal_infection) AS risk_score,
+                 hr.vaginal_bleeding, hr.urinary_infection, hr.high_blood_pressure,
+                 hr.fever_38_celsius, hr.pallor, hr.abnormal_abdominal_size,
+                 hr.abnormal_presentation, hr.absent_fetal_heartbeat, hr.swelling,
+                 hr.vaginal_infection,
+                 hr.hgb_result, hr.urine_result, hr.vdrl_result, hr.other_lab_results,
+                 hr.created_at
+          FROM health_records hr
+          JOIN mothers_caregivers m ON m.mother_id = hr.mother_id
+          ORDER BY hr.consultation_date DESC, hr.health_record_id DESC
+          LIMIT ?
+        ";
+        $stmt=$mysqli->prepare($sql);
+        if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
+        $stmt->bind_param('i',$limit);
+        $stmt->execute();
+        $res=$stmt->get_result();
+        while($r=$res->fetch_assoc()) $rows[]=$r;
+        $stmt->close();
+        echo json_encode(['success'=>true,'records'=>$rows,'count'=>count($rows)]);
+        exit;
+    }
 
     // Consultation history per mother
     if (isset($_GET['list']) && isset($_GET['mother_id'])) {
@@ -109,6 +152,30 @@ if ($method === 'GET') {
         exit;
     }
 
+    // Recent consultations (global latest)
+    if (isset($_GET['recent_consults'])) {
+        $limit = isset($_GET['limit']) ? max(1,min(50,(int)$_GET['limit'])) : 20;
+        $rows=[];
+        $stmt = $mysqli->prepare("
+          SELECT hr.health_record_id, hr.consultation_date, m.full_name,
+                 hr.pregnancy_age_weeks,
+                 hr.high_blood_pressure, hr.vaginal_bleeding, hr.fever_38_celsius,
+                 hr.swelling, hr.urinary_infection
+          FROM health_records hr
+          JOIN mothers_caregivers m ON m.mother_id=hr.mother_id
+          ORDER BY hr.consultation_date DESC, hr.health_record_id DESC
+          LIMIT ?
+        ");
+        if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
+        $stmt->bind_param('i',$limit);
+        $stmt->execute();
+        $res=$stmt->get_result();
+        while($r=$res->fetch_assoc()) $rows[]=$r;
+        $stmt->close();
+        echo json_encode(['success'=>true,'recent_consults'=>$rows]);
+        exit;
+    }
+
     fail('Unknown GET action',404);
 }
 
@@ -124,7 +191,6 @@ if ($method === 'POST') {
     $consultation_date = $_POST['consultation_date'] ?? '';
     if ($mother_id <= 0 || !$consultation_date) fail('mother_id at consultation_date ay required.');
 
-    // Nullable numeric / date fields
     $age         = ($_POST['age'] !== '' ? (int)$_POST['age'] : null);
     $height_cm   = ($_POST['height_cm'] !== '' ? (float)$_POST['height_cm'] : null);
     $weight_kg   = ($_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null);
@@ -135,7 +201,6 @@ if ($method === 'POST') {
     $bp_sys      = ($_POST['blood_pressure_systolic'] !== '' ? (int)$_POST['blood_pressure_systolic'] : null);
     $bp_dia      = ($_POST['blood_pressure_diastolic'] !== '' ? (int)$_POST['blood_pressure_diastolic'] : null);
 
-    // Risk flags
     $flagKeys = [
       'vaginal_bleeding','urinary_infection','high_blood_pressure',
       'fever_38_celsius','pallor','abnormal_abdominal_size',
@@ -146,12 +211,10 @@ if ($method === 'POST') {
         $flags[$k] = isset($_POST[$k]) ? 1 : 0;
     }
 
-    // Auto high BP flag
     if (($bp_sys !== null && $bp_sys >= 140) || ($bp_dia !== null && $bp_dia >= 90)) {
         $flags['high_blood_pressure'] = 1;
     }
 
-    // Server-side GA fallback
     if ($preg_weeks === null) {
         $cd = strtotime($consultation_date);
         if ($lmp) {
@@ -164,7 +227,6 @@ if ($method === 'POST') {
         }
     }
 
-    // Labs
     $hgb       = ($tmp = trim($_POST['hgb_result'] ?? '')) === '' ? null : $tmp;
     $urine     = ($tmp = trim($_POST['urine_result'] ?? '')) === '' ? null : $tmp;
     $vdrl      = ($tmp = trim($_POST['vdrl_result'] ?? '')) === '' ? null : $tmp;
@@ -172,17 +234,14 @@ if ($method === 'POST') {
 
     $recorded_by = (int)($_SESSION['user_id'] ?? 0);
 
-    // Dynamic INSERT builder (ensures matched column/value counts)
     $cols = [];
     $ph   = [];
     $vals = [];
     $types= '';
 
-    // Helper to add placeholder-based param
     $add = function($col, $val, $type) use (&$cols,&$ph,&$vals,&$types) {
         if ($val === null) {
             $cols[] = $col;
-            // Literal NULL (no placeholder)
             $ph[]   = 'NULL';
         } else {
             $cols[] = $col;
@@ -192,18 +251,15 @@ if ($method === 'POST') {
         }
     };
 
-    // Required (never null)
     $add('mother_id', $mother_id, 'i');
     $add('consultation_date', $consultation_date, 's');
 
-    // Nullable
     $add('age', $age, 'i');
     $add('height_cm', $height_cm, 'd');
     $add('last_menstruation_date', $lmp, 's');
     $add('expected_delivery_date', $edd, 's');
     $add('pregnancy_age_weeks', $preg_weeks, 'i');
 
-    // Flags (always have values 0/1)
     foreach([
         'vaginal_bleeding','urinary_infection','weight_kg',
         'blood_pressure_systolic','blood_pressure_diastolic',
@@ -221,13 +277,11 @@ if ($method === 'POST') {
         }
     }
 
-    // Lab results
     $add('hgb_result',$hgb,'s');
     $add('urine_result',$urine,'s');
     $add('vdrl_result',$vdrl,'s');
     $add('other_lab_results',$other_lab,'s');
 
-    // Recorder
     $add('recorded_by',$recorded_by,'i');
 
     $sql = "INSERT INTO health_records (".implode(',',$cols).") VALUES (".implode(',',$ph).")";
@@ -235,7 +289,6 @@ if ($method === 'POST') {
     if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
 
     if (!empty($vals)) {
-        // bind_param requires references
         $bindParams = [];
         $bindParams[] = &$types;
         foreach ($vals as $k=>$v){

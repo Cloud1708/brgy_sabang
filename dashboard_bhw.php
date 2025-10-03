@@ -10,6 +10,8 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrf = $_SESSION['csrf_token'];
+$username = $_SESSION['username'] ?? 'Health Worker';
+$firstName = explode(' ', trim($username))[0];
 ?>
 <!doctype html>
 <html lang="en">
@@ -19,1338 +21,2301 @@ $csrf = $_SESSION['csrf_token'];
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css">
 <style>
-  html, body { height:100%; overflow:hidden; }
-  body.dashboard-body { background:#f2f6f9; }
-  .layout-wrapper { display:flex; height:100vh; width:100%; overflow:hidden; }
-  .sidebar { width:275px; flex:0 0 275px; background:#0d3042; color:#e6f2f7; display:flex; flex-direction:column; position:relative; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; }
-  .sidebar::-webkit-scrollbar { width:7px; }
-  .sidebar::-webkit-scrollbar-track { background:#0d3042; }
-  .sidebar::-webkit-scrollbar-thumb { background:#1996c6aa; border-radius:4px; }
-  .sidebar::-webkit-scrollbar-thumb:hover { background:#25b9ef; }
-  .brand { display:flex; gap:.75rem; align-items:flex-start; padding:1.05rem 1.15rem .95rem; background:rgba(255,255,255,.07); font-size:.83rem; line-height:1.25; font-weight:600; }
-  .brand .emoji { font-size:1.65rem; }
-  .brand small { display:block; font-weight:400; opacity:.85; font-size:.62rem; margin-top:.2rem; letter-spacing:.5px; }
-  .menu-section-title { font-size:.60rem; letter-spacing:.085em; text-transform:uppercase; opacity:.55; padding:.75rem 1.05rem .45rem; font-weight:600; }
-  .nav-menu { list-style:none; margin:0; padding:0 .45rem .9rem; }
-  .nav-menu li a { display:flex; align-items:center; gap:.65rem; padding:.52rem .95rem; font-size:.78rem; color:#cddbe2; text-decoration:none; border-left:3px solid transparent; border-radius:.35rem; transition:.12s; line-height:1.15; }
-  .nav-menu li a:hover { background:rgba(255,255,255,.09); color:#fff; }
-  .nav-menu li a.active { background:linear-gradient(90deg,#1ca3d833,#1ca3d814); border-left-color:#1ca3d8; color:#fff; font-weight:600; }
-  .sidebar-footer { margin-top:auto; padding:.75rem 1rem .95rem; font-size:.6rem; opacity:.55; }
-  .content-area { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-  .topbar { background:#ffffff; border-bottom:1px solid #dbe5ec; padding:.6rem 1.3rem; display:flex; align-items:center; gap:1rem; flex-shrink:0; }
-  .page-title { font-size:.92rem; font-weight:600; margin:0; color:#0f3a51; }
-  .badge-role { background:#1ca3d8; }
-  main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-  #moduleContent { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding-right:.25rem; }
-  #moduleContent::-webkit-scrollbar { width:8px; }
-  #moduleContent::-webkit-scrollbar-track { background:transparent; }
-  #moduleContent::-webkit-scrollbar-thumb { background:#c2d4dd; border-radius:4px; }
-  #moduleContent::-webkit-scrollbar-thumb:hover { background:#a7bec9; }
-  .loading-state { padding:2.3rem 1.5rem; text-align:center; color:#6c757d; }
-  .module-hint { font-size:.68rem; background:#ffffff; border:1px dashed #9cc9da; padding:.6rem .75rem; border-radius:.5rem; margin-bottom:1.15rem; color:#1c566f; }
-  .mobile-close { position:absolute; top:.55rem; right:.55rem; background:transparent; color:#fff; border:none; font-size:1.25rem; display:none; }
-  .sidebar.show .mobile-close { display:block; }
-  @media (max-width: 991.98px) {
-    html,body { overflow:hidden; }
-    .sidebar { position:fixed; z-index:1045; transform:translateX(-100%); transition:.33s; top:0; left:0; bottom:0; }
-    .sidebar.show { transform:translateX(0); box-shadow:0 0 0 400vmax rgba(0,0,0,.35); }
-    .topbar { position:fixed; top:0; left:0; right:0; z-index:1020; }
-    .content-area { padding-top:56px; }
+/* =========================================
+   TYPO SCALE (Adjust here for global size)
+   ========================================= */
+:root{
+  --base-font-size-root:16px;       /* Align base size with BNS (Bootstrap default 16px) */
+  --base-font-size-lg:16.2px;       /* Slight bump only on very wide screens */
+  --zoom-step:0px;                  /* dynamic pixel addition via controls (persisted) */
+
+  --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+
+  --sidebar-bg:#ffffff;
+  --sidebar-border:#d3dbe1;
+  --sidebar-accent:#026a44;
+  --sidebar-accent-hover:#008257;
+  --sidebar-text:#142a33;
+  --sidebar-muted:#62747f;
+
+  --surface:#ffffff;
+  --border:#dee4ea;
+  --bg:#f1f5f7;
+  --radius:16px;
+
+  --focus:#009860;
+  --danger:#b81f14;
+  --danger-bg:#fde5e2;
+  --warn:#8b6400;
+  --warn-bg:#fff2cc;
+  --info:#0a63c9;
+  --info-bg:#e0efff;
+  --success:#0b6f46;
+  --success-bg:#ddf5ea;
+  --text-muted:#58656e;
+
+  --shadow-sm:0 1px 2px rgba(15,23,42,.07),0 2px 4px rgba(15,23,42,.06);
+  --shadow-md:0 6px 18px -3px rgba(15,23,42,.12),0 12px 32px -6px rgba(15,23,42,.08);
+  --gradient-accent:linear-gradient(90deg,#00905c,#00b274);
+  --table-head:#f0f5f7;
+  --line-height:1.42;
+}
+
+/* Optional body classes to jump bigger instantly */
+body.size-xl{ --base-font-size-root:18.2px; }
+body.size-xxl{ --base-font-size-root:19.5px; }
+
+html{
+  font-size:calc(var(--base-font-size-root) + var(--zoom-step));
+}
+@media (min-width:1500px){
+  html{ font-size:calc(var(--base-font-size-lg) + var(--zoom-step)); }
+}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  font-family:var(--font-sans);
+  line-height:var(--line-height);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow:hidden;
+}
+
+/* Layout */
+.layout-wrapper{display:flex;height:100vh;width:100%;overflow:hidden;}
+.sidebar-modern{
+  width:270px;flex:0 0 270px;background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);
+  display:flex;flex-direction:column;z-index:40;
+  font-size:0.92rem;
+}
+.brand-block{
+  padding:1.2rem 1.2rem 1.1rem;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:1rem;
+}
+.brand-icon{
+  height:54px;width:54px;border-radius:17px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#00a066,#00b676);color:#fff;font-size:24px;font-weight:600;
+  box-shadow:0 4px 12px -2px rgba(0,160,102,.45);
+}
+.brand-text{font-size:1.05rem;font-weight:700;color:var(--sidebar-text);line-height:1.1;}
+.brand-text small{display:block;font-size:.67rem;font-weight:600;color:var(--sidebar-muted);letter-spacing:.05em;margin-top:4px;}
+
+.nav-section-title{
+  font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--sidebar-muted);padding:1.15rem 1.2rem .55rem;
+}
+
+.nav-list{list-style:none;margin:0;padding:0 1rem 1rem;}
+.nav-list li{margin-bottom:4px;}
+.nav-link-modern{
+  display:flex;align-items:center;gap:1rem;padding:.85rem 1.05rem .85rem 1.15rem;
+  text-decoration:none;border-radius:1rem;font-size:.85rem;font-weight:600;color:var(--sidebar-text);
+  transition:.16s background,.16s color;
+  position:relative;
+}
+.nav-link-modern .icon-wrap{width:24px;display:flex;justify-content:center;opacity:.85;font-size:18px;}
+.nav-link-modern:hover{background:#e6f6ef;color:#025534;}
+.nav-link-modern.active{
+  background:var(--sidebar-accent);color:#fff;box-shadow:0 4px 18px -4px rgba(0,106,80,.55);
+}
+.nav-link-modern.active .icon-wrap{opacity:1;}
+
+.sidebar-footer-box{
+  margin-top:auto;padding:1.25rem 1.15rem;border-top:1px solid var(--sidebar-border);font-size:.7rem;
+}
+.system-status{
+  font-size:.72rem;border:1px solid var(--border);background:var(--surface);padding:.85rem .95rem;border-radius:1rem;
+  display:flex;flex-direction:column;gap:.55rem;line-height:1.25;
+}
+.system-status .dot{height:11px;width:11px;border-radius:50%;margin-right:.5rem;}
+.status-ok{background:#07a466;}
+
+.sidebar-logout{padding:1rem 1.1rem;}
+.sidebar-logout .btn{
+  font-size:.75rem;font-weight:600;padding:.7rem .9rem;border-radius:.7rem;
+}
+
+/* Topbar */
+.topbar-modern{
+  height:70px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding:0 1.9rem;gap:1.35rem;flex-shrink:0;
+  font-size:.95rem;
+}
+.greet strong{font-size:1.05rem;font-weight:700;color:#142f2a;}
+.greet span{font-size:.72rem;color:var(--text-muted);font-weight:500;}
+
+.user-chip{
+  display:flex;align-items:center;gap:.75rem;padding:.65rem 1.05rem;border:1px solid var(--border);background:var(--surface);
+  border-radius:34px;font-size:.78rem;font-weight:600;color:#1e343a;line-height:1.15;
+}
+.user-avatar{
+  height:38px;width:38px;border-radius:50%;background:#0d8455;color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.95rem;letter-spacing:.5px;
+}
+.notif-btn{
+  background:transparent;border:1px solid var(--border);position:relative;padding:.55rem .7rem;border-radius:14px;font-size:19px;color:#234;
+}
+.notif-btn:hover{background:#f2f7f9;}
+.notif-btn .badge-count{
+  position:absolute;top:-4px;right:-4px;background:#cf271c;color:#fff;font-size:.6rem;line-height:1;
+  padding:2px 6px;border-radius:11px;font-weight:700;box-shadow:0 0 0 2px var(--surface);
+}
+.mobile-toggle-btn{display:none;}
+
+/* Content */
+.content-area{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
+main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#moduleContent{
+  flex:1;overflow:auto;padding:2rem 2.3rem 3rem;scroll-behavior:smooth;
+  font-size:.95rem;
+}
+#moduleContent::-webkit-scrollbar{width:12px;}
+#moduleContent::-webkit-scrollbar-thumb{background:#bbc6cc;border-radius:8px;}
+#moduleContent::-webkit-scrollbar-thumb:hover{background:#a1adb4;}
+
+/* Dashboard Headings */
+.dashboard-welcome{font-size:1.35rem;font-weight:800;color:#063024;letter-spacing:.5px;margin-bottom:.35rem;}
+.dashboard-sub{font-size:.85rem;color:#5f6e78;margin-bottom:1.5rem;font-weight:500;}
+
+/* Metric Grid */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1.55rem;margin-bottom:1.8rem;}
+.metric-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.3rem;
+  display:flex;flex-direction:column;justify-content:space-between;position:relative;box-shadow:var(--shadow-sm);
+  min-height:140px;overflow:hidden;
+}
+.metric-card:before{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(circle at 88% 18%,rgba(0,160,110,.15),transparent 60%);
+  pointer-events:none;
+}
+.metric-title{
+  font-size:.78rem;font-weight:800;color:#31474e;letter-spacing:.07em;text-transform:uppercase;margin:0 0 .75rem;
+  display:flex;align-items:center;gap:.6rem;
+}
+.metric-title i{font-size:1.15rem;opacity:.95;}
+.metric-value{font-size:2rem;font-weight:800;color:#052d25;line-height:1;}
+.metric-diff{font-size:.74rem;font-weight:700;margin-top:.55rem;letter-spacing:.04em;}
+.diff-up{color:#067c4b;}
+.diff-down{color:#b21919;}
+.progress-mini{height:9px;background:#e1ece6;border-radius:16px;margin-top:.75rem;overflow:hidden;}
+.progress-mini span{display:block;height:100%;background:var(--gradient-accent);border-radius:inherit;transition:width .55s ease;}
+
+/* Panels */
+.dashboard-panels{display:grid;grid-template-columns:1fr 420px;gap:1.7rem;}
+@media (max-width:1400px){.dashboard-panels{grid-template-columns:1fr 380px;}}
+@media (max-width:1200px){.dashboard-panels{grid-template-columns:1fr;}}
+.panel-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);
+  padding:1.45rem 1.55rem 1.55rem;display:flex;flex-direction:column;font-size:.9rem;
+}
+.panel-title{
+  font-size:.82rem;font-weight:800;letter-spacing:.06em;color:#153036;text-transform:uppercase;
+  margin:0 0 1rem;display:flex;align-items:center;gap:.65rem;
+}
+.panel-title i{font-size:1.05rem;color:#0a7b50;}
+.panel-card .mini-text{font-size:.72rem;}
+
+/* Table */
+.table-clean{width:100%;border-collapse:collapse;font-size:.82rem;}
+.table-clean thead th{
+  font-weight:800;color:#2e4048;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;
+  padding:.75rem .85rem;background:var(--table-head);position:sticky;top:0;z-index:2;
+}
+.table-clean tbody td{
+  padding:.72rem .85rem;border-top:1px solid var(--border);vertical-align:middle;font-weight:500;color:#172d35;
+}
+.table-clean tbody tr{min-height:50px;}
+.table-clean tbody tr:hover td{background:#f2faf6;}
+
+/* Status Badges */
+.status-badge{
+  display:inline-flex;align-items:center;gap:.45rem;font-size:.68rem;font-weight:800;padding:.48rem .8rem;
+  border-radius:30px;letter-spacing:.05em;text-transform:uppercase;
+}
+.st-overdue{background:var(--danger-bg);color:var(--danger);}
+.st-due{background:var(--warn-bg);color:var(--warn);}
+.st-sched{background:#e0edff;color:#154f95;}
+.status-badge i{font-size:.85rem;}
+
+/* Alerts */
+.alert-stack{display:flex;flex-direction:column;gap:1.25rem;}
+.alert-box{
+  display:flex;gap:1.15rem;padding:1.15rem 1.25rem;border-radius:20px;border:1px solid var(--border);background:#f9fbfc;
+  position:relative;overflow:hidden;box-shadow:0 1px 0 0 #e8eef1;font-size:.85rem;
+}
+.alert-box.danger{background:#fff4f3;border-color:#f0c5c1;}
+.alert-box.danger:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--danger);border-top-left-radius:inherit;border-bottom-left-radius:inherit;}
+.alert-box.warn{background:#fff8e7;border-color:#eedca1;}
+.alert-box.warn:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:#d39b05;border-top-left-radius:inherit;border-bottom-left-radius:inherit;}
+.alert-box.info{background:#f1fbf6;border-color:#bdeace;}
+.alert-box.info:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:#0d905c;border-top-left-radius:inherit;border-bottom-left-radius:inherit;}
+.alert-icon{
+  height:46px;width:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;
+}
+.alert-icon.danger{background:#f7d1cd;color:#b42318;}
+.alert-icon.warn{background:#ffe4a6;color:#8b6400;}
+.alert-icon.info{background:#d2f1e2;color:#0b7c4d;}
+.alert-content{flex:1;min-width:0;}
+.alert-title{font-size:.9rem;font-weight:800;color:#132f31;margin:0 0 5px;letter-spacing:.02em;}
+.alert-desc{font-size:.72rem;color:#42545d;line-height:1.3;}
+
+/* Loading */
+.loading-state{
+  padding:3rem 1.5rem;text-align:center;color:#4f5d65;font-size:.95rem;
+}
+.loading-state .spinner-border{width:2.4rem;height:2.4rem;}
+
+/* Generic */
+.link-clean{color:#0a7d50;text-decoration:none;font-weight:700;font-size:.72rem;}
+.link-clean:hover{text-decoration:underline;}
+.text-muted{color:var(--text-muted)!important;}
+.table thead th{font-size:.72rem;}
+.table{font-size:.8rem;}
+
+/* Focus */
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;}
+
+/* Mobile */
+@media (max-width: 991.98px){
+  .sidebar-modern{
+    position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%);transition:.35s;
+    box-shadow:0 0 0 400vmax rgba(0,0,0,.35);
   }
-  .risk-flag { font-size:.6rem; margin:2px 2px; }
-  .ga-badge { font-size:.6rem; }
-  .modal-add-child .modal-dialog { max-width:700px; }
-  .modal-add-child .form-section-title { font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; color:#0f3a51; margin:0 0 .35rem; font-weight:600; opacity:.8; }
-  /* Vaccine master list */
-  .small-label { font-size:.65rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; opacity:.75; }
-  .editing-row { background:#fff9e0 !important; }
-  .table-fixed-head thead th { position:sticky; top:0; background:#f8fafc; z-index:5; }
+  .sidebar-modern.show{transform:translateX(0);}
+  .topbar-modern{position:fixed;top:0;left:0;right:0;z-index:50;}
+  .content-area{padding-top:70px;}
+  #moduleContent{padding:1.5rem 1.3rem 2.4rem;}
+  .mobile-toggle-btn{display:inline-flex;}
+}
+
+/* Fade */
+.fade-in{animation:fadeIn .5s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+/* Zoom Control */
+.zoom-controls{
+  position:fixed;bottom:14px;right:14px;z-index:100;display:flex;flex-direction:column;gap:.35rem;
+}
+.zoom-controls button{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  font-size:.85rem;font-weight:700;padding:.55rem .75rem;color:#1c2f36;min-width:46px;
+  box-shadow:var(--shadow-sm);
+}
+.zoom-controls button:hover{background:#eef5f2;}
+.zoom-controls button:active{transform:translateY(1px);}
+/* === Maternal Health New UI === */
+.mh-title{font-size:1.35rem;font-weight:700;color:#11312a;margin:0;}
+.mh-sub{font-size:.8rem;color:#5e6d75;font-weight:500;margin:.3rem 0 0;}
+.mh-header{border-bottom:1px solid var(--border);padding-bottom:1.05rem;margin-bottom:1.4rem;}
+.mh-add-btn{display:inline-flex;align-items:center;gap:.45rem;font-weight:600;border-radius:.9rem;background:#047a4c;border:1px solid #047242;}
+.mh-add-btn:hover{background:#059a61;border-color:#059a61;}
+
+.mh-metrics{margin-bottom:1.4rem;}
+.mh-metric-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1rem 1.1rem;box-shadow:var(--shadow-sm);height:100%;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+.mh-metric-card:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 85% 20%,rgba(0,150,100,.12),transparent 60%);pointer-events:none;}
+.mh-metric-label{font-size:.62rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:#4b5c63;margin-bottom:.55rem;display:flex;align-items:center;gap:.4rem;}
+.mh-metric-value{font-size:2.1rem;font-weight:800;margin:0;line-height:1;color:#052e26;}
+.mh-metric-sub{font-size:.63rem;color:#607078;margin-top:.3rem;font-weight:600;}
+
+.mh-tabs{background:#f5f8fa;border-radius:999px;padding:.4rem .5rem;display:inline-flex;flex-wrap:wrap;gap:.35rem;}
+.mh-tabs .nav-link{border-radius:30px;font-size:.7rem;font-weight:600;padding:.55rem 1rem;color:#335155;background:transparent;border:0;}
+.mh-tabs .nav-link.active{background:#ffffff;border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,.06);color:#0a5c3d;font-weight:700;}
+.mh-tabs .nav-link:hover{background:#e9f4ef;color:#0a5c3d;}
+
+.mh-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-sm);padding:1.15rem 1.4rem;}
+.mh-card-title{font-size:.78rem;font-weight:800;color:#203536;text-transform:uppercase;letter-spacing:.07em;margin:0 0 .4rem;}
+.mh-card-sub{font-size:.66rem;color:#5d7077;margin-bottom:1rem;}
+
+.mh-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+.mh-table thead th{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#f1f6f7;padding:.65rem .8rem;color:#2f454b;position:sticky;top:0;z-index:5;}
+.mh-table tbody td{padding:.6rem .8rem;border-top:1px solid var(--border);vertical-align:middle;font-weight:500;color:#1b3238;}
+.mh-table tbody tr:hover td{background:#f3faf6;}
+
+.mh-progress-wrap{min-width:160px;}
+.mh-progress{height:8px;background:#e2ece8;border-radius:10px;overflow:hidden;position:relative;margin:.3rem 0 .2rem;}
+.mh-progress-bar{height:100%;background:linear-gradient(90deg,#008c59,#00b073);transition:width .5s ease;}
+.mh-progress-bar.risk-high{background:linear-gradient(90deg,#cc2b1f,#e85146);}
+.mh-progress-bar.risk-monitor{background:linear-gradient(90deg,#c39106,#ffcb3c);}
+.mh-weeks-label{font-size:.62rem;font-weight:600;color:#385558;letter-spacing:.04em;}
+
+.risk-badge{display:inline-flex;align-items:center;font-size:.58rem;font-weight:700;padding:.32rem .55rem;border-radius:16px;letter-spacing:.05em;}
+.risk-high{background:#fde0dd;color:#b22218;}
+.risk-monitor{background:#fff1cd;color:#8b6100;}
+.risk-normal{background:#e1edff;color:#134f9c;}
+.risk-na{background:#e9ecef;color:#5a646b;}
+
+.mh-action-btn{background:#eef3f5;border:1px solid #d6e1e6;font-size:.62rem;font-weight:600;padding:.4rem .9rem;border-radius:14px;}
+.mh-action-btn:hover{background:#e0eff1;}
+
+.mh-empty{padding:2.2rem 1rem;text-align:center;font-size:.75rem;color:#6a7b82;}
+
+.mh-mini-badges{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.4rem;}
+.mh-flag-chip{background:#fbe4e2;color:#c2271b;font-size:.55rem;font-weight:700;padding:.25rem .45rem;border-radius:6px;letter-spacing:.04em;}
+
+.mh-modal .modal-content{border-radius:20px;}
+.mh-modal .modal-title{font-size:.9rem;font-weight:700;}
+.mh-modal label{font-size:.65rem;font-weight:600;letter-spacing:.05em;color:#34525a;text-transform:uppercase;margin-bottom:.25rem;}
+.mh-modal .form-control,.mh-modal .form-select{font-size:.8rem;border-radius:.7rem;padding:.55rem .75rem;}
+.mh-modal .form-text{font-size:.6rem;}
+
+.mh-search-wrap{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;}
+.mh-search-wrap input{max-width:240px;font-size:.75rem;border-radius:14px;padding:.55rem .8rem;}
+
+.mh-filter-badge{font-size:.55rem;font-weight:600;padding:.3rem .55rem;border:1px solid var(--border);border-radius:20px;cursor:pointer;user-select:none;}
+.mh-filter-badge.active{background:#0d7c4e;color:#fff;border-color:#0d7c4e;}
+.mh-filter-badge:hover{background:#e8f6f0;}
+
+@media (max-width: 900px){
+  .mh-progress-wrap{min-width:120px;}
+  .mh-table thead th:nth-child(3),
+  .mh-table tbody td:nth-child(3){min-width:160px;}
+}
+
+/* Smooth fade for row injection */
+.mh-fade-in{animation:mhFade .4s ease;}
+@keyframes mhFade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* === Maternal Health Consultations UI === */
+.mh-consult-layout{display:grid;grid-template-columns:310px 1fr;gap:1.35rem;margin-top:1.2rem;}
+@media (max-width:1100px){.mh-consult-layout{grid-template-columns:1fr;}}
+.mh-mother-list{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1rem 1rem 1.1rem;
+  display:flex;flex-direction:column;gap:.75rem;max-height:640px;}
+.mh-mother-list h6{font-size:.7rem;font-weight:800;letter-spacing:.07em;margin:0 0 .3rem;color:#24433f;text-transform:uppercase;}
+.mh-mother-search{font-size:.72rem;border-radius:14px;padding:.5rem .8rem;}
+.mh-mother-scroll{overflow:auto;flex:1;scrollbar-width:thin;}
+.mh-mother-item{padding:.55rem .65rem;border:1px solid transparent;border-radius:10px;font-size:.72rem;
+  display:flex;flex-direction:column;gap:2px;cursor:pointer;}
+.mh-mother-item:hover{background:#eef7f3;}
+.mh-mother-item.active{background:#0d7c4e;color:#fff;border-color:#0d7c4e;}
+.mh-mother-item small{font-size:.58rem;opacity:.75;}
+.mh-consult-main{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.2rem 1.35rem;box-shadow:var(--shadow-sm);}
+.mh-consult-main h6{font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .8rem;color:#1c3536;}
+.mh-consult-form label{font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.25rem;color:#355156;}
+.mh-consult-form .form-control,.mh-consult-form .form-select{font-size:.74rem;padding:.5rem .65rem;border-radius:.65rem;}
+.mh-risks-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.4rem;}
+.mh-risk-box{font-size:.58rem;background:#f2f6f7;border:1px solid var(--border);border-radius:8px;padding:.4rem .45rem;
+  display:flex;align-items:center;gap:.35rem;}
+.mh-risk-box input{margin:0;}
+.mh-consults-table{width:100%;border-collapse:collapse;font-size:.72rem;margin-top:.9rem;}
+.mh-consults-table thead th{position:sticky;top:0;background:#f2f6f7;padding:.55rem .6rem;font-size:.62rem;font-weight:700;letter-spacing:.06em;color:#274048;text-transform:uppercase;}
+.mh-consults-table tbody td{padding:.55rem .6rem;border-top:1px solid var(--border);vertical-align:middle;}
+.consult-risk-badge{display:inline-block;font-size:.55rem;font-weight:700;padding:.25rem .5rem;border-radius:14px;letter-spacing:.04em;}
+.consult-risk-high{background:#fde0dd;color:#b22218;}
+.consult-risk-monitor{background:#fff1cd;color:#8b6100;}
+.consult-risk-normal{background:#e1edff;color:#134f9c;}
+.mh-inline-hint{font-size:.55rem;color:#607078;font-weight:600;margin-top:.25rem;}
+.mh-form-divider{height:1px;background:var(--border);margin:.9rem 0;}
+.mh-save-btn{font-size:.7rem;font-weight:700;padding:.55rem 1.1rem;border-radius:.75rem;}
+.badge-ga{background:#eaf5f1;color:#0d7c4e;font-size:.55rem;font-weight:700;padding:.25rem .55rem;border-radius:14px;margin-left:.35rem;}
+.mh-consult-form .trio-row .form-control{font-size:.72rem;}
+@media (max-width:600px){
+  .mh-consult-form .trio-row > div{flex:0 0 100%!important;}
+}
+
+/* === Pregnancy Monitoring UI === */
+.mh-monitor-layout{display:grid;grid-template-columns:310px 1fr;gap:1.35rem;margin-top:1.2rem;}
+@media (max-width:1100px){.mh-monitor-layout{grid-template-columns:1fr;}}
+.mh-mon-main{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.15rem 1.35rem;box-shadow:var(--shadow-sm);}
+
+.mh-mon-head h6{font-size:.8rem;font-weight:800;letter-spacing:.07em;margin:0;color:#153433;text-transform:uppercase;}
+.mh-mon-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin:1rem 0 1.15rem;}
+.mh-mon-card{border:1px solid var(--border);background:#f9fbfc;border-radius:14px;padding:.55rem .65rem;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
+.mh-mon-card:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 85% 18%,rgba(0,150,100,.12),transparent 60%);pointer-events:none;}
+.mh-mon-label{font-size:.55rem;font-weight:700;letter-spacing:.08em;color:#526369;text-transform:uppercase;}
+.mh-mon-value{font-size:1.25rem;font-weight:800;line-height:1;color:#0a372d;}
+.mh-mon-sub{font-size:.55rem;font-weight:600;color:#687880;}
+.mh-mon-risk-high{background:#fde0dd;}
+.mh-mon-risk-monitor{background:#fff3d1;}
+.mh-mon-progress-wrap{margin-bottom:1rem;}
+.mh-mon-progress-label{display:flex;justify-content:space-between;font-size:.6rem;font-weight:600;color:#465e63;margin-bottom:4px;}
+.mh-mon-progress{height:10px;border-radius:20px;background:#e3ece8;overflow:hidden;}
+.mh-mon-bar{height:100%;background:linear-gradient(90deg,#008752,#00b872);width:0;transition:width .6s ease;}
+.mh-mon-bar.high{background:linear-gradient(90deg,#cc2b1f,#e85146);}
+.mh-mon-bar.monitor{background:linear-gradient(90deg,#c39106,#ffcb3c);}
+
+.mh-mon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.9rem;margin:0 0 1.2rem;}
+.mh-mon-mini{border:1px solid var(--border);background:#ffffff;border-radius:14px;padding:.7rem .75rem;display:flex;flex-direction:column;gap:4px;}
+.mh-mon-mini h6{font-size:.55rem;font-weight:800;letter-spacing:.08em;margin:0;color:#345056;text-transform:uppercase;}
+.mh-mon-mini .val{font-size:1rem;font-weight:700;color:#12342f;line-height:1;}
+.mh-mon-mini small{font-size:.55rem;font-weight:600;color:#6a7b75;}
+
+.mh-mon-trends{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.3rem;}
+.mh-trend-box{border:1px solid var(--border);background:#ffffff;border-radius:16px;padding:.75rem .8rem;display:flex;flex-direction:column;gap:.35rem;}
+.mh-trend-box h6{font-size:.62rem;font-weight:800;letter-spacing:.07em;color:#2d4c4f;margin:0;text-transform:uppercase;}
+.sparkline{height:60px;width:100%;display:block;}
+.sparkline path{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;}
+.sparkline .axis{stroke:#b9c7cd;stroke-width:.8;stroke-dasharray:2 3;}
+.mh-trend-legend{font-size:.55rem;font-weight:600;color:#5c6d74;display:flex;gap:.75rem;flex-wrap:wrap;}
+.mh-trend-legend span:before{content:"";display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:4px;vertical-align:middle;}
+
+.mh-mon-table-wrap{border:1px solid var(--border);border-radius:18px;padding:.85rem .95rem;background:#ffffff;}
+.mh-mon-table{width:100%;border-collapse:collapse;font-size:.7rem;}
+.mh-mon-table thead th{background:#f1f6f7;font-size:.58rem;font-weight:800;letter-spacing:.07em;padding:.45rem .55rem;color:#2d444c;position:sticky;top:0;}
+.mh-mon-table tbody td{padding:.45rem .55rem;border-top:1px solid var(--border);vertical-align:middle;}
+.mh-delta-plus{color:#0d7c4e;font-weight:700;}
+.mh-delta-minus{color:#b22218;font-weight:700;}
+
+.mh-mon-empty{padding:2rem 1rem;text-align:center;font-size:.7rem;color:#6c7c83;}
+.mh-risk-chip{display:inline-block;font-size:.48rem;font-weight:700;padding:2px 5px;border-radius:8px;margin:1px;}
+.mh-risk-chip.on{background:#ffe0de;color:#b62218;}
+.mh-risk-chip.off{background:#e2e8eb;color:#5a686f;}
+
+.mh-mon-actions{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:.6rem;}
+.mh-mon-actions button{font-size:.6rem;font-weight:600;border-radius:14px;padding:.4rem .75rem;}
+
+@media (max-width:600px){
+  .mh-mon-summary{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));}
+  .mh-mon-grid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
+}
+
+/* === Postnatal Care UI === */
+.mh-post-layout{display:grid;grid-template-columns:310px 1fr;gap:1.35rem;margin-top:1.2rem;}
+@media (max-width:1100px){.mh-post-layout{grid-template-columns:1fr;}}
+.mh-post-main{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.2rem 1.35rem;box-shadow:var(--shadow-sm);}
+.mh-post-head h6{font-size:.78rem;font-weight:800;letter-spacing:.07em;margin:0;text-transform:uppercase;color:#183536;}
+.mh-post-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin:1rem 0 1.2rem;}
+.mh-post-card{border:1px solid var(--border);background:#f9fbfc;border-radius:14px;padding:.6rem .7rem;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
+.mh-post-card:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 85% 18%,rgba(0,150,100,.12),transparent 60%);pointer-events:none;}
+.mh-post-label{font-size:.55rem;font-weight:700;letter-spacing:.08em;color:#5a6b70;text-transform:uppercase;}
+.mh-post-value{font-size:1.15rem;font-weight:800;line-height:1;color:#07362d;}
+.mh-post-sub{font-size:.55rem;font-weight:600;color:#6a7b75;}
+.mh-post-risk-high{background:#fde0dd;}
+.mh-post-risk-monitor{background:#fff3d1;}
+.mh-post-form label{font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.22rem;color:#355056;}
+.mh-post-form .form-control,.mh-post-form .form-select{font-size:.72rem;padding:.48rem .6rem;border-radius:.6rem;}
+.mh-post-flags{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.4rem;margin-top:.2rem;}
+.mh-post-flag-box{font-size:.55rem;background:#f2f6f7;border:1px solid var(--border);border-radius:8px;padding:.38rem .45rem;display:flex;align-items:center;gap:.35rem;}
+.mh-post-flag-box input{margin:0;}
+.mh-post-empty{padding:1.8rem 1rem;text-align:center;font-size:.7rem;color:#6c7c83;}
+.mh-post-table-wrap{border:1px solid var(--border);background:#fff;border-radius:18px;padding:.85rem .95rem;}
+.mh-post-table{width:100%;border-collapse:collapse;font-size:.68rem;}
+.mh-post-table thead th{background:#f1f6f7;font-size:.56rem;font-weight:800;letter-spacing:.08em;padding:.45rem .55rem;color:#2f474d;position:sticky;top:0;}
+.mh-post-table tbody td{padding:.48rem .55rem;border-top:1px solid var(--border);vertical-align:middle;}
+.mh-post-badge{display:inline-block;font-size:.5rem;font-weight:700;padding:.28rem .55rem;border-radius:12px;letter-spacing:.04em;}
+.mh-post-risk-high-badge{background:#fde0dd;color:#b22218;}
+.mh-post-risk-monitor-badge{background:#fff1cd;color:#8b6100;}
+.mh-post-risk-normal-badge{background:#e1edff;color:#134f9c;}
+.mh-post-actions{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:.5rem;}
+.mh-post-actions button{font-size:.6rem;font-weight:600;border-radius:14px;padding:.4rem .75rem;}
+.mh-post-mini-legend{font-size:.5rem;font-weight:600;color:#607078;display:flex;flex-wrap:wrap;gap:.5rem;margin:.4rem 0;}
+@media (max-width:600px){
+  .mh-post-summary{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));}
+}
+
 </style>
 </head>
 <body class="dashboard-body">
 <div class="layout-wrapper">
-  <aside class="sidebar" id="sidebar">
-    <button class="mobile-close" id="closeSidebar" aria-label="Close sidebar"><i class="bi bi-x-lg"></i></button>
-    <div class="brand">
-      <div class="emoji">👩‍⚕️</div>
-      <div>Barangay Health Worker (BHW)<small>Health &amp; Immunization Focused</small></div>
+  <!-- Sidebar -->
+  <aside class="sidebar-modern" id="sidebar">
+    <div class="brand-block">
+      <div class="brand-icon"><i class="bi bi-heart-pulse"></i></div>
+      <div class="brand-text">BHW Portal<small>Health Dashboard</small></div>
     </div>
-
-    <div class="menu-section-title">Overview</div>
-    <ul class="nav-menu">
-      <li><a href="#" class="active" data-module="dashboard_home" data-label="Dashboard"><i class="bi bi-house-door"></i><span>Dashboard</span></a></li>
-      <li><a href="#" data-module="health_stats" data-label="Health Statistics"><i class="bi bi-activity"></i><span>Health Statistics</span></a></li>
-      <li><a href="#" data-module="upcoming_immunizations" data-label="Upcoming Immunizations"><i class="bi bi-capsule-pill"></i><span>Upcoming Immunizations</span></a></li>
-      <li><a href="#" data-module="recent_activities" data-label="Recent Activities"><i class="bi bi-clock-history"></i><span>Recent Activities</span></a></li>
-      <li><a href="#" data-module="alert_system" data-label="Alert System"><i class="bi bi-exclamation-triangle"></i><span>Alert System</span></a></li>
+    <div class="nav-section-title">Navigation</div>
+    <ul class="nav-list">
+      <li><a href="#" class="nav-link-modern active" data-module="health_stats" data-label="Dashboard"><span class="icon-wrap"><i class="bi bi-grid-1x2"></i></span><span>Dashboard</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="maternal_health" data-label="Maternal Health"><span class="icon-wrap"><i class="bi bi-person-heart"></i></span><span>Maternal Health</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="vaccination_entry" data-label="Vaccination Entry"><span class="icon-wrap"><i class="bi bi-syringe"></i></span><span>Immunization</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="create_parent_accounts" data-label="Parent Accounts"><span class="icon-wrap"><i class="bi bi-people"></i></span><span>Parent Accounts</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="health_records_all" data-label="Health Records"><span class="icon-wrap"><i class="bi bi-journal-medical"></i></span><span>Health Records</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="health_calendar" data-label="Event Scheduling"><span class="icon-wrap"><i class="bi bi-calendar3"></i></span><span>Event Scheduling</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="report_vaccination_coverage" data-label="Health Reports"><span class="icon-wrap"><i class="bi bi-bar-chart"></i></span><span>Health Reports</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="alert_system" data-label="Alert System"><span class="icon-wrap"><i class="bi bi-exclamation-triangle"></i></span><span>Alerts</span></a></li>
+      <li><a href="#" class="nav-link-modern" data-module="parent_notifications" data-label="Parent Notification System"><span class="icon-wrap"><i class="bi bi-bell"></i></span><span>Notifications</span></a></li>
     </ul>
-
-    <div class="menu-section-title">🤱 Maternal Health</div>
-    <ul class="nav-menu">
-      <li><a href="#" data-module="mother_registration" data-label="Mother Registration"><i class="bi bi-person-plus"></i><span>Mother Registration</span></a></li>
-      <li><a href="#" data-module="prenatal_consultations" data-label="Prenatal Consultations"><i class="bi bi-journal-medical"></i><span>Prenatal Consultations</span></a></li>
-      <li><a href="#" data-module="health_risk_assessment" data-label="Health Risk Assessment"><i class="bi bi-heart-pulse"></i><span>Health Risk Assessment</span></a></li>
-      <li><a href="#" data-module="postnatal_care" data-label="Postnatal Care"><i class="bi bi-bandaid"></i><span>Postnatal Care</span></a></li>
-    </ul>
-
-    <div class="menu-section-title">💉 Immunization</div>
-    <ul class="nav-menu" id="immunizationMenu">
-      <li><a href="#" data-module="vaccination_entry" data-label="Vaccination Record Entry"><i class="bi bi-syringe"></i><span>Vaccination Record Entry</span></a></li>
-      <li><a href="#" data-module="immunization_card" data-label="Immunization Card Generation"><i class="bi bi-card-heading"></i><span>Immunization Card Generation</span></a></li>
-      <li><a href="#" data-module="vaccine_schedule" data-label="Vaccine Schedule Management"><i class="bi bi-calendar2-week"></i><span>Vaccine Schedule Management</span></a></li>
-      <li><a href="#" data-module="overdue_alerts" data-label="Overdue Vaccination Alerts"><i class="bi bi-bell"></i><span>Overdue Vaccination Alerts</span></a></li>
-      <li><a href="#" data-module="parent_notifications" data-label="Parent Notification System"><i class="bi bi-chat-left-text"></i><span>Parent Notification System</span></a></li>
-    </ul>
-
-    <div class="menu-section-title">👨‍👩‍👧‍👦 Parent Accounts</div>
-    <ul class="nav-menu">
-      <li><a href="#" data-module="create_parent_accounts" data-label="Create Parent/Guardian Accounts"><i class="bi bi-person-badge"></i><span>Create Parent/Guardian Accounts</span></a></li>
-      <li><a href="#" data-module="link_child_parent" data-label="Link Child to Parent"><i class="bi bi-link-45deg"></i><span>Link Child to Parent</span></a></li>
-      <li><a href="#" data-module="access_credentials" data-label="Access Credential Management"><i class="bi bi-key"></i><span>Access Credential Management</span></a></li>
-      <li><a href="#" data-module="account_activity" data-label="Account Activity Tracking"><i class="bi bi-graph-up-arrow"></i><span>Account Activity Tracking</span></a></li>
-    </ul>
-
-    <div class="menu-section-title">📅 Health Events</div>
-    <ul class="nav-menu">
-      <li><a href="#" data-module="vaccination_campaigns" data-label="Vaccination Campaigns"><i class="bi bi-megaphone"></i><span>Vaccination Campaigns</span></a></li>
-      <li><a href="#" data-module="health_education_sessions" data-label="Health Education Sessions"><i class="bi bi-mortarboard"></i><span>Health Education Sessions</span></a></li>
-      <li><a href="#" data-module="maternal_health_visits" data-label="Maternal Health Visits"><i class="bi bi-calendar2-check"></i><span>Maternal Health Visits</span></a></li>
-      <li><a href="#" data-module="health_calendar" data-label="Health Calendar"><i class="bi bi-calendar3"></i><span>Health Calendar</span></a></li>
-    </ul>
-
-    <div class="menu-section-title">📊 Reports</div>
-    <ul class="nav-menu">
-      <li><a href="#" data-module="report_vaccination_coverage" data-label="Vaccination Coverage"><i class="bi bi-pie-chart"></i><span>Vaccination Coverage</span></a></li>
-      <li><a href="#" data-module="report_maternal_statistics" data-label="Maternal Health Statistics"><i class="bi bi-bar-chart-line"></i><span>Maternal Health Statistics</span></a></li>
-      <li><a href="#" data-module="report_health_risks" data-label="Health Risk Reports"><i class="bi bi-activity"></i><span>Health Risk Reports</span></a></li>
-      <li><a href="#" data-module="report_attendance_logs" data-label="Attendance Logs"><i class="bi bi-journal-text"></i><span>Attendance Logs</span></a></li>
-    </ul>
-
-    <div class="mt-2 px-3">
-      <a href="logout.php" class="btn btn-sm btn-outline-light w-100"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+    <div class="sidebar-footer-box">
+      <div class="system-status">
+        <div class="d-flex align-items-center">
+          <span class="dot status-ok"></span><strong>All Systems Operational</strong>
+        </div>
+        <div class="text-secondary" style="font-size:.65rem;">Up to date: <?php echo date('M j, Y'); ?></div>
+      </div>
     </div>
-    <div class="sidebar-footer">
-      Barangay Health System<br><span class="text-white-50">&copy; <?php echo date('Y'); ?></span>
+    <div class="sidebar-logout">
+      <a href="logout.php" class="btn btn-outline-danger w-100"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
     </div>
   </aside>
 
+  <!-- Main Content -->
   <div class="content-area">
-    <div class="topbar">
-      <button class="btn btn-outline-primary btn-sm d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
-      <h1 class="page-title mb-0" id="currentModuleTitle">Dashboard</h1>
-      <span class="badge badge-role ms-auto d-none d-lg-inline"><i class="bi bi-person-badge me-1"></i> BHW</span>
+    <div class="topbar-modern">
+      <button class="btn btn-outline-secondary btn-sm mobile-toggle-btn" id="sidebarToggle"><i class="bi bi-list"></i></button>
+      <div class="greet">
+        <strong id="currentModuleTitle">Dashboard</strong>
+        <span>Barangay Health Center</span>
+      </div>
+      <div class="ms-auto d-flex align-items-center gap-3">
+        <button class="notif-btn" id="notifBtn">
+          <i class="bi bi-bell"></i>
+          <span class="badge-count d-none" id="notifCount">0</span>
+        </button>
+        <div class="user-chip">
+          <div class="user-avatar"><?php echo strtoupper(substr($firstName,0,1)); ?></div>
+          <div class="d-flex flex-column lh-1">
+            <span style="font-size:.78rem;font-weight:700;"><?php echo htmlspecialchars($username); ?></span>
+            <small style="font-size:.63rem;color:#6a7a83;font-weight:600;">Barangay Health Worker</small>
+          </div>
+          <i class="bi bi-chevron-down ms-1" style="font-size:.7rem;opacity:.55;"></i>
+        </div>
+      </div>
     </div>
-    <main class="p-4">
+    <main id="mainRegion">
       <div id="moduleContent">
-        <div class="module-hint">Piliin ang isang module para mag-encode o mag-manage ng maternal health at immunization data.</div>
         <div class="loading-state">
-          <div class="spinner-border text-primary mb-3"></div>
-          <div class="small">Ready. Choose a module.</div>
+          <div class="spinner-border text-success mb-3"></div>
+          <div>Loading dashboard...</div>
         </div>
       </div>
     </main>
   </div>
 </div>
 
+<!-- Zoom Controls -->
+<div class="zoom-controls" id="zoomControls">
+  <button id="zoomIn" title="Larger (A+)">A+</button>
+  <button id="zoomOut" title="Smaller (A-)">A-</button>
+  <button id="zoomReset" title="Reset Size">Reset</button>
+</div>
+
 <script>
-  window.__BHW_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
-  const moduleContent = document.getElementById('moduleContent');
-  const titleEl = document.getElementById('currentModuleTitle');
+/* CSRF */
+window.__BHW_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
+const moduleContent=document.getElementById('moduleContent');
+const titleEl=document.getElementById('currentModuleTitle');
 
-  const api = {
-    mothers: 'bhw_modules/api_mothers.php',
-    health:  'bhw_modules/api_health_records.php',
-    immun:   'bhw_modules/api_immunization.php',
-    notif:   'bhw_modules/api_notifications.php',
-    caps:    'bhw_modules/api_capabilities.php',
-    parent:  'bhw_modules/api_parent_accounts.php'  
-  };
+const api={
+  mothers:'bhw_modules/api_mothers.php',
+  health:'bhw_modules/api_health_records.php',
+  postnatal:'bhw_modules/api_postnatal.php',
+  immun:'bhw_modules/api_immunization.php',
+  notif:'bhw_modules/api_notifications.php',
+  caps:'bhw_modules/api_capabilities.php',
+  parent:'bhw_modules/api_parent_accounts.php',
+  events:'bhw_modules/api_events.php',
+  reports:'bhw_modules/api_reports.php',
+};
 
-  fetch(api.caps).then(r=>r.json()).then(j=>{
-    if(!j.success) return;
-    const feats=j.features||{};
-    ['vaccination_entry','immunization_card','vaccine_schedule','overdue_alerts','parent_notifications'].forEach(m=>{
-      if(!feats[m]){
-        const link=document.querySelector(`a[data-module="${m}"]`);
-        if(link) link.closest('li')?.remove();
-      }
-    });
-    const menu=document.getElementById('immunizationMenu');
-    if(menu && menu.querySelectorAll('li').length===0){
-      const head=menu.previousElementSibling;
-      menu.remove(); if(head?.classList.contains('menu-section-title')) head.remove();
-    }
-  });
+function escapeHtml(s){if(s==null)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch'},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+function setActiveLink(el){document.querySelectorAll('.nav-link-modern.active').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
+function showLoading(label){moduleContent.innerHTML=`<div class="loading-state"><div class="spinner-border text-success mb-3"></div><div>Loading ${escapeHtml(label)}...</div></div>`;}
 
-  function escapeHtml(s){
-    if(s===undefined||s===null) return '';
-    return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
-  function setActive(link){
-    document.querySelectorAll('.nav-menu a.active').forEach(a=>a.classList.remove('active'));
-    link.classList.add('active');
-  }
-  function showLoading(lbl){
-    moduleContent.innerHTML = `<div class="loading-state"><div class="spinner-border text-primary mb-3"></div><div class="small">Loading ${escapeHtml(lbl)}...</div></div>`;
-  }
-  function fetchJSON(url,opt={}) {
-    opt.headers = Object.assign({'X-Requested-With':'fetch'},opt.headers||{});
-    return fetch(url,opt).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
-  }
-
-  const simplePlaceholders = {
-    dashboard_home:{
-      html:`<div class="row g-3">
-        <div class="col-md-6 col-xl-3"><div class="card shadow-sm border-0"><div class="card-body small"><div class="fw-semibold mb-1">Maternal Records</div><div class="display-6 fw-bold">—</div><div class="text-secondary mt-1">Total consultations</div></div></div></div>
-        <div class="col-md-6 col-xl-3"><div class="card shadow-sm border-0"><div class="card-body small"><div class="fw-semibold mb-1">Registered Mothers</div><div class="display-6 fw-bold">—</div><div class="text-secondary mt-1">Profiles</div></div></div></div>
-        <div class="col-md-6 col-xl-3"><div class="card shadow-sm border-0"><div class="card-body small"><div class="fw-semibold mb-1">Active Risks</div><div class="display-6 fw-bold">—</div><div class="text-secondary mt-1">Latest flagged</div></div></div></div>
-        <div class="col-md-6 col-xl-3"><div class="card shadow-sm border-0"><div class="card-body small"><div class="fw-semibold mb-1">Today</div><div class="display-6 fw-bold">—</div><div class="text-secondary mt-1">New entries</div></div></div></div>
-        <div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body small">
-          <h6 class="fw-semibold mb-3">Quick Tips</h6>
-          <ul class="small ps-3 mb-0">
-            <li>I-record agad ang prenatal visit pagkatapos ng konsultasyon.</li>
-            <li>Gamitin ang risk module para sa agarang follow-up.</li>
-            <li>Siguraduhin ang tamang LMP at EDD para accurate na pregnancy age.</li>
-          </ul>
-        </div></div></div>
-      </div>`
-    }
-  };
-
-  /* ================= Mother Registration ================= */
-  function renderMotherRegistration(label){
-    showLoading(label);
-    fetchJSON(api.mothers+'?list=1').then(data=>{
-      moduleContent.innerHTML=`<div class="row g-3">
-        <div class="col-lg-4">
-          <div class="card shadow-sm border-0 mb-3"><div class="card-body small">
-            <h6 class="fw-semibold mb-3">Add Mother / Caregiver</h6>
-            <form id="motherForm">
-              <div class="mb-2"><label class="form-label small mb-1">Full Name</label><input type="text" name="full_name" class="form-control form-control-sm" required></div>
-              <div class="mb-2"><label class="form-label small mb-1">Purok Name</label><input type="text" name="purok_name" class="form-control form-control-sm" required placeholder="Hal: Purok 1"><div class="form-text">Auto-add kapag bago.</div></div>
-              <div class="mb-2"><label class="form-label small mb-1">Address Details</label><textarea name="address_details" rows="2" class="form-control form-control-sm"></textarea></div>
-              <div class="mb-2"><label class="form-label small mb-1">Contact Number</label><input type="text" name="contact_number" class="form-control form-control-sm"></div>
-              <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-              <div class="d-grid"><button class="btn btn-primary btn-sm">Save</button></div>
-              <div class="form-text text-success mt-1 d-none" id="motherSuccess">Saved!</div>
-              <div class="form-text text-danger mt-1 d-none" id="motherError"></div>
-            </form>
-          </div></div>
-          <div class="alert alert-info small mb-0">Tip: Iwasan ang dobleng pangalan. I-check muna sa list bago mag-add.</div>
-        </div>
-        <div class="col-lg-8">
-          <div class="card shadow-sm border-0"><div class="card-body small">
-            <h6 class="fw-semibold mb-3">Mothers / Caregivers</h6>
-            <div class="table-responsive" style="max-height:470px; overflow:auto;">
-              <table class="table table-sm table-hover mb-0 align-middle">
-                <thead class="table-light"><tr><th>Name</th><th>Purok</th><th>Contact</th><th>Records</th><th>Last Consult</th><th>Risks</th></tr></thead>
-                <tbody>
-                  ${data.mothers.map(m=>`<tr>
-                    <td>${escapeHtml(m.full_name)}</td>
-                    <td>${escapeHtml(m.purok_name||'')}</td>
-                    <td>${escapeHtml(m.contact_number||'')}</td>
-                    <td>${m.records_count}</td>
-                    <td><small>${m.last_consultation_date||'<span class="text-muted">—</span>'}</small></td>
-                    <td>${m.risk_count>0?'<span class="badge bg-danger-subtle text-danger">'+m.risk_count+'</span>':'<span class="text-muted">0</span>'}</td>
-                  </tr>`).join('')}
-                  ${data.mothers.length===0?'<tr><td colspan="6" class="text-center small text-muted">No records.</td></tr>':''}
-                </tbody>
-              </table>
-            </div>
-          </div></div>
-        </div>
-      </div>`;
-      document.getElementById('motherForm').addEventListener('submit',e=>{
-        e.preventDefault();
-        const fd=new FormData(e.target);
-        fetch(api.mothers,{method:'POST',body:fd}).then(r=>r.json()).then(j=>{
-          if(!j.success) throw new Error(j.error||'Error');
-          document.getElementById('motherSuccess').classList.remove('d-none');
-          document.getElementById('motherError').classList.add('d-none');
-          e.target.reset(); renderMotherRegistration(label);
-        }).catch(err=>{
-          const el=document.getElementById('motherError'); el.textContent=err.message; el.classList.remove('d-none');
-        });
-      });
-    }).catch(err=> moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`);
-  }
-
-  function computePregWeeks(cd,lmp,edd){
-    if(!cd) return '';
-    const c=new Date(cd+'T00:00:00');
-    if(lmp){const L=new Date(lmp+'T00:00:00');const d=Math.floor((c-L)/86400000); if(d<0)return''; return Math.floor(d/7);}
-    if(edd){const E=new Date(edd+'T00:00:00');const d=Math.floor((E-c)/86400000); return Math.round(40 - d/7);}
-    return '';
-  }
-
-  function renderPrenatalConsultations(label){
-    showLoading(label);
-    fetchJSON(api.mothers+'?list_basic=1').then(mothers=>{
-      moduleContent.innerHTML=`<div class="row g-3 prenatal-wrapper">
-        <div class="col-xl-4">
-          <div class="card shadow-sm border-0 mb-3"><div class="card-body small">
-            <h6 class="fw-semibold mb-3">Add Consultation</h6>
-            <form id="consultForm">
-              <div class="mb-2"><label class="form-label small mb-1">Mother</label><select name="mother_id" class="form-select form-select-sm" required id="motherSelect"><option value="">Select...</option>${mothers.mothers.map(m=>`<option value="${m.mother_id}">${escapeHtml(m.full_name)}</option>`).join('')}</select></div>
-              <div class="mb-2"><label class="form-label small mb-1">Consultation Date</label><input type="date" name="consultation_date" id="consultDate" class="form-control form-control-sm" required value="<?= date('Y-m-d'); ?>"></div>
-              <div class="row g-2">
-                <div class="col-4"><label class="form-label small mb-1">Age</label><input type="number" name="age" class="form-control form-control-sm" min="10"></div>
-                <div class="col-4"><label class="form-label small mb-1">Ht (cm)</label><input type="number" step="0.1" name="height_cm" class="form-control form-control-sm"></div>
-                <div class="col-4"><label class="form-label small mb-1">Wt (kg)</label><input type="number" step="0.1" name="weight_kg" class="form-control form-control-sm"></div>
-              </div>
-              <div class="row g-2 mt-1">
-                <div class="col-6"><label class="form-label small mb-1">BP Sys</label><input type="number" name="blood_pressure_systolic" class="form-control form-control-sm"></div>
-                <div class="col-6"><label class="form-label small mb-1">BP Dia</label><input type="number" name="blood_pressure_diastolic" class="form-control form-control-sm"></div>
-              </div>
-              <div class="row g-2 mt-1">
-                <div class="col-6"><label class="form-label small mb-1">LMP</label><input type="date" name="last_menstruation_date" id="lmpDate" class="form-control form-control-sm"></div>
-                <div class="col-6"><label class="form-label small mb-1">EDD</label><input type="date" name="expected_delivery_date" id="eddDate" class="form-control form-control-sm"></div>
-              </div>
-              <div class="mt-1"><label class="form-label small mb-1 d-flex justify-content-between"><span>Pregnancy Age (weeks)</span><span class="text-muted small" id="gaAutoNote"></span></label><input type="number" name="pregnancy_age_weeks" id="pregWeeks" class="form-control form-control-sm" placeholder="Auto"><div class="form-text">Auto-filled mula LMP o EDD; puwedeng i-override.</div></div>
-              <div class="mt-2">
-                <label class="form-label small mb-1">Labs</label>
-                <input type="text" name="hgb_result" class="form-control form-control-sm mb-1" placeholder="HGB">
-                <input type="text" name="urine_result" class="form-control form-control-sm mb-1" placeholder="Urine">
-                <input type="text" name="vdrl_result" class="form-control form-control-sm mb-1" placeholder="VDRL">
-                <textarea name="other_lab_results" rows="2" class="form-control form-control-sm" placeholder="Other lab results"></textarea>
-              </div>
-              <div class="mt-2">
-                <label class="form-label small mb-1 d-block">Risk Flags</label>
-                <div class="row g-1 small">
-                  ${[['vaginal_bleeding','Vaginal Bleeding'],['urinary_infection','Urinary Infection'],['fever_38_celsius','Fever ≥38°C'],['pallor','Pallor'],['abnormal_abdominal_size','Abnormal Abd Size'],['abnormal_presentation','Abnormal Presentation'],['absent_fetal_heartbeat','No Fetal Heartbeat'],['swelling','Swelling'],['vaginal_infection','Vaginal Infection']].map(f=>`<div class="col-6"><label class="form-check mb-0"><input type="checkbox" class="form-check-input" name="${f[0]}"><span class="form-check-label">${f[1]}</span></label></div>`).join('')}
-                </div>
-                <div class="form-text">High BP auto-flag kapag systolic ≥140 o diastolic ≥90.</div>
-              </div>
-              <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-              <div class="d-grid mt-3"><button class="btn btn-primary btn-sm">Save Consultation</button></div>
-              <div class="form-text text-success mt-1 d-none" id="consultSuccess">Saved!</div>
-              <div class="form-text text-danger mt-1 d-none" id="consultError"></div>
-            </form>
-          </div></div>
-          <div class="alert alert-warning small mb-3">Pumili ng mother para makita ang consultation history.</div>
-        </div>
-        <div class="col-xl-8">
-          <div id="consultHistory" class="h-100">
-            <div class="card border-0 shadow-sm"><div class="card-body small">
-              <h6 class="fw-semibold mb-2">Consultation History</h6>
-              <p class="text-muted mb-0">Wala pang napiling mother.</p>
-            </div></div>
-          </div>
-        </div>
-      </div>`;
-      const form=document.getElementById('consultForm');
-      const motherSelect=document.getElementById('motherSelect');
-      const consultDate=document.getElementById('consultDate');
-      const lmpDate=document.getElementById('lmpDate');
-      const eddDate=document.getElementById('eddDate');
-      const pregWeeks=document.getElementById('pregWeeks');
-      const gaNote=document.getElementById('gaAutoNote');
-      function refreshGA(){ const v=computePregWeeks(consultDate.value,lmpDate.value,eddDate.value);
-        if(v!=='' && (pregWeeks.value===''||pregWeeks.dataset.autofill==='1')){ pregWeeks.value=v; pregWeeks.dataset.autofill='1'; gaNote.textContent='auto'; }
-        else if(v===''){ if(pregWeeks.dataset.autofill==='1') pregWeeks.value=''; gaNote.textContent=''; }
-      }
-      [consultDate,lmpDate,eddDate].forEach(el=>el.addEventListener('change',refreshGA));
-      pregWeeks.addEventListener('input',()=>{pregWeeks.dataset.autofill='0'; gaNote.textContent='manual';});
-      motherSelect.addEventListener('change',()=>{ const id=motherSelect.value; if(!id){ document.getElementById('consultHistory').innerHTML='<div class="card border-0 shadow-sm"><div class="card-body small"><h6 class="fw-semibold mb-2">Consultation History</h6><p class="text-muted mb-0">Wala pang napiling mother.</p></div></div>'; return;} loadConsultations(id); });
-      form.addEventListener('submit',e=>{
-        e.preventDefault();
-        const fd=new FormData(form);
-        fetch(api.health,{method:'POST',body:fd}).then(r=>r.json()).then(j=>{
-          if(!j.success) throw new Error(j.error||'Error');
-          document.getElementById('consultSuccess').classList.remove('d-none');
-          document.getElementById('consultError').classList.add('d-none');
-          const mid=motherSelect.value; if(mid) loadConsultations(mid);
-          form.reset(); pregWeeks.dataset.autofill='0'; gaNote.textContent='';
-        }).catch(err=>{
-          const el=document.getElementById('consultError'); el.textContent=err.message; el.classList.remove('d-none');
-        });
-      });
-    }).catch(err=> moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`);
-  }
-
-  function loadConsultations(mother_id){
-    const container=document.getElementById('consultHistory');
-    container.innerHTML=`<div class="card border-0 shadow-sm"><div class="card-body small"><h6 class="fw-semibold mb-2">Consultation History</h6><div class="text-center py-4"><div class="spinner-border text-primary"></div><div class="small mt-2">Loading records...</div></div></div></div>`;
-    fetchJSON(api.health+'?list=1&mother_id='+mother_id).then(j=>{
-      container.innerHTML=`<div class="card border-0 shadow-sm h-100"><div class="card-body small d-flex flex-column"><h6 class="fw-semibold mb-3">Consultation History</h6><div class="table-responsive" style="max-height:520px; overflow:auto;"><table class="table table-sm table-hover mb-0"><thead class="table-light"><tr><th>Date</th><th>GA</th><th>Ht</th><th>Wt</th><th>BP</th><th>Risks</th><th>Labs</th></tr></thead><tbody>${
-        j.records.map(r=>{
-          const riskMap={vaginal_bleeding:'VB',urinary_infection:'UI',high_blood_pressure:'HBP',fever_38_celsius:'FEV',pallor:'PAL',abnormal_abdominal_size:'ABD',abnormal_presentation:'PRES',absent_fetal_heartbeat:'FHT',swelling:'SWL',vaginal_infection:'VAG'};
-          const risks=[]; Object.keys(riskMap).forEach(k=>{ if(r[k]==1) risks.push(`<span class="badge text-bg-danger-subtle text-danger border-0 risk-flag">${riskMap[k]}</span>`); });
-          let gaBadge='<span class="text-muted">—</span>';
-          if(r.pregnancy_age_weeks!==null){
-            const ga=parseInt(r.pregnancy_age_weeks,10);
-            if(ga>=37) gaBadge=`<span class="badge bg-danger ga-badge">${ga}w</span>`;
-            else if(ga>=34) gaBadge=`<span class="badge bg-warning text-dark ga-badge">${ga}w</span>`;
-            else gaBadge=`<span class="badge bg-secondary-subtle text-dark ga-badge">${ga}w</span>`;
-          }
-          return `<tr><td><small>${r.consultation_date}</small></td><td>${gaBadge}</td><td>${r.height_cm??''}</td><td>${r.weight_kg??''}</td><td>${(r.blood_pressure_systolic||'')&&(r.blood_pressure_diastolic||'')?`${r.blood_pressure_systolic}/${r.blood_pressure_diastolic}`:''}</td><td>${risks.join('')||'<span class="text-muted">None</span>'}</td><td><small>${escapeHtml(r.hgb_result||'')}</small></td></tr>`;
-        }).join('')} ${j.records.length===0?'<tr><td colspan="7" class="text-center small text-muted">No records.</td></tr>':''}</tbody></table></div></div></div>`;
-    }).catch(err=>{
-      container.innerHTML=`<div class="alert alert-danger small mb-0">Error loading: ${escapeHtml(err.message)}</div>`;
-    });
-  }
-
-  function renderRiskAssessment(label){
-    showLoading(label);
-    fetchJSON(api.health+'?risk_summary=1').then(j=>{
-      moduleContent.innerHTML=`<div class="card border-0 shadow-sm"><div class="card-body small"><h6 class="fw-semibold mb-3">${escapeHtml(label)}</h6><p class="text-muted mb-3">Latest consultation per mother na may active risk flags.</p><div class="table-responsive" style="max-height:520px; overflow:auto;"><table class="table table-sm table-hover mb-0 align-middle"><thead class="table-light"><tr><th>Mother</th><th>Date</th><th>GA</th><th>Risk Flags</th><th>Score</th></tr></thead><tbody>${
-        j.risks.map(r=>{
-          const map={vaginal_bleeding:'Vaginal Bleeding',urinary_infection:'Urinary Infection',high_blood_pressure:'High BP',fever_38_celsius:'Fever ≥38°C',pallor:'Pallor',abnormal_abdominal_size:'Abnormal Abd Size',abnormal_presentation:'Abnormal Presentation',absent_fetal_heartbeat:'No Fetal Heartbeat',swelling:'Swelling',vaginal_infection:'Vaginal Infection'};
-          const flags=[]; Object.keys(map).forEach(k=>{ if(r[k]==1) flags.push(`<span class="badge rounded-pill text-bg-danger-subtle text-danger border-0 me-1 mb-1">${map[k]}</span>`); });
-          let gaCell='<span class="text-muted">—</span>';
-          if(r.pregnancy_age_weeks!==null){
-            const ga=parseInt(r.pregnancy_age_weeks,10);
-            if(ga>=37) gaCell=`<span class="badge bg-danger">${ga}w</span>`;
-            else if(ga>=34) gaCell=`<span class="badge bg-warning text-dark">${ga}w</span>`;
-            else gaCell=`<span class="badge bg-secondary-subtle text-dark">${ga}w</span>`;
-          }
-          return `<tr><td>${escapeHtml(r.full_name)}</td><td><small>${r.consultation_date}</small></td><td>${gaCell}</td><td style="max-width:340px;">${flags.join('')||'<span class="text-muted">None</span>'}</td><td><span class="badge bg-danger">${r.risk_score}</span></td></tr>`;
-        }).join('')} ${j.risks.length===0?'<tr><td colspan="5" class="text-center small text-muted">No active risk flags.</td></tr>':''}</tbody></table></div></div></div>`;
-    }).catch(err=>{
-      moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
-    });
-  }
-
-  /* ================= Vaccination Entry (Static + Auto-create) ================= */
-  function renderVaccinationEntry(label){
-    showLoading(label);
-    Promise.all([
-      fetchJSON(api.immun+'?children=1'),
-      fetchJSON(api.immun+'?vaccines=1'),
-      fetchJSON(api.mothers+'?list_basic=1')
-    ]).then(([children,vaccines,mothers])=>{
-      const staticVaccines = [
-        {code:'BCG',name:'BCG Vaccine',cat:'Infant / Early Childhood',doses:1},
-        {code:'HEPB',name:'Hepatitis B Vaccine',cat:'Infant / Early Childhood',doses:3},
-        {code:'PENTA',name:'Pentavalent Vaccine (DPT-Hep B-HIB)',cat:'Infant / Early Childhood',doses:3},
-        {code:'OPV',name:'Oral Polio Vaccine (OPV)',cat:'Infant / Early Childhood',doses:3},
-        {code:'IPV',name:'Inactivated Polio Vaccine (IPV)',cat:'Infant / Early Childhood',doses:2},
-        {code:'PCV',name:'Pneumococcal Conjugate Vaccine (PCV)',cat:'Infant / Early Childhood',doses:3},
-        {code:'MMR',name:'Measles, Mumps, Rubella Vaccine (MMR)',cat:'Infant / Early Childhood',doses:2},
-        {code:'MCV',name:'Measles Containing Vaccine (MCV) MR/MMR Booster',cat:'School-Aged Children',doses:1},
-        {code:'TD',name:'Tetanus Diphtheria (TD)',cat:'School-Aged Children',doses:2},
-        {code:'HPV',name:'Human Papillomavirus Vaccine (HPV)',cat:'School-Aged Children',doses:2}
-      ];
-      const apiMap={};
-      (vaccines.vaccines||[]).forEach(v=>{
-        apiMap[(v.vaccine_code||'').toUpperCase()]={
-          id:v.vaccine_id,code:v.vaccine_code,name:v.vaccine_name,
-          cat:v.vaccine_category||'Other',doses:v.doses_required||1
-        };
-      });
-      staticVaccines.forEach(s=>{ if(!apiMap[s.code]) apiMap[s.code]={id:null,code:s.code,name:s.name,cat:s.cat,doses:s.doses}; });
-      const grouped={};
-      Object.values(apiMap).forEach(v=>{ if(!grouped[v.cat]) grouped[v.cat]=[]; grouped[v.cat].push(v); });
-      Object.keys(grouped).forEach(cat=>grouped[cat].sort((a,b)=>a.name.localeCompare(b.name)));
-      const orderedCats=Object.keys(grouped).sort((a,b)=>a.localeCompare(b));
-
-      moduleContent.innerHTML=`<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-        <h6 class="mb-0 fw-semibold">${escapeHtml(label)}</h6>
-        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAddChild"><i class="bi bi-person-plus"></i> Add Child</button>
-        <button class="btn btn-sm btn-outline-secondary" id="refreshChildListBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-      </div>
-      <div class="row g-3">
-        <div class="col-xl-4 col-xxl-3">
-          <div class="card shadow-sm border-0"><div class="card-body small">
-            <h6 class="fw-semibold mb-3">Add Vaccination</h6>
-            <form id="vaccForm">
-              <div class="mb-2">
-                <label class="form-label small mb-1">Child</label>
-                <select name="child_id" class="form-select form-select-sm" required id="vaccChildSel">
-                  <option value="">Select...</option>
-                  ${children.children.map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.age_months}m)</option>`).join('')}
-                </select>
-              </div>
-              <div class="mb-2">
-                <label class="form-label small mb-1 d-flex justify-content-between"><span>Vaccine</span><span class="text-muted small">Grouped</span></label>
-                <select class="form-select form-select-sm" required id="vaccineSel">
-                  <option value="">Select...</option>
-                  ${orderedCats.map(cat=>`
-                    <optgroup label="${escapeHtml(cat)}">
-                      ${grouped[cat].map(v=>{
-                        const value=v.id?v.id:v.code;
-                        return `<option value="${value}" data-code="${escapeHtml(v.code)}" data-name="${escapeHtml(v.name)}" data-cat="${escapeHtml(v.cat)}" data-doses="${v.doses}">
-                          ${escapeHtml(v.name)} (${escapeHtml(v.code)})
-                        </option>`;
-                      }).join('')}
-                    </optgroup>
-                  `).join('')}
-                </select>
-              </div>
-              <div class="mb-2">
-                <label class="form-label small mb-1">Dose #</label>
-                <select name="dose_number" class="form-select form-select-sm" required id="doseSel"><option value="">Select vaccine first</option></select>
-              </div>
-              <div class="row g-2">
-                <div class="col-6 mb-2"><label class="form-label small mb-1">Date</label><input type="date" name="vaccination_date" class="form-control form-control-sm" required value="<?= date('Y-m-d'); ?>"></div>
-                <div class="col-6 mb-2"><label class="form-label small mb-1">Site</label><input type="text" name="vaccination_site" class="form-control form-control-sm"></div>
-              </div>
-              <div class="mb-2"><label class="form-label small mb-1">Batch / Lot #</label><input type="text" name="batch_lot_number" class="form-control form-control-sm"></div>
-              <div class="mb-2"><label class="form-label small mb-1">Adverse Reactions</label><input type="text" name="adverse_reactions" class="form-control form-control-sm"></div>
-              <div class="mb-2"><label class="form-label small mb-1">Notes</label><textarea name="notes" rows="2" class="form-control form-control-sm"></textarea></div>
-              <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-              <div class="d-grid"><button class="btn btn-primary btn-sm">Save Vaccination</button></div>
-              <div class="form-text text-success mt-1 d-none" id="vaccSuccess">Saved!</div>
-              <div class="form-text text-danger mt-1 d-none" id="vaccError"></div>
-            </form>
-            <div class="alert alert-info mt-3 mb-0 small">Static vaccines merged; kung wala pa sa DB auto-create sa save.</div>
-          </div></div>
-        </div>
-        <div class="col-xl-8 col-xxl-9">
-          <div class="card shadow-sm border-0 h-100"><div class="card-body small d-flex flex-column">
-            <h6 class="fw-semibold mb-3">Child Immunization Records</h6>
-            <div id="vaccRecordsPlaceholder" class="text-muted small">Pumili ng child para makita ang records.</div>
-            <div id="vaccRecords" class="d-none"></div>
-          </div></div>
-        </div>
-      </div>
-      <div class="modal fade modal-add-child" id="modalAddChild" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">
-          <div class="modal-header py-2"><h6 class="modal-title small mb-0"><i class="bi bi-person-plus me-1"></i> Add Child</h6><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-          <div class="modal-body small">
-            <form id="childForm">
-              <p class="form-section-title">Basic Details</p>
-              <div class="mb-2"><label class="form-label small mb-1">Full Name</label><input type="text" name="full_name" class="form-control form-control-sm" required></div>
-              <div class="row g-2">
-                <div class="col-md-6 mb-2"><label class="form-label small mb-1">Sex</label><select name="sex" class="form-select form-select-sm" required><option value="">Select...</option><option value="male">Male</option><option value="female">Female</option></select></div>
-                <div class="col-md-6 mb-2"><label class="form-label small mb-1">Birth Date</label><input type="date" name="birth_date" class="form-control form-control-sm" required></div>
-              </div>
-              <div class="mb-3"><label class="form-label small mb-1">Mother / Caregiver</label><select name="mother_id" class="form-select form-select-sm" required>
-                <option value="">Select...</option>
-                ${mothers.mothers.map(m=>`<option value="${m.mother_id}">${escapeHtml(m.full_name)}</option>`).join('')}
-              </select></div>
-              <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-              <input type="hidden" name="add_child" value="1">
-              <div class="d-grid"><button class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Save Child</button></div>
-              <div class="form-text text-success mt-2 d-none" id="childAddSuccess">Saved!</div>
-              <div class="form-text text-danger mt-2 d-none" id="childAddError"></div>
-            </form>
-            <hr class="my-3">
-            <div class="text-muted small">Kapag nasave, automatic na ise-select ang bata at lalabas ang kanyang vaccination records.</div>
-          </div>
-        </div></div>
-      </div>`;
-
-      const vaccineSel=document.getElementById('vaccineSel');
-      const doseSel=document.getElementById('doseSel');
-      vaccineSel.addEventListener('change',()=>{
-        doseSel.innerHTML='<option value="">Select...</option>';
-        const opt=vaccineSel.selectedOptions[0]; if(!opt) return;
-        const d=parseInt(opt.dataset.doses||'1',10);
-        for(let i=1;i<=d;i++) doseSel.insertAdjacentHTML('beforeend',`<option value="${i}">${i}</option>`);
-      });
-
-      const childSelect=document.getElementById('vaccChildSel');
-      function refreshChildOptions(selected=null){
-        fetchJSON(api.immun+'?children=1').then(ch=>{
-          childSelect.innerHTML='<option value="">Select...</option>';
-          ch.children.forEach(c=>{
-            const o=document.createElement('option');
-            o.value=c.child_id;
-            o.textContent=`${c.full_name} (${c.age_months}m)`;
-            if(selected && parseInt(selected,10)===parseInt(c.child_id,10)) o.selected=true;
-            childSelect.appendChild(o);
-          });
-          if(selected) loadChildVaccRecords(selected);
-        });
-      }
-      document.getElementById('refreshChildListBtn').addEventListener('click',()=>refreshChildOptions());
-
-      const childForm=document.getElementById('childForm');
-      childForm.addEventListener('submit',e=>{
-        e.preventDefault();
-        const fd=new FormData(childForm);
-        fetch(api.immun,{method:'POST',body:fd})
-          .then(r=>r.json())
-          .then(j=>{
-            if(!j.success) throw new Error(j.error||'Error');
-            document.getElementById('childAddSuccess').classList.remove('d-none');
-            document.getElementById('childAddError').classList.add('d-none');
-            const newId=j.child_id;
-            setTimeout(()=>{
-              bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAddChild')).hide();
-              childForm.reset();
-              refreshChildOptions(newId);
-            },550);
-          })
-          .catch(err=>{
-            const el=document.getElementById('childAddError');
-            el.textContent=err.message;
-            el.classList.remove('d-none');
-          });
-      });
-
-      childSelect.addEventListener('change',e=>{
-        const cid=e.target.value;
-        if(!cid){
-          document.getElementById('vaccRecords').classList.add('d-none');
-          document.getElementById('vaccRecordsPlaceholder').classList.remove('d-none');
-          return;
-        }
-        loadChildVaccRecords(cid);
-      });
-
-      function loadChildVaccRecords(child_id){
-        const wrap=document.getElementById('vaccRecords');
-        wrap.innerHTML='<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
-        fetchJSON(api.immun+'?records=1&child_id='+child_id).then(j=>{
-          if(!j.success) throw new Error(j.error||'Error');
-          wrap.classList.remove('d-none');
-          document.getElementById('vaccRecordsPlaceholder').classList.add('d-none');
-          wrap.innerHTML=`<div class="table-responsive" style="max-height:520px; overflow:auto;">
-            <table class="table table-sm table-hover mb-0 align-middle">
-              <thead class="table-light"><tr><th>Vaccine</th><th>Dose</th><th>Date</th><th>Next Due</th><th>Site</th><th>Batch</th></tr></thead>
-              <tbody>
-                ${j.records.map(r=>`
-                  <tr>
-                    <td>${escapeHtml(r.vaccine_name)} <span class="text-muted">(${escapeHtml(r.vaccine_code)})</span></td>
-                    <td>${r.dose_number}</td>
-                    <td><small>${r.vaccination_date}</small></td>
-                    <td><small>${r.next_dose_due_date||'<span class="text-muted">—</span>'}</small></td>
-                    <td>${escapeHtml(r.vaccination_site||'')}</td>
-                    <td>${escapeHtml(r.batch_lot_number||'')}</td>
-                  </tr>`).join('')}
-                ${j.records.length===0?'<tr><td colspan="6" class="text-center small text-muted">No records.</td></tr>':''}
-              </tbody>
-            </table>
-          </div>`;
-        }).catch(err=>{
-          wrap.innerHTML=`<div class="text-danger small">Error: ${escapeHtml(err.message)}</div>`;
-        });
-      }
-
-      document.getElementById('vaccForm').addEventListener('submit',e=>{
-        e.preventDefault();
-        const fd=new FormData(e.target);
-        const opt=vaccineSel.selectedOptions[0];
-        if(opt){
-          const value=opt.value;
-            if(!/^[0-9]+$/.test(value)){
-              fd.set('vaccine_id','');
-              fd.append('vaccine_code',opt.dataset.code);
-              fd.append('vaccine_name',opt.dataset.name);
-              let catGuess='infant';
-              if(opt.dataset.cat.toLowerCase().includes('school')) catGuess='child';
-              if(opt.dataset.cat.toLowerCase().includes('booster')) catGuess='booster';
-              fd.append('vaccine_category',catGuess);
-              fd.append('doses_required',opt.dataset.doses);
-            } else fd.set('vaccine_id',value);
-        }
-        fetch(api.immun,{method:'POST',body:fd}).then(r=>r.json()).then(j=>{
-          if(!j.success) throw new Error(j.error||'Error');
-          document.getElementById('vaccSuccess').classList.remove('d-none');
-          document.getElementById('vaccError').classList.add('d-none');
-          const cid=childSelect.value;
-          if(cid) loadChildVaccRecords(cid);
-          e.target.reset();
-          doseSel.innerHTML='<option value="">Select vaccine first</option>';
-        }).catch(err=>{
-          const el=document.getElementById('vaccError');
-          el.textContent=err.message;
-          el.classList.remove('d-none');
-        });
-      });
-    }).catch(err=>{
-      moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
-    });
-  }
-
-  /* ================= Immunization Card ================= */
-  function renderImmunizationCard(label){
-    showLoading(label);
-    fetchJSON(api.immun+'?children=1').then(ch=>{
-      moduleContent.innerHTML=`<div class="card border-0 shadow-sm"><div class="card-body small">
-        <h6 class="fw-semibold mb-3">${escapeHtml(label)}</h6>
-        <select id="cardChild" class="form-select form-select-sm mb-2">
-          <option value="">Select Child...</option>
-          ${ch.children.map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.age_months}m)</option>`).join('')}
-        </select>
-        <div id="cardDisplay" class="text-muted small">Pumili muna ng child.</div>
-      </div></div>`;
-      const cardChild=document.getElementById('cardChild');
-      const cardDisplay=document.getElementById('cardDisplay');
-      cardChild.addEventListener('change',()=>{
-        const cid=cardChild.value;
-        if(!cid){ cardDisplay.innerHTML='Pumili muna ng child.'; return; }
-        cardDisplay.innerHTML='<div class="py-4 text-center"><div class="spinner-border text-primary"></div></div>';
-        fetchJSON(api.immun+'?card=1&child_id='+cid).then(j=>{
-          if(!j.success) throw new Error(j.error||'Error');
-          const c=j.child;
-          const maxDoses=Math.max(...j.vaccines.map(v=>v.doses_required||1),1);
-          const rows=j.vaccines.map(v=>{
-            const given={}; v.doses.forEach(d=>given[d.dose_number]=d.vaccination_date);
-            const cells=Array.from({length:maxDoses}).map((_,i)=>{
-              const dn=i+1;
-              if(dn>v.doses_required) return '<td class="text-center text-muted">—</td>';
-              return `<td class="text-center">${given[dn]?`<span class="badge bg-success-subtle text-success">${given[dn]}</span>`:'<span class="text-muted">—</span>'}</td>`;
-            }).join('');
-            return `<tr><td>${escapeHtml(v.vaccine_name)}<br><small class="text-muted">${escapeHtml(v.vaccine_code)}</small></td><td>${escapeHtml(v.vaccine_category)}</td>${cells}</tr>`;
-          }).join('');
-          cardDisplay.innerHTML=`<div class="mb-3"><strong>${escapeHtml(c.full_name)}</strong> <span class="text-muted">Birth: ${c.birth_date} | Sex: ${c.sex}</span></div>
-          <div class="table-responsive"><table class="table table-sm table-bordered align-middle"><thead class="table-light"><tr><th>Vaccine</th><th>Category</th>${Array.from({length:maxDoses}).map((_,i)=>`<th>Dose ${i+1}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
-        }).catch(err=>{
-          cardDisplay.innerHTML=`<div class="text-danger small">Error: ${escapeHtml(err.message)}</div>`;
-        });
-      });
-    }).catch(err=> moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`);
-  }
-
-  /* ================= Vaccine Schedule Management (Master List CRUD) ================= */
-  function renderVaccineSchedule(label){
-    showLoading(label);
-    fetchJSON(api.immun+'?vaccines=1').then(j=>{
-      if(!j.success) throw new Error(j.error||'Error');
-      const vaccines=j.vaccines||[];
-      moduleContent.innerHTML=`
-        <div class="card border-0 shadow-sm mb-3">
-          <div class="card-body small">
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-              <h6 class="fw-semibold mb-0">${escapeHtml(label)}</h6>
-              <input type="text" id="vaxSearch" class="form-control form-control-sm" style="max-width:220px;" placeholder="Search code / name">
-            </div>
-            <form id="vaccineForm" class="row g-2 align-items-end">
-              <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-              <input type="hidden" name="add_update_vaccine" value="1">
-              <input type="hidden" name="vaccine_id" id="vf_id">
-              <div class="col-md-2"><label class="small-label mb-1">Code *</label><input type="text" name="vaccine_code" id="vf_code" class="form-control form-control-sm" required></div>
-              <div class="col-md-3"><label class="small-label mb-1">Name *</label><input type="text" name="vaccine_name" id="vf_name" class="form-control form-control-sm" required></div>
-              <div class="col-md-3"><label class="small-label mb-1">Description</label><input type="text" name="vaccine_description" id="vf_desc" class="form-control form-control-sm"></div>
-              <div class="col-md-2"><label class="small-label mb-1">Target Age Group</label><input type="text" name="target_age_group" id="vf_tag" class="form-control form-control-sm" placeholder="e.g. 0-12m"></div>
-              <div class="col-md-2"><label class="small-label mb-1">Category *</label><select name="vaccine_category" id="vf_cat" class="form-select form-select-sm" required>
-                <option value="birth">birth</option><option value="infant" selected>infant</option><option value="child">child</option><option value="booster">booster</option><option value="adult">adult</option>
-              </select></div>
-              <div class="col-md-1"><label class="small-label mb-1">Doses *</label><input type="number" min="1" name="doses_required" id="vf_doses" class="form-control form-control-sm" required value="1"></div>
-              <div class="col-md-2"><label class="small-label mb-1">Interval (days)</label><input type="number" min="0" name="interval_between_doses_days" id="vf_interval" class="form-control form-control-sm" placeholder="Optional"></div>
-              <div class="col-md-2 d-grid"><label class="small-label mb-1 invisible">.</label><button class="btn btn-sm btn-primary"><i class="bi bi-save"></i> <span id="vf_btn_lbl">Add</span></button></div>
-              <div class="col-md-2 d-grid"><label class="small-label mb-1 invisible">.</label><button type="button" class="btn btn-sm btn-outline-secondary" id="vf_reset"><i class="bi bi-arrow-counterclockwise"></i> Reset</button></div>
-              <div class="col-12"><div id="vf_msg" class="small mt-1 text-muted">Fill fields then click Add.</div></div>
-            </form>
-          </div>
-        </div>
-        <div class="card border-0 shadow-sm">
-          <div class="card-body small">
-            <h6 class="fw-semibold mb-2">Vaccine Master List</h6>
-            <div class="table-responsive" style="max-height:520px;">
-              <table class="table table-sm table-hover table-fixed-head align-middle mb-0" id="vaxTable">
-                <thead class="table-light">
-                  <tr>
-                    <th>Code</th><th>Name</th><th>Description</th><th>Target Age Group</th><th>Category</th><th>Doses</th><th>Interval (days)</th><th style="min-width:110px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${vaccines.length ? vaccines.map(v=>`
-                    <tr data-id="${v.vaccine_id}">
-                      <td class="fw-semibold">${escapeHtml(v.vaccine_code)}</td>
-                      <td>${escapeHtml(v.vaccine_name)}</td>
-                      <td>${escapeHtml(v.vaccine_description||'')}</td>
-                      <td>${escapeHtml(v.target_age_group||'')}</td>
-                      <td><span class="badge bg-info-subtle text-dark border">${escapeHtml(v.vaccine_category)}</span></td>
-                      <td>${v.doses_required}</td>
-                      <td>${v.interval_between_doses_days===null?'—':v.interval_between_doses_days}</td>
-                      <td>
-                        <button class="btn btn-sm btn-outline-primary btn-edit" data-id="${v.vaccine_id}" title="Edit"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger btn-del" data-id="${v.vaccine_id}" title="Delete"><i class="bi bi-trash"></i></button>
-                      </td>
-                    </tr>`).join('') : `<tr><td colspan="8" class="text-center text-muted small">No active vaccines.</td></tr>`}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>`;
-
-      const form=document.getElementById('vaccineForm');
-      const msg=document.getElementById('vf_msg');
-      const btnLbl=document.getElementById('vf_btn_lbl');
-      const resetBtn=document.getElementById('vf_reset');
-      const search=document.getElementById('vaxSearch');
-
-      function clearForm(){
-        form.reset();
-        document.getElementById('vf_id').value='';
-        btnLbl.textContent='Add';
-        msg.className='small mt-1 text-muted';
-        msg.textContent='Fill fields then click Add.';
-        document.querySelectorAll('#vaxTable tbody tr').forEach(tr=>tr.classList.remove('editing-row'));
-      }
-      resetBtn.addEventListener('click',clearForm);
-
-      form.addEventListener('submit',e=>{
-        e.preventDefault();
-        msg.className='small mt-1 text-muted';
-        msg.textContent='Saving...';
-        const fd=new FormData(form);
-        fetch(api.immun,{method:'POST',body:fd})
-          .then(r=>r.json()).then(j=>{
-            if(!j.success) throw new Error(j.error||'Save failed');
-            msg.className='small mt-1 text-success';
-            msg.textContent=j.mode==='updated'?'Updated successfully.':'Added successfully.';
-            setTimeout(()=>renderVaccineSchedule(label),350);
-          }).catch(err=>{
-            msg.className='small mt-1 text-danger';
-            msg.textContent=err.message;
-          });
-      });
-
-      document.querySelectorAll('.btn-edit').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-          const tr=btn.closest('tr');
-          document.querySelectorAll('#vaxTable tbody tr').forEach(r=>r.classList.remove('editing-row'));
-          tr.classList.add('editing-row');
-          document.getElementById('vf_id').value=tr.dataset.id;
-          document.getElementById('vf_code').value=tr.children[0].textContent.trim();
-          document.getElementById('vf_name').value=tr.children[1].textContent.trim();
-          document.getElementById('vf_desc').value=tr.children[2].textContent.trim();
-          document.getElementById('vf_tag').value=tr.children[3].textContent.trim();
-          document.getElementById('vf_cat').value=tr.children[4].innerText.trim();
-          document.getElementById('vf_doses').value=tr.children[5].textContent.trim();
-          const intervalTxt=tr.children[6].textContent.trim();
-          document.getElementById('vf_interval').value=intervalTxt==='—'?'':intervalTxt;
-          btnLbl.textContent='Update';
-          msg.className='small mt-1 text-warning';
-          msg.textContent='Editing vaccine ID '+tr.dataset.id;
-        });
-      });
-
-      document.querySelectorAll('.btn-del').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-          if(!confirm('Delete this vaccine? (Must have no child immunization records)')) return;
-          const fd=new FormData();
-          fd.append('delete_vaccine_id', btn.dataset.id);
-          fd.append('csrf_token', window.__BHW_CSRF);
-          fetch(api.immun,{method:'POST',body:fd}).then(r=>r.json())
-            .then(j=>{
-              if(!j.success) throw new Error(j.error||'Delete failed');
-              renderVaccineSchedule(label);
-            }).catch(err=>alert(err.message));
-        });
-      });
-
-      search.addEventListener('input',()=>{
-        const q=search.value.toLowerCase();
-        document.querySelectorAll('#vaxTable tbody tr').forEach(tr=>{
-          if(!q){ tr.classList.remove('d-none'); return; }
-          const text=tr.innerText.toLowerCase();
-          tr.classList.toggle('d-none', !text.includes(q));
-        });
-      });
-    }).catch(err=>{
-      moduleContent.innerHTML=`<div class="alert alert-danger small">Error loading: ${escapeHtml(err.message)}</div>`;
-    });
-  }
-
-  function renderOverdueAlerts(label){
-    showLoading(label);
-    fetchJSON(api.immun+'?overdue=1').then(j=>{
-      moduleContent.innerHTML=`<div class="row g-3"><div class="col-12">
-        <div class="card border-0 shadow-sm mb-3"><div class="card-body small">
-          <h6 class="fw-semibold mb-2">${escapeHtml(label)} - Overdue</h6>
-          <div class="table-responsive" style="max-height:300px; overflow:auto;">
-            <table class="table table-sm table-hover mb-0">
-              <thead class="table-light"><tr><th>Child</th><th>Age (m)</th><th>Vaccine</th><th>Dose</th><th>Target Age</th></tr></thead>
-              <tbody>${
-                j.overdue.map(o=>`<tr class="table-danger"><td>${escapeHtml(o.child_name)}</td><td>${o.age_months}</td><td>${escapeHtml(o.vaccine_code)}</td><td>${o.dose_number}</td><td>${o.target_age_months}</td></tr>`).join('')
-              }${j.overdue.length===0?'<tr><td colspan="5" class="text-center small text-muted">None overdue.</td></tr>':''}</tbody>
-            </table>
-          </div>
-        </div></div>
-        <div class="card border-0 shadow-sm"><div class="card-body small">
-          <h6 class="fw-semibold mb-2">Due Soon (within 1 month)</h6>
-          <div class="table-responsive" style="max-height:300px; overflow:auto;">
-            <table class="table table-sm table-hover mb-0">
-              <thead class="table-light"><tr><th>Child</th><th>Age (m)</th><th>Vaccine</th><th>Dose</th><th>Target Age</th></tr></thead>
-              <tbody>${
-                j.dueSoon.map(o=>`<tr class="table-warning"><td>${escapeHtml(o.child_name)}</td><td>${o.age_months}</td><td>${escapeHtml(o.vaccine_code)}</td><td>${o.dose_number}</td><td>${o.target_age_months}</td></tr>`).join('')
-              }${j.dueSoon.length===0?'<tr><td colspan="5" class="text-center small text-muted">None due soon.</td></tr>':''}</tbody>
-            </table>
-          </div>
-        </div></div></div>`;
-    }).catch(err=> moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`);
-  }
-
-function renderParentNotifications(label){
+/* Enlarged Dashboard Rendering */
+function renderHealthStats(label){
   showLoading(label);
-  fetchJSON(api.notif+'?list=1').then(j=>{
-    const rows = j.notifications||[];
-    moduleContent.innerHTML=`<div class="card border-0 shadow-sm"><div class="card-body small">
-      <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-        <h6 class="fw-semibold mb-0">${escapeHtml(label)}</h6>
-        <div class="ms-auto d-flex flex-wrap gap-2">
-          <select id="notifFilter" class="form-select form-select-sm" style="width:170px;">
-            <option value="">All Types</option>
-            <option value="vaccine_due">Vaccine Due Soon</option>
-            <option value="vaccine_overdue">Vaccine Overdue</option>
-            <option value="appointment_reminder">Appointment</option>
-            <option value="general">General</option>
-          </select>
-          <button class="btn btn-sm btn-outline-secondary" id="btnRefresh" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
-          <button class="btn btn-sm btn-outline-primary" id="btnGenerate" title="Generate from schedule"><i class="bi bi-gear"></i> Generate</button>
-          <button class="btn btn-sm btn-outline-success" id="btnMarkAll"><i class="bi bi-check2-all"></i> Mark All Read</button>
+  Promise.allSettled([
+    fetchJSON(api.reports+'?maternal_stats=1'),
+    fetchJSON(api.reports+'?vaccination_coverage=1'),
+    fetchJSON(api.reports+'?health_risks=1'),
+    fetchJSON(api.immun+'?overdue=1'),
+    fetchJSON(api.health+'?recent_consults=1&limit=60')
+  ]).then(res=>{
+    const ms=res[0].value||{},vc=res[1].value||{},hr=res[2].value||{},od=res[3].value||{},rc=res[4].value||{};
+    if(!ms.success||!vc.success||!hr.success||!od.success){
+      moduleContent.innerHTML='<div class="alert alert-danger">Incomplete data. Please refresh.</div>';return;
+    }
+    const coverage=vc.overall_dose_coverage_pct;
+    const upcoming=buildUpcoming(upcomingMerge(od.overdue||[],od.dueSoon||[]).slice(0,9));
+    const alerts=buildAlerts(hr,od.overdue||[],rc.recent_consults||[]);
+    moduleContent.innerHTML=`
+      <div class="fade-in">
+        <div class="dashboard-welcome">Welcome Back, <?php echo htmlspecialchars($firstName); ?>!</div>
+        <div class="dashboard-sub">Here’s what’s happening in your barangay today</div>
+        <div class="metric-grid">
+          ${metricCard('Maternal Cases', ms.total_mothers,'+3 from last month','bi-person-heart','moms')}
+          ${metricCard('Vaccinations Given', vc.total_administered_doses,'+12 this week','bi-syringe','imm')}
+          ${metricCard('Consultations', ms.total_consultations,'+8 this week','bi-activity','consult')}
+          ${metricCard('Coverage Rate', coverage+'%','', 'bi-graph-up','coverage',coverage)}
         </div>
-      </div>
-      <div id="notifStats" class="mb-2 text-muted small">${rows.length} notification(s)</div>
-      <div class="table-responsive" style="max-height:520px; overflow:auto;">
-        <table class="table table-sm table-hover mb-0" id="notifTable">
-          <thead class="table-light">
-            <tr><th>Date</th><th>Child</th><th>Parent</th><th>Type</th><th>Title</th><th>Due</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody>
-            ${
-              rows.length
-                ? rows.map(n=>`
-                  <tr data-type="${escapeHtml(n.notification_type)}" data-id="${n.notification_id}" class="${n.is_read?'':'table-warning'}">
-                    <td><small>${n.created_at}</small></td>
-                    <td>${escapeHtml(n.child_name)}</td>
-                    <td>${escapeHtml(n.parent_username)}</td>
-                    <td>${escapeHtml(n.notification_type)}</td>
-                    <td>${escapeHtml(n.title)}</td>
-                    <td>${n.due_date||'<span class="text-muted">—</span>'}</td>
-                    <td>${n.is_read?'Read':'Unread'}</td>
-                    <td><button class="btn btn-sm btn-outline-success btn-mark-read" ${n.is_read?'disabled':''} title="Mark read"><i class="bi bi-check"></i></button></td>
-                  </tr>`).join('')
-                : `<tr><td colspan="8" class="text-center small text-muted">No notifications.</td></tr>`
-            }
-          </tbody>
-        </table>
-      </div>
-    </div></div>`;
-
-    const filter = document.getElementById('notifFilter');
-    filter.addEventListener('change',()=>{
-      const val=filter.value;
-      let visible=0;
-      document.querySelectorAll('#notifTable tbody tr').forEach(tr=>{
-        if(!val){ tr.classList.remove('d-none'); visible++; return; }
-        const t = tr.dataset.type;
-        const show = (t===val);
-        tr.classList.toggle('d-none', !show);
-        if(show) visible++;
-      });
-      document.getElementById('notifStats').textContent = visible+' notification(s)';
-    });
-
-    document.querySelectorAll('.btn-mark-read').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const tr = btn.closest('tr');
-        const id = tr.dataset.id;
-        const fd = new FormData();
-        fd.append('csrf_token',window.__BHW_CSRF);
-        fd.append('mark_read',id);
-        fetch(api.notif,{method:'POST',body:fd}).then(r=>r.json()).then(j=>{
-          if(j.success){
-            tr.classList.remove('table-warning');
-            tr.cells[6].innerHTML='Read';
-            btn.disabled=true;
-          }
-        });
+        <div class="dashboard-panels">
+          <div class="panel-card">
+            <div class="panel-title"><i class="bi bi-calendar-event"></i> Upcoming Immunizations</div>
+            <div class="mini-text text-muted mb-3">Due and overdue vaccinations requiring attention</div>
+            <div class="table-responsive" style="max-height:420px;">
+              <table class="table-clean">
+                <thead><tr><th>Child Name</th><th>Vaccine</th><th>Due Date</th><th>Status</th></tr></thead>
+                <tbody>${upcoming||'<tr><td colspan="4" class="text-center text-muted py-4">No upcoming items.</td></tr>'}</tbody>
+              </table>
+            </div>
+            <div class="text-end mt-3">
+              <a href="#" class="link-clean" data-jump="overdue_alerts">Manage schedule →</a>
+            </div>
+          </div>
+          <div class="panel-card">
+            <div class="panel-title"><i class="bi bi-exclamation-octagon"></i> Health Alerts</div>
+            <div class="alert-stack">${alerts||'<div class="text-muted" style="font-size:.78rem;">No high-risk cases currently.</div>'}</div>
+            <div class="text-end mt-3">
+              <a href="#" class="link-clean" data-jump="alert_system">View detailed alerts →</a>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    moduleContent.querySelectorAll('[data-jump]').forEach(a=>{
+      a.addEventListener('click',e=>{
+        e.preventDefault();
+        const mod=a.getAttribute('data-jump');
+        const link=document.querySelector(`.nav-link-modern[data-module="${mod}"]`);
+        if(link){setActiveLink(link);loadModule(mod, link.dataset.label||link.textContent.trim());}
       });
     });
 
-    document.getElementById('btnRefresh').addEventListener('click',()=>renderParentNotifications(label));
-
-    document.getElementById('btnGenerate').addEventListener('click',()=>{
-      if(!confirm('Generate notifications (due + overdue) now?')) return;
-      fetchJSON(api.notif+'?generate=1').then(g=>{
-        alert('Generated: '+g.stats.added+' added, '+g.stats.skipped+' skipped.');
-        renderParentNotifications(label);
-      }).catch(err=>alert(err.message));
-    });
-
-    document.getElementById('btnMarkAll').addEventListener('click',()=>{
-      if(!confirm('Mark ALL notifications as read?')) return;
-      const fd=new FormData();
-      fd.append('csrf_token',window.__BHW_CSRF);
-      fd.append('mark_all_read','1');
-      fetch(api.notif,{method:'POST',body:fd}).then(r=>r.json()).then(j=>{
-        if(j.success){
-          alert('Marked '+j.marked_read+' as read.');
-          renderParentNotifications(label);
+    function metricCard(title,value,diff,icon,type,progress=null){
+      const diffClass=diff.startsWith('+')?'diff-up':'diff-down';
+      const progressBar=(type==='coverage'&&progress!==null)?
+        `<div class="progress-mini"><span style="width:${Math.min(100,parseFloat(progress)||0)}%"></span></div>`:'';
+      return `<div class="metric-card">
+        <div>
+          <div class="metric-title"><i class="bi ${icon}"></i>${escapeHtml(title)}</div>
+          <div class="metric-value">${value}</div>
+          ${progressBar}
+          ${diff?`<div class="metric-diff ${diffClass}">${escapeHtml(diff)}</div>`:''}
+        </div>
+      </div>`;
+    }
+    function upcomingMerge(overdue,dueSoon){
+      const list=[],today=new Date();
+      overdue.forEach(o=>list.push({child:o.child_name,vaccine:o.vaccine_code+' - '+ordinal(o.dose_number)+' Dose',due:o.due_date||null,status:'overdue'}));
+      dueSoon.forEach(o=>{
+        const due=o.due_date||null;
+        let status='scheduled';
+        if(due){
+          const diff=(new Date(due)-today)/86400000;
+          if(diff<0)status='overdue'; else if(diff<=10)status='due-soon';
         }
+        list.push({child:o.child_name,vaccine:o.vaccine_code+' - '+ordinal(o.dose_number)+' Dose', due, status});
       });
-    });
-
+      return list.sort((a,b)=>{
+        if(a.status==='overdue'&&b.status!=='overdue')return -1;
+        if(b.status==='overdue'&&a.status!=='overdue')return 1;
+        return (new Date(a.due||'2100-01-01')) - (new Date(b.due||'2100-01-01'));
+      });
+    }
+    function buildUpcoming(items){
+      return items.map(i=>{
+        let cls='st-sched',lbl='Scheduled';
+        if(i.status==='overdue'){cls='st-overdue';lbl='Overdue';}
+        else if(i.status==='due-soon'){cls='st-due';lbl='Due Soon';}
+        return `<tr>
+          <td>${escapeHtml(i.child)}</td>
+          <td>${escapeHtml(i.vaccine)}</td>
+          <td>${i.due?formatDate(i.due):'<span class="text-muted">—</span>'}</td>
+          <td><span class="status-badge ${cls}"><i class="bi bi-clock"></i>${lbl}</span></td>
+        </tr>`;
+      }).join('');
+    }
+    function buildAlerts(hrData,overdueList,consults){
+      const alerts=[], detail=hrData.details||[];
+      const highBP=detail.find(r=>r.high_blood_pressure==1);
+      if(highBP) alerts.push(alertBox('High Blood Pressure',`Patient: ${escapeHtml(highBP.full_name)} (${highBP.pregnancy_age_weeks||'?'} wks)<br>Requires follow-up`,'danger','bi-activity'));
+      const abnormal=detail.find(r=>r.abnormal_presentation==1);
+      if(abnormal) alerts.push(alertBox('Abnormal Presentation',`Patient: ${escapeHtml(abnormal.full_name)} (${abnormal.pregnancy_age_weeks||'?'} wks)<br>Breech/abnormal`,'danger','bi-person-exclamation'));
+      const lowHgb=(consults||[]).find(c=>{
+        if(!c.hgb_result)return false;
+        const v=parseFloat(String(c.hgb_result).replace(/[^\d.]/g,''));return !isNaN(v)&&v<10;
+      });
+      if(lowHgb) alerts.push(alertBox('Low Hemoglobin',`Patient: ${escapeHtml(lowHgb.full_name)} (${lowHgb.pregnancy_age_weeks||'?'} wks)<br>HGB ${escapeHtml(lowHgb.hgb_result)} - monitor`,'warn','bi-droplet-half'));
+      if(overdueList.length>0) alerts.push(alertBox('Vaccination Overdue',`${overdueList.length} child${overdueList.length>1?'ren':''} overdue`,'warn','bi-bell'));
+      return alerts.join('');
+    }
+    function alertBox(title,desc,variant,icon){
+      const variantClass=variant==='danger'?'danger':(variant==='warn'?'warn':'info');
+      return `<div class="alert-box ${variantClass}">
+        <div class="alert-icon ${variantClass}"><i class="bi ${icon}"></i></div>
+        <div class="alert-content">
+          <div class="alert-title">${escapeHtml(title)}</div>
+          <div class="alert-desc">${desc}</div>
+        </div>
+      </div>`;
+    }
+    function ordinal(n){n=parseInt(n,10)||0;const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+    function formatDate(d){if(!d)return'';const dt=new Date(d+'T00:00:00');if(isNaN(dt))return escapeHtml(d);return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
   }).catch(err=>{
-    moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
+    moduleContent.innerHTML='<div class="alert alert-danger">Error: '+escapeHtml(err.message)+'</div>';
   });
 }
 
-  /* ================= Parent Accounts: Create ================= */
-  function renderCreateParentAccounts(label){
-    showLoading(label);
-    Promise.all([
-      fetchJSON(api.parent+'?children_basic=1'),
-      fetchJSON(api.parent+'?list_parents=1')
-    ]).then(([children, parents])=>{
-      moduleContent.innerHTML=`
-        <div class="row g-3">
-          <div class="col-lg-4">
-            <div class="card border-0 shadow-sm mb-3">
-              <div class="card-body small">
-                <h6 class="fw-semibold mb-3">${escapeHtml(label)}</h6>
-                <form id="createParentForm">
-                  <div class="mb-2"><label class="form-label small mb-1">Username *</label><input name="username" class="form-control form-control-sm" required></div>
-                  <div class="mb-2"><label class="form-label small mb-1">Email</label><input type="email" name="email" class="form-control form-control-sm"></div>
-                  <div class="row g-2">
-                    <div class="col-6 mb-2"><label class="form-label small mb-1">First Name *</label><input name="first_name" class="form-control form-control-sm" required></div>
-                    <div class="col-6 mb-2"><label class="form-label small mb-1">Last Name *</label><input name="last_name" class="form-control form-control-sm" required></div>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Relationship *</label>
-                    <select name="relationship_type" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      <option value="mother">Mother</option>
-                      <option value="father">Father</option>
-                      <option value="guardian">Guardian</option>
-                      <option value="caregiver">Caregiver</option>
-                    </select>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Child *</label>
-                    <select name="child_id" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      ${children.children.map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.age_months}m)</option>`).join('')}
-                    </select>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1 d-flex justify-content-between">
-                      <span>Password</span><span class="text-muted">Blank = auto-generate</span>
-                    </label>
-                    <input type="text" name="password" class="form-control form-control-sm" placeholder="(Optional)">
-                  </div>
-                  <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-                  <input type="hidden" name="create_parent" value="1">
-                  <div class="d-grid mt-2"><button class="btn btn-primary btn-sm">Create Account</button></div>
-                  <div class="form-text text-success mt-2 d-none" id="parentCreateSuccess"></div>
-                  <div class="form-text text-danger mt-2 d-none" id="parentCreateError"></div>
-                </form>
-                <div class="alert alert-info mt-3 mb-0 small">Note: Auto-generated password ibabalik dito. Ibigay sa magulang nang personal.</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body small">
-                <h6 class="fw-semibold mb-3">Existing Parent Accounts</h6>
-                <div class="table-responsive" style="max-height:520px; overflow:auto;">
-                  <table class="table table-sm table-hover align-middle mb-0">
-                    <thead class="table-light">
-                      <tr><th>User</th><th>Name</th><th>Children</th><th>Active</th><th>Created</th></tr>
-                    </thead>
-                    <tbody>
-                      ${parents.parents.map(p=>`
-                        <tr>
-                          <td class="fw-semibold">${escapeHtml(p.username)}</td>
-                          <td>${escapeHtml(p.first_name+' '+p.last_name)}</td>
-                          <td><small>${p.children_list?escapeHtml(p.children_list):'<span class="text-muted">—</span>'}</small></td>
-                          <td>${p.is_active?'<span class="badge bg-success">Yes</span>':'<span class="badge bg-secondary">No</span>'}</td>
-                          <td><small>${p.created_at}</small></td>
-                        </tr>`).join('')}
-                      ${parents.parents.length===0?'<tr><td colspan="5" class="text-center small text-muted">No parent accounts yet.</td></tr>':''}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>`;
-      document.getElementById('createParentForm').addEventListener('submit',e=>{
-        e.preventDefault();
-        const fd=new FormData(e.target);
-        fetch(api.parent,{method:'POST',body:fd})
-          .then(r=>r.json())
-          .then(j=>{
-            if(!j.success) throw new Error(j.error||'Error');
-            const ok=document.getElementById('parentCreateSuccess');
-            ok.innerHTML='Created! Username: <strong>'+escapeHtml(j.username)+'</strong>'+(j.auto_generated_password?'<br>Auto Password: <span class="generated-pass">'+escapeHtml(j.auto_generated_password)+'</span>':'');
-            ok.classList.remove('d-none');
-            document.getElementById('parentCreateError').classList.add('d-none');
-            e.target.reset();
-            renderCreateParentAccounts(label);
-          }).catch(err=>{
-            const el=document.getElementById('parentCreateError');
-            el.textContent=err.message;
-            el.classList.remove('d-none');
-          });
-      });
-    }).catch(err=>{
-      moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
-    });
-  }
+function renderMaternalHealth(label){
+  showLoading(label);
 
-   /* ================= Link Child to Parent ================= */
-  function renderLinkChildParent(label){
-    showLoading(label);
-    Promise.all([
-      fetchJSON(api.parent+'?list_parents=1'),
-      fetchJSON(api.parent+'?children_basic=1'),
-      fetchJSON(api.parent+'?links=1')
-    ]).then(([parents,children,links])=>{
-      moduleContent.innerHTML=`
-        <div class="row g-3">
-          <div class="col-lg-4">
-            <div class="card border-0 shadow-sm mb-3">
-              <div class="card-body small">
-                <h6 class="fw-semibold mb-3">${escapeHtml(label)}</h6>
-                <form id="linkForm">
-                  <div class="mb-2"><label class="form-label small mb-1">Parent *</label>
-                    <select name="parent_user_id" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      ${parents.parents.map(p=>`<option value="${p.user_id}">${escapeHtml(p.username)} (${p.children_count})</option>`).join('')}
-                    </select>
-                  </div>
-                  <div class="mb-2"><label class="form-label small mb-1">Child *</label>
-                    <select name="child_id" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      ${children.children.map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.age_months}m)</option>`).join('')}
-                    </select>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Relationship *</label>
-                    <select name="relationship_type" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      <option value="mother">Mother</option>
-                      <option value="father">Father</option>
-                      <option value="guardian">Guardian</option>
-                      <option value="caregiver">Caregiver</option>
-                    </select>
-                  </div>
-                  <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-                  <input type="hidden" name="link_child" value="1">
-                  <div class="d-grid"><button class="btn btn-primary btn-sm">Link</button></div>
-                  <div class="form-text text-success mt-2 d-none" id="linkSuccess">Linked!</div>
-                  <div class="form-text text-danger mt-2 d-none" id="linkError"></div>
-                </form>
-                <div class="alert alert-info small mt-3 mb-0">Kapag existing ngunit inactive, mare-reactivate.</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body small">
-                <h6 class="fw-semibold mb-3">Parent-Child Links</h6>
-                <div class="table-responsive" style="max-height:520px; overflow:auto;">
-                  <table class="table table-sm table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                      <tr><th>Parent</th><th>Child</th><th>Relationship</th><th>Active</th><th>Granted</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                      ${links.links.map(l=>`
-                        <tr>
-                          <td>${escapeHtml(l.parent_username)}</td>
-                          <td>${escapeHtml(l.child_name)}</td>
-                          <td>${escapeHtml(l.relationship_type)}</td>
-                          <td>${l.is_active?'<span class="badge bg-success">Yes</span>':'<span class="badge bg-secondary">No</span>'}</td>
-                          <td><small>${l.granted_date}</small></td>
-                          <td>
-                            ${l.is_active?`<button class="btn btn-sm btn-outline-danger btn-unlink" data-id="${l.access_id}"><i class="bi bi-x"></i></button>`:''}
-                          </td>
-                        </tr>`).join('')}
-                      ${links.links.length===0?'<tr><td colspan="6" class="text-center small text-muted">No links yet.</td></tr>':''}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>`;
-      document.getElementById('linkForm').addEventListener('submit',e=>{
-        e.preventDefault();
-        const fd=new FormData(e.target);
-        fetch(api.parent,{method:'POST',body:fd})
-          .then(r=>r.json()).then(j=>{
-            if(!j.success) throw new Error(j.error||'Error');
-            document.getElementById('linkSuccess').classList.remove('d-none');
-            document.getElementById('linkError').classList.add('d-none');
-            e.target.reset();
-            renderLinkChildParent(label);
-          }).catch(err=>{
-            const el=document.getElementById('linkError');
-            el.textContent=err.message;
-            el.classList.remove('d-none');
-          });
-      });
-      document.querySelectorAll('.btn-unlink').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-          if(!confirm('Unlink this child?')) return;
-          const fd=new FormData();
-            fd.append('csrf_token',window.__BHW_CSRF);
-            fd.append('unlink_access_id',btn.dataset.id);
-          fetch(api.parent,{method:'POST',body:fd})
-            .then(r=>r.json()).then(j=>{
-              if(j.success) renderLinkChildParent(label);
-            }).catch(err=>alert(err.message));
-        });
-      });
-    }).catch(err=>{
-      moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
-    });
-  }
+  Promise.allSettled([
+    fetchJSON(api.mothers+'?list=1'),          // full mother list with counts
+    fetchJSON(api.health+'?risk_summary=1'),   // latest consult + risk per mother
+    fetchJSON(api.postnatal+'?followups=1')    // optional; if not implemented will just fail silently
+  ]).then(results=>{
+    const mothersFull = results[0].value?.mothers || [];
+    const riskRows    = results[1].value?.risks || [];
+    const postnatalData = (results[2].status==='fulfilled' && results[2].value?.followups) ? results[2].value.followups : [];
 
-    /* ================= Access Credential Management ================= */
-  function renderAccessCredentials(label){
-    showLoading(label);
-    fetchJSON(api.parent+'?list_parents=1').then(par=>{
-      moduleContent.innerHTML=`
-        <div class="card border-0 shadow-sm">
-          <div class="card-body small">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-semibold mb-0">${escapeHtml(label)}</h6>
-              <button class="btn btn-sm btn-outline-secondary" id="refreshParents"><i class="bi bi-arrow-clockwise"></i></button>
-            </div>
-            <div id="credMsg" class="small text-muted mb-2">Manage passwords & status.</div>
-            <div class="table-responsive" style="max-height:560px; overflow:auto;">
-              <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
-                  <tr><th>User</th><th>Name</th><th>Children</th><th>Status</th><th>Created</th><th style="min-width:180px;">Actions</th></tr>
-                </thead>
-                <tbody id="credBody">
-                  ${par.parents.map(p=>`
-                    <tr data-id="${p.user_id}">
-                      <td class="fw-semibold">${escapeHtml(p.username)}</td>
-                      <td>${escapeHtml(p.first_name+' '+p.last_name)}</td>
-                      <td><small>${p.children_list?escapeHtml(p.children_list):'<span class="text-muted">—</span>'}</small></td>
-                      <td>${p.is_active?'<span class="badge bg-success">Active</span>':'<span class="badge bg-secondary">Inactive</span>'}</td>
-                      <td><small>${p.created_at}</small></td>
-                      <td>
-                        <div class="btn-group btn-group-sm">
-                          <button class="btn btn-outline-primary btn-reset" title="Reset Password"><i class="bi bi-key"></i></button>
-                          <button class="btn btn-outline-warning btn-toggle" title="Toggle Active"><i class="bi bi-power"></i></button>
-                        </div>
-                        <div class="small mt-1 text-success d-none pass-display"></div>
-                      </td>
-                    </tr>`).join('')}
-                  ${par.parents.length===0?'<tr><td colspan="6" class="text-center small text-muted">None.</td></tr>':''}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>`;
-      document.getElementById('refreshParents').addEventListener('click',()=>renderAccessCredentials(label));
-      document.querySelectorAll('.btn-reset').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-          if(!confirm('Reset password for this parent?')) return;
-          const tr=btn.closest('tr');
-          const id=tr.dataset.id;
-          const fd=new FormData();
-          fd.append('csrf_token',window.__BHW_CSRF);
-          fd.append('reset_password',id);
-          fetch(api.parent,{method:'POST',body:fd})
-            .then(r=>r.json()).then(j=>{
-              if(!j.success) throw new Error(j.error||'Error');
-              const disp=tr.querySelector('.pass-display');
-              disp.textContent='New: '+j.new_password;
-              disp.classList.remove('d-none');
-            }).catch(err=>alert(err.message));
-        });
-      });
-      document.querySelectorAll('.btn-toggle').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-          if(!confirm('Toggle active status?')) return;
-          const tr=btn.closest('tr');
-          const id=tr.dataset.id;
-          const fd=new FormData();
-          fd.append('csrf_token',window.__BHW_CSRF);
-          fd.append('toggle_active',id);
-          fetch(api.parent,{method:'POST',body:fd})
-            .then(r=>r.json()).then(j=>{
-              if(j.success) renderAccessCredentials(label);
-            }).catch(err=>alert(err.message));
-        });
-      });
-    }).catch(err=>{
-      moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
-    });
-  }
+    // Build quick maps
+    const riskMap = {};
+    riskRows.forEach(r=> riskMap[r.mother_id] = r);
 
-    /* ================= Account Activity Tracking ================= */
-  function renderAccountActivity(label){
-    showLoading(label);
-    fetchJSON(api.parent+'?activity=1').then(act=>{
-      moduleContent.innerHTML=`
-        <div class="card border-0 shadow-sm">
-          <div class="card-body small">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-semibold mb-0">${escapeHtml(label)}</h6>
-              <button class="btn btn-sm btn-outline-secondary" id="btnRefreshAct"><i class="bi bi-arrow-clockwise"></i></button>
-            </div>
-            <p class="text-muted mb-2 small">Summary of parent engagement (based on notifications & linked children).</p>
-            <div class="table-responsive" style="max-height:560px; overflow:auto;">
-              <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light">
-                  <tr><th>Parent</th><th>Children</th><th>Total Notifs</th><th>Unread</th><th>Last Notification</th></tr>
-                </thead>
-                <tbody>
-                  ${act.activity.map(a=>`
-                    <tr>
-                      <td class="fw-semibold">${escapeHtml(a.username)}</td>
-                      <td>${a.children_count}</td>
-                      <td>${a.total_notifications}</td>
-                      <td>${a.unread_notifications>0?'<span class="badge bg-warning text-dark">'+a.unread_notifications+'</span>':'0'}</td>
-                      <td><small>${a.last_notification_date||'<span class="text-muted">—</span>'}</small></td>
-                    </tr>`).join('')}
-                  ${act.activity.length===0?'<tr><td colspan="5" class="text-center small text-muted">No parent accounts.</td></tr>':''}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>`;
-      document.getElementById('btnRefreshAct').addEventListener('click',()=>renderAccountActivity(label));
-    }).catch(err=>{
-      moduleContent.innerHTML=`<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
-    });
-  }
+    // Compute metrics
+    const activeCases = mothersFull.length;
+    const highRisk = riskRows.filter(r=> (parseInt(r.risk_score||0,10)) >= 2).length;
 
-  function placeholderModule(label){
-    moduleContent.innerHTML=`<div class="card border-0 shadow-sm"><div class="card-body small"><h6 class="fw-semibold mb-2">${escapeHtml(label)}</h6><p class="text-muted mb-0">Implementation pending.</p></div></div>`;
-  }
+    const today = new Date();
+    const thisMonth = today.getMonth();
+    const thisYear  = today.getFullYear();
 
-  const moduleHandlers = {
-    mother_registration: renderMotherRegistration,
-    prenatal_consultations: renderPrenatalConsultations,
-    health_risk_assessment: renderRiskAssessment,
-    vaccination_entry: renderVaccinationEntry,
-    immunization_card: renderImmunizationCard,
-    vaccine_schedule: renderVaccineSchedule,
-    overdue_alerts: renderOverdueAlerts,
-    parent_notifications: renderParentNotifications,
-    create_parent_accounts: renderCreateParentAccounts,
-    link_child_parent: renderLinkChildParent,
-    access_credentials: renderAccessCredentials,
-    account_activity: renderAccountActivity
-  };
-
-
-  function loadModule(mod,label){
-    titleEl.textContent=label;
-    if(mod==='dashboard_home'){ moduleContent.innerHTML=simplePlaceholders.dashboard_home.html; return; }
-    if(moduleHandlers[mod]) moduleHandlers[mod](label);
-    else moduleContent.innerHTML=`<div class="card border-0 shadow-sm"><div class="card-body small"><h6 class="fw-semibold mb-2">${escapeHtml(label)}</h6><p class="text-muted mb-0">Implementation pending.</p></div></div>`;
-    moduleContent.scrollTop=0;
-  }
-
-  document.querySelectorAll('.nav-menu a[data-module]').forEach(a=>{
-    a.addEventListener('click',e=>{
-      e.preventDefault();
-      setActive(a);
-      loadModule(a.dataset.module,a.dataset.label);
-      if(window.innerWidth<992) document.getElementById('sidebar').classList.remove('show');
-    });
-  });
-
-  const sidebar=document.getElementById('sidebar');
-  document.getElementById('sidebarToggle').addEventListener('click',()=>sidebar.classList.toggle('show'));
-  document.getElementById('closeSidebar').addEventListener('click',()=>sidebar.classList.remove('show'));
-  document.addEventListener('click',e=>{
-    if(window.innerWidth>=992) return;
-    if(sidebar.classList.contains('show') && !sidebar.contains(e.target) && !e.target.closest('#sidebarToggle')){
-      sidebar.classList.remove('show');
+    function parseDate(d){
+      if(!d) return null;
+      const dt = new Date(d+'T00:00:00');
+      return isNaN(dt)? null : dt;
     }
+
+    let dueThisMonth = 0;
+    mothersFull.forEach(m=>{
+      const latest = riskMap[m.mother_id];
+      const edd = latest?.expected_delivery_date || latest?.edd || m.expected_delivery_date;
+      const dt  = parseDate(edd);
+      if(dt && dt.getMonth()===thisMonth && dt.getFullYear()===thisYear){
+        dueThisMonth++;
+      }
+    });
+
+    // Postnatal follow-ups (fallback heuristic if endpoint missing)
+    let postnatalCount;
+    if(postnatalData.length){
+      postnatalCount = postnatalData.filter(v=> v.needs_followup==1).length;
+    } else {
+      postnatalCount = riskRows.filter(r=>{
+        // Consider GA >= 40 or past EDD as needing postnatal follow-up
+        const ga = parseInt(r.pregnancy_age_weeks||0,10);
+        const edd = parseDate(r.expected_delivery_date);
+        return ga>=40 || (edd && edd < today);
+      }).length;
+    }
+
+    // Patient list rows
+    const patientRowsHtml = mothersFull.map(m=>{
+      const latest = riskMap[m.mother_id];
+      const riskScore = parseInt(latest?.risk_score||0,10);
+      const gaWeeks = latest?.pregnancy_age_weeks !== null && latest?.pregnancy_age_weeks !== undefined
+        ? parseInt(latest.pregnancy_age_weeks,10)
+        : null;
+
+      let riskLevelClass='risk-normal', riskLabel='Normal';
+      if(riskScore >= 2){ riskLevelClass='risk-high'; riskLabel='High Risk'; }
+      else if(riskScore === 1){ riskLevelClass='risk-monitor'; riskLabel='Monitor'; }
+
+      // Progress
+      let pct = gaWeeks? Math.min(100, Math.round((gaWeeks/40)*100)) : 0;
+      if(pct<0) pct=0;
+
+      // EDD
+      let eddTxt = latest?.expected_delivery_date || latest?.edd || m.expected_delivery_date || '';
+      if(!eddTxt && gaWeeks && latest?.consultation_date){
+        // approximate EDD = consultation_date + (40 - GA) weeks
+        const consultDate = parseDate(latest.consultation_date);
+        if(consultDate){
+          const approx = new Date(consultDate.getTime() + (40 - gaWeeks)*7*86400000);
+            eddTxt = approx.toISOString().slice(0,10);
+        }
+      }
+
+      const ageVal = m.date_of_birth ? calcAge(m.date_of_birth) : '';
+      function calcAge(dob){
+        const d=new Date(dob+'T00:00:00'); if(isNaN(d)) return '';
+        let a=today.getFullYear()-d.getFullYear();
+        const mm=today.getMonth()-d.getMonth();
+        if(mm<0 || (mm===0 && today.getDate()<d.getDate())) a--;
+        return a;
+      }
+
+      return `
+        <tr class="mh-fade-in">
+          <td>${escapeHtml(m.full_name)}</td>
+          <td>${ageVal || '—'}</td>
+          <td class="mh-progress-wrap">
+            ${gaWeeks?`
+              <div class="mh-progress">
+                 <div class="mh-progress-bar ${riskLevelClass.replace('risk-','risk-')}" style="width:${pct}%;"></div>
+              </div>
+              <div class="mh-weeks-label">${gaWeeks} weeks</div>
+            `:'<span class="text-muted" style="font-size:.64rem;">No data</span>'}
+          </td>
+          <td>${eddTxt?escapeHtml(eddTxt):'<span class="text-muted">—</span>'}</td>
+          <td><span class="risk-badge ${riskLevelClass}">${riskLabel}</span></td>
+          <td>
+            <button class="mh-action-btn btn-view" data-id="${m.mother_id}"><i class="bi bi-eye me-1"></i>View</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    moduleContent.innerHTML = `
+      <div class="mh-module-wrapper">
+        <div class="mh-header d-flex flex-wrap justify-content-between align-items-start gap-3">
+          <div>
+            <h2 class="mh-title">Maternal Health Management</h2>
+            <p class="mh-sub">Track prenatal, pregnancy, and postnatal care</p>
+          </div>
+          <button class="btn btn-success mh-add-btn" id="btnRegisterMother">
+            <i class="bi bi-plus-lg"></i> Register New Mother
+          </button>
+        </div>
+
+        <div class="mh-metrics row g-3">
+          <div class="col-sm-6 col-xl-3">
+            <div class="mh-metric-card">
+              <div class="mh-metric-label"><i class="bi bi-person-heart"></i> Active Cases</div>
+              <div class="mh-metric-value">${activeCases}</div>
+              <div class="mh-metric-sub">Pregnant mothers</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="mh-metric-card">
+              <div class="mh-metric-label"><i class="bi bi-exclamation-triangle"></i> High Risk</div>
+              <div class="mh-metric-value">${highRisk}</div>
+              <div class="mh-metric-sub">Require attention</div>
+            </div>
+          </div>
+            <div class="col-sm-6 col-xl-3">
+            <div class="mh-metric-card">
+              <div class="mh-metric-label"><i class="bi bi-calendar-event"></i> Due This Month</div>
+              <div class="mh-metric-value">${dueThisMonth}</div>
+              <div class="mh-metric-sub">Expected deliveries</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="mh-metric-card">
+              <div class="mh-metric-label"><i class="bi bi-activity"></i> Postnatal Care</div>
+              <div class="mh-metric-value">${postnatalCount}</div>
+              <div class="mh-metric-sub">Follow-ups needed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mh-tabs nav" id="mhTabs">
+          <button class="nav-link active" data-tab="patients">Patient List</button>
+          <button class="nav-link" data-tab="consults">Consultations</button>
+          <button class="nav-link" data-tab="monitor">Pregnancy Monitoring</button>
+          <button class="nav-link" data-tab="postnatal">Postnatal Care</button>
+        </div>
+
+        <div id="mhPanel"></div>
+      </div>
+
+      <!-- Register Mother Modal -->
+      <div class="modal fade mh-modal" id="modalRegisterMother" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <form id="motherForm">
+              <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus me-1"></i> Register New Mother</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body row g-3">
+                <div class="col-md-6">
+                  <label>Full Name *</label>
+                  <input name="full_name" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                  <label>Purok *</label>
+                  <input name="purok_name" class="form-control" required placeholder="e.g. Purok 1">
+                </div>
+                <div class="col-md-6">
+                  <label>Date of Birth</label>
+                  <input type="date" name="date_of_birth" class="form-control">
+                </div>
+                <div class="col-md-6">
+                  <label>Contact Number</label>
+                  <input name="contact_number" class="form-control">
+                </div>
+                <div class="col-md-6">
+                  <label>Gravida</label>
+                  <input type="number" min="0" name="gravida" class="form-control">
+                </div>
+                <div class="col-md-6">
+                  <label>Para</label>
+                  <input type="number" min="0" name="para" class="form-control">
+                </div>
+                <div class="col-md-6">
+                  <label>Blood Type</label>
+                  <input name="blood_type" class="form-control" placeholder="O+ / A- ...">
+                </div>
+                <div class="col-md-6">
+                  <label>Emergency Contact Name</label>
+                  <input name="emergency_contact_name" class="form-control">
+                </div>
+                <div class="col-md-6">
+                  <label>Emergency Contact No.</label>
+                  <input name="emergency_contact_number" class="form-control">
+                </div>
+                <div class="col-12">
+                  <label>Address / Additional Info</label>
+                  <textarea name="address_details" rows="2" class="form-control" placeholder="House # / Landmark"></textarea>
+                </div>
+                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+                <div class="col-12">
+                  <div class="form-text">Ensure no duplicate name before saving.</div>
+                  <div class="text-danger small d-none" id="motherError"></div>
+                  <div class="text-success small d-none" id="motherSuccess">Saved!</div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-success"><i class="bi bi-save me-1"></i> Save</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- View Mother Modal Placeholder -->
+      <div class="modal fade mh-modal" id="modalViewMother" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="viewMotherTitle">Mother Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="viewMotherBody">
+              <div class="text-center py-4 text-muted">Select a mother from the Patient List.</div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Insert Patient List panel by default
+    loadPatientList();
+
+    function loadPatientList(){
+      const panel = document.getElementById('mhPanel');
+      panel.innerHTML = `
+        <div class="mh-card">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div>
+              <h6 class="mh-card-title mb-1">Registered Mothers</h6>
+              <div class="mh-card-sub">All active maternal health cases</div>
+            </div>
+            <div class="mh-search-wrap">
+              <input class="form-control" placeholder="Search name / purok..." id="mhSearch">
+              <div class="mh-filter-badge active" data-filter="all">All</div>
+              <div class="mh-filter-badge" data-filter="high">High</div>
+              <div class="mh-filter-badge" data-filter="monitor">Monitor</div>
+              <div class="mh-filter-badge" data-filter="normal">Normal</div>
+            </div>
+          </div>
+          <div class="table-responsive" style="max-height:560px;">
+            <table class="mh-table" id="mhPatientsTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Age</th>
+                  <th>Pregnancy Age</th>
+                  <th>EDD</th>
+                  <th>Risk Level</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>${patientRowsHtml || `<tr><td colspan="6" class="mh-empty">No mothers registered yet.</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // Search + filter
+      const searchInput = document.getElementById('mhSearch');
+      const filterBadges = panel.querySelectorAll('.mh-filter-badge');
+      const rows = [...panel.querySelectorAll('#mhPatientsTable tbody tr')];
+
+      function applyFilter(){
+        const q = (searchInput.value||'').toLowerCase();
+        const activeFilter = panel.querySelector('.mh-filter-badge.active')?.dataset.filter || 'all';
+        rows.forEach(r=>{
+          let show = true;
+            if(q){
+              const text = r.innerText.toLowerCase();
+              show = text.includes(q);
+            }
+          if(show && activeFilter!=='all'){
+            const badge = r.querySelector('.risk-badge');
+            if(activeFilter==='high') show = badge?.classList.contains('risk-high');
+            if(activeFilter==='monitor') show = badge?.classList.contains('risk-monitor');
+            if(activeFilter==='normal') show = badge?.classList.contains('risk-normal');
+          }
+          r.classList.toggle('d-none', !show);
+        });
+      }
+      searchInput.addEventListener('input', applyFilter);
+      filterBadges.forEach(b=>{
+        b.addEventListener('click',()=>{
+          filterBadges.forEach(x=>x.classList.remove('active'));
+          b.classList.add('active');
+          applyFilter();
+        });
+      });
+
+      // View buttons
+      panel.querySelectorAll('.btn-view').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const id = btn.dataset.id;
+          openMotherModal(id);
+        });
+      });
+    }
+
+    // Tabs switching (stubs for now – plug original internal logic if desired)
+document.getElementById('mhTabs').addEventListener('click',e=>{
+  const btn = e.target.closest('.nav-link');
+  if(!btn) return;
+  document.querySelectorAll('#mhTabs .nav-link').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const tab = btn.dataset.tab;
+  if(tab==='patients') loadPatientList();
+  else if(tab==='consults') loadConsultsPanel();
+  else if(tab==='monitor') loadMonitorPanel();
+  else if(tab==='postnatal') loadPostnatalPanel();
+});
+
+    function placeholderPanel(title, note){
+      return `<div class="mh-card"><h6 class="mh-card-title mb-1">${title}</h6>
+      <div class="mh-card-sub mb-3">${note}</div>
+      <div class="text-muted" style="font-size:.75rem;">(Implement by integrating your previous sub-module logic here.)</div>
+      </div>`;
+    }
+
+    function loadConsultsPanel(){
+      const panel = document.getElementById('mhPanel');
+      const mothers = mothersFull.slice().sort((a,b)=>a.full_name.localeCompare(b.full_name));
+      let activeMotherId = mothers.length ? mothers[0].mother_id : null;
+
+      panel.innerHTML = `
+        <div class="mh-consult-layout">
+          <div class="mh-mother-list">
+            <h6>Mothers</h6>
+            <input type="text" class="form-control mh-mother-search" id="mhMotherSearch" placeholder="Search mother / purok">
+            <div class="mh-mother-scroll" id="mhMotherList">
+              ${mothers.map(m=>`
+                <div class="mh-mother-item ${m.mother_id===activeMotherId?'active':''}" data-id="${m.mother_id}">
+                  <span>${escapeHtml(m.full_name)}</span>
+                  <small>${escapeHtml(m.purok_name||'')}</small>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="mh-consult-main" id="mhConsultMain">
+            <div class="text-muted" style="font-size:.7rem;">Loading consultations...</div>
+          </div>
+        </div>
+      `;
+
+      const motherListEl = panel.querySelector('#mhMotherList');
+      const searchInput = panel.querySelector('#mhMotherSearch');
+
+      function filterMothers(){
+        const q = (searchInput.value||'').toLowerCase();
+        motherListEl.querySelectorAll('.mh-mother-item').forEach(it=>{
+          const txt = it.innerText.toLowerCase();
+          it.classList.toggle('d-none', !txt.includes(q));
+        });
+      }
+      searchInput.addEventListener('input',filterMothers);
+
+      motherListEl.addEventListener('click',e=>{
+        const item = e.target.closest('.mh-mother-item');
+        if(!item) return;
+        motherListEl.querySelectorAll('.mh-mother-item').forEach(i=>i.classList.remove('active'));
+        item.classList.add('active');
+        activeMotherId = parseInt(item.dataset.id,10);
+        loadMotherConsultations();
+      });
+
+      if(activeMotherId) loadMotherConsultations();
+
+      function loadMotherConsultations(){
+        const mother = mothers.find(m=>m.mother_id==activeMotherId);
+        const wrap = panel.querySelector('#mhConsultMain');
+        wrap.innerHTML = `<h6>Consultations - ${escapeHtml(mother.full_name)}
+          <span class="badge-ga" id="gaBadge">GA: --</span></h6>
+          <div class="row g-4">
+            <div class="col-lg-5">
+              <form class="mh-consult-form" id="consultForm" autocomplete="off">
+                <div class="row g-2">
+                  <div class="col-12">
+                    <label>Consultation Date *</label>
+                    <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
+                  </div>
+
+                  <div class="col-4">
+                    <label>Age</label>
+                    <input type="number" name="age" class="form-control" placeholder="Auto">
+                  </div>
+                  <div class="col-4">
+                    <label>Ht (cm)</label>
+                    <input type="number" step="0.1" name="height_cm" class="form-control">
+                  </div>
+                  <div class="col-4">
+                    <label>Wt (kg)</label>
+                    <input type="number" step="0.01" name="weight_kg" class="form-control">
+                  </div>
+
+                  <div class="col-4">
+                    <label>BP Sys</label>
+                    <input type="number" name="blood_pressure_systolic" class="form-control">
+                  </div>
+                  <div class="col-4">
+                    <label>BP Dia</label>
+                    <input type="number" name="blood_pressure_diastolic" class="form-control">
+                  </div>
+                  <div class="col-4">
+                    <label>Preg Weeks</label>
+                    <input type="number" min="0" max="45" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
+                  </div>
+
+                  <div class="col-6">
+                    <label>LMP</label>
+                    <input type="date" name="last_menstruation_date" class="form-control">
+                  </div>
+                  <div class="col-6">
+                    <label>EDD</label>
+                    <input type="date" name="expected_delivery_date" class="form-control">
+                  </div>
+                  <div class="col-12">
+                    <div class="mh-inline-hint">Auto mula LMP/EDD (pwede i-override ang Pregnancy Weeks & Age).</div>
+                  </div>
+                </div>
+
+                <div class="mh-form-divider"></div>
+
+                <label style="margin-bottom:.4rem;">Labs</label>
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <input name="hgb_result" class="form-control" placeholder="HGB">
+                  </div>
+                  <div class="col-6">
+                    <input name="urine_result" class="form-control" placeholder="Urine">
+                  </div>
+                  <div class="col-6">
+                    <input name="vdrl_result" class="form-control" placeholder="VDRL">
+                  </div>
+                  <div class="col-6">
+                    <input name="other_lab_results" class="form-control" placeholder="Other lab results">
+                  </div>
+                </div>
+
+                <div class="mh-form-divider"></div>
+                <label style="margin-bottom:.4rem;">Risk Flags</label>
+                <div class="mh-risks-wrap mb-2">
+                  ${[
+                    ['vaginal_bleeding','Vaginal Bleeding'],
+                    ['urinary_infection','Urinary Infection'],
+                    ['high_blood_pressure','High BP'],
+                    ['fever_38_celsius','Fever ≥38°C'],
+                    ['pallor','Pallor'],
+                    ['abnormal_abdominal_size','Abnormal Abd Size'],
+                    ['abnormal_presentation','Abnormal Presentation'],
+                    ['absent_fetal_heartbeat','No Fetal Heartbeat'],
+                    ['swelling','Swelling'],
+                    ['vaginal_infection','Vag Infection']
+                  ].map(([k,l])=>`
+                    <label class="mh-risk-box">
+                      <input type="checkbox" name="${k}" value="1">
+                      <span>${l}</span>
+                    </label>
+                  `).join('')}
+                </div>
+
+                <input type="hidden" name="mother_id" value="${activeMotherId}">
+                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+                <div class="mt-3 d-flex gap-2">
+                  <button class="btn btn-success mh-save-btn"><i class="bi bi-save me-1"></i>Save</button>
+                  <button type="reset" class="btn btn-outline-secondary mh-save-btn">Reset</button>
+                </div>
+                <div class="small text-danger mt-2 d-none" id="consultErr"></div>
+                <div class="small text-success mt-2 d-none" id="consultOk">Saved!</div>
+              </form>
+            </div>
+            <div class="col-lg-7">
+              <div id="consultListBox">
+                <div class="text-muted" style="font-size:.7rem;">Loading records...</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Load existing consultation list
+        fetchJSON(api.health+`?list=1&mother_id=${activeMotherId}`)
+          .then(j=>{ if(!j.success) throw new Error('Load failed'); renderConsultTable(j.records||[]); })
+          .catch(err=>{
+            panel.querySelector('#consultListBox').innerHTML = `<div class="text-danger small">Error loading consultations: ${escapeHtml(err.message)}</div>`;
+          });
+
+        const form = wrap.querySelector('#consultForm');
+        const cdEl  = form.querySelector('[name=consultation_date]');
+        const lmpEl = form.querySelector('[name=last_menstruation_date]');
+        const eddEl = form.querySelector('[name=expected_delivery_date]');
+        const gaEl  = form.querySelector('[name=pregnancy_age_weeks]');
+        const ageEl = form.querySelector('[name=age]');
+        const gaBadge = wrap.querySelector('#gaBadge');
+
+        function autoAge(){
+          if(!mother?.date_of_birth) return;
+            const cd = cdEl.value;
+            if(!cd) return;
+            const dob = new Date(mother.date_of_birth+'T00:00:00');
+            const cdt = new Date(cd+'T00:00:00');
+            if(isNaN(dob)||isNaN(cdt)) return;
+            let age = cdt.getFullYear()-dob.getFullYear();
+            const m = cdt.getMonth()-dob.getMonth();
+            if(m<0||(m===0 && cdt.getDate()<dob.getDate())) age--;
+            if(ageEl.value==='' || ageEl.dataset.autofill==='1'){
+              ageEl.value = age;
+              ageEl.dataset.autofill='1';
+            }
+        }
+
+        function autoGA(){
+          const lmp = lmpEl.value;
+          const edd = eddEl.value;
+          const cd  = cdEl.value;
+          if(!cd){ gaBadge.textContent='GA: --'; return; }
+          let weeks=null;
+          const cdDate = new Date(cd+'T00:00:00');
+          if(lmp){
+            const lmpDate = new Date(lmp+'T00:00:00');
+            const diff = (cdDate - lmpDate)/(1000*60*60*24);
+            if(diff>=0) weeks = Math.floor(diff/7);
+          } else if(edd){
+            const eddDate = new Date(edd+'T00:00:00');
+            const diff = (eddDate - cdDate)/(1000*60*60*24);
+            const wToEdd = diff/7;
+            weeks = Math.round(40 - wToEdd);
+          }
+          if(weeks!==null && (gaEl.value==='' || gaEl.dataset.autofill==='1')){
+            gaEl.value = weeks;
+            gaEl.dataset.autofill='1';
+          }
+          gaBadge.textContent = 'GA: ' + (weeks!==null? weeks+' wks':'--');
+        }
+
+        [cdEl,lmpEl,eddEl].forEach(el=>el.addEventListener('change',()=>{
+          autoGA(); autoAge();
+        }));
+        gaEl.addEventListener('input',()=>{ gaEl.dataset.autofill='0'; gaBadge.textContent='GA: '+(gaEl.value?gaEl.value+' wks':'--'); });
+        ageEl.addEventListener('input',()=>{ ageEl.dataset.autofill='0'; });
+
+        // Initial auto fill
+        autoAge(); autoGA();
+
+        form.addEventListener('submit',e=>{
+          e.preventDefault();
+          const fd = new FormData(form);
+          fetch(api.health,{method:'POST',body:fd})
+            .then(r=>r.json())
+            .then(j=>{
+              if(!j.success) throw new Error(j.error||'Save failed');
+              form.querySelector('#consultErr').classList.add('d-none');
+              const okEl=form.querySelector('#consultOk');
+              okEl.classList.remove('d-none');
+              setTimeout(()=>okEl.classList.add('d-none'),1500);
+
+              // Refresh consult list
+              return fetchJSON(api.health+`?list=1&mother_id=${activeMotherId}`);
+            })
+            .then(j=>{ renderConsultTable(j.records||[]); })
+            .catch(err=>{
+              const ce=form.querySelector('#consultErr');
+              ce.textContent=err.message;
+              ce.classList.remove('d-none');
+            });
+        });
+
+        function renderConsultTable(records){
+          const box = panel.querySelector('#consultListBox');
+          if(!records.length){
+            box.innerHTML='<div class="text-muted" style="font-size:.7rem;">No consultations yet.</div>';
+            return;
+          }
+            let rows = records.map(r=>{
+              const riskScore =
+                (parseInt(r.vaginal_bleeding)+parseInt(r.urinary_infection)+parseInt(r.high_blood_pressure)+
+                 parseInt(r.fever_38_celsius)+parseInt(r.pallor)+parseInt(r.abnormal_abdominal_size)+
+                 parseInt(r.abnormal_presentation)+parseInt(r.absent_fetal_heartbeat)+parseInt(r.swelling)+
+                 parseInt(r.vaginal_infection));
+              let riskCls='consult-risk-normal', riskLbl='Normal';
+              if(riskScore>=2){ riskCls='consult-risk-high'; riskLbl='High'; }
+              else if(riskScore===1){ riskCls='consult-risk-monitor'; riskLbl='Monitor'; }
+              return `
+                <tr>
+                  <td>${escapeHtml(r.consultation_date||'')}</td>
+                  <td>${r.pregnancy_age_weeks!=null? r.pregnancy_age_weeks+'w':''}</td>
+                  <td>${(r.blood_pressure_systolic && r.blood_pressure_diastolic)? `${r.blood_pressure_systolic}/${r.blood_pressure_diastolic}`:''}</td>
+                  <td>${r.weight_kg!=null? escapeHtml(r.weight_kg):''}</td>
+                  <td>${r.hgb_result?escapeHtml(r.hgb_result):''}</td>
+                  <td><span class="consult-risk-badge ${riskCls}">${riskLbl}</span></td>
+                  <td>${flagsIcons(r)}</td>
+                </tr>
+              `;
+            }).join('');
+            box.innerHTML = `
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="m-0" style="font-size:.7rem;">Consultation History</h6>
+                <span class="text-muted" style="font-size:.6rem;">${records.length} record(s)</span>
+              </div>
+              <div class="table-responsive" style="max-height:460px;">
+                <table class="mh-consults-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th><th>GA</th><th>BP</th><th>Wt</th><th>HGB</th><th>Risk</th><th>Flags</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>
+            `;
+        }
+
+        function flagsIcons(r){
+          const map = {
+            vaginal_bleeding:'VB',
+            urinary_infection:'UTI',
+            high_blood_pressure:'BP',
+            fever_38_celsius:'FEV',
+            pallor:'PAL',
+            abnormal_abdominal_size:'ABD',
+            abnormal_presentation:'PRES',
+            absent_fetal_heartbeat:'FHT',
+            swelling:'SWL',
+            vaginal_infection:'VAG'
+          };
+          const outs=[];
+          Object.keys(map).forEach(k=>{
+            if(r[k]==1){
+              outs.push(`<span style="display:inline-block;background:#e7efe9;color:#134a3d;font-size:.5rem;font-weight:700;padding:2px 5px;border-radius:8px;margin:1px;">${map[k]}</span>`);
+            }
+          });
+          return outs.join('');
+        }
+      } // end loadMotherConsultations
+    } // end loadConsultsPanel
+
+    function loadMonitorPanel(){
+      const panel = document.getElementById('mhPanel');
+      const mothers = mothersFull.slice().sort((a,b)=>a.full_name.localeCompare(b.full_name));
+      let activeMotherId = mothers.length ? mothers[0].mother_id : null;
+
+      panel.innerHTML = `
+        <div class="mh-monitor-layout">
+          <div class="mh-mother-list">
+            <h6>Mothers</h6>
+            <input type="text" class="form-control mh-mother-search" id="mhMonMotherSearch" placeholder="Search mother / purok">
+            <div class="mh-mother-scroll" id="mhMonMotherList">
+              ${mothers.map(m=>`
+                <div class="mh-mother-item ${m.mother_id===activeMotherId?'active':''}" data-id="${m.mother_id}">
+                  <span>${escapeHtml(m.full_name)}</span>
+                  <small>${escapeHtml(m.purok_name||'')}</small>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="mh-mon-main" id="mhMonMain">
+            <div class="text-muted" style="font-size:.7rem;">Select mother or loading...</div>
+          </div>
+        </div>
+      `;
+
+      const motherListEl = panel.querySelector('#mhMonMotherList');
+      const searchInput = panel.querySelector('#mhMonMotherSearch');
+
+      function filterMothers(){
+        const q=(searchInput.value||'').toLowerCase();
+        motherListEl.querySelectorAll('.mh-mother-item').forEach(it=>{
+          const txt=it.innerText.toLowerCase();
+          it.classList.toggle('d-none', !txt.includes(q));
+        });
+      }
+      searchInput.addEventListener('input',filterMothers);
+
+      motherListEl.addEventListener('click',e=>{
+        const item=e.target.closest('.mh-mother-item');
+        if(!item) return;
+        motherListEl.querySelectorAll('.mh-mother-item').forEach(i=>i.classList.remove('active'));
+        item.classList.add('active');
+        activeMotherId=parseInt(item.dataset.id,10);
+        loadMonitoring();
+      });
+
+      if(activeMotherId) loadMonitoring();
+
+      function loadMonitoring(){
+        const mother = mothers.find(m=>m.mother_id==activeMotherId);
+        const box = panel.querySelector('#mhMonMain');
+        box.innerHTML = `<div class="text-muted" style="font-size:.7rem;">Loading monitoring data...</div>`;
+        fetchJSON(api.health+`?list=1&mother_id=${activeMotherId}`).then(j=>{
+          if(!j.success) throw new Error('Load failed');
+          renderMonitoring(mother,j.records||[]);
+        }).catch(err=>{
+          box.innerHTML = `<div class="text-danger small">Error loading: ${escapeHtml(err.message)}</div>`;
+        });
+      }
+
+      function renderMonitoring(mother,records){
+        const box = panel.querySelector('#mhMonMain');
+        if(!records.length){
+          box.innerHTML = `
+            <div class="mh-mon-head d-flex justify-content-between align-items-center mb-2">
+              <h6>Pregnancy Monitoring - ${escapeHtml(mother.full_name)}</h6>
+              <div class="mh-mon-actions">
+                <button class="btn btn-sm btn-outline-success" id="goAddConsult"><i class="bi bi-plus-lg me-1"></i>Add Consultation</button>
+              </div>
+            </div>
+            <div class="mh-mon-empty">
+              Walang consultation records. Magdagdag muna ng consultation para makita ang monitoring timeline.
+            </div>`;
+          box.querySelector('#goAddConsult')?.addEventListener('click',()=>{
+            const tabBtn=document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
+            tabBtn?.click();
+          });
+          return;
+        }
+
+        // sort ascending by consultation_date
+        records.sort((a,b)=>{
+          return (a.consultation_date||'') < (b.consultation_date||'') ? -1
+               : (a.consultation_date||'') > (b.consultation_date||'') ? 1 : a.health_record_id - b.health_record_id;
+        });
+
+        // compute risk score per record
+        records.forEach(r=>{
+          r._risk_score =
+            ['vaginal_bleeding','urinary_infection','high_blood_pressure','fever_38_celsius','pallor',
+             'abnormal_abdominal_size','abnormal_presentation','absent_fetal_heartbeat','swelling','vaginal_infection']
+             .reduce((acc,k)=>acc + (parseInt(r[k])||0),0);
+        });
+
+        const first = records[0];
+        const latest = records[records.length-1];
+
+        function num(v){const n=parseFloat(v);return isNaN(n)?null:n;}
+        const firstWeight = num(first.weight_kg);
+        const latestWeight = num(latest.weight_kg);
+        const weightGain = (firstWeight!=null && latestWeight!=null) ? (latestWeight - firstWeight) : null;
+
+        const systolics = records.map(r=>num(r.blood_pressure_systolic)).filter(v=>v!=null);
+        const diastolics = records.map(r=>num(r.blood_pressure_diastolic)).filter(v=>v!=null);
+        const avgSys = systolics.length? Math.round(systolics.reduce((a,b)=>a+b,0)/systolics.length) : null;
+        const avgDia = diastolics.length? Math.round(diastolics.reduce((a,b)=>a+b,0)/diastolics.length) : null;
+
+        const currentGA = latest.pregnancy_age_weeks!=null ? parseInt(latest.pregnancy_age_weeks,10) : null;
+        const weeksToEDD = currentGA!=null ? (40 - currentGA) : null;
+        const riskScoreLatest = latest._risk_score;
+        let riskClass='risk-normal', riskLabel='Normal';
+        if(riskScoreLatest>=2){riskClass='risk-high';riskLabel='High';}
+        else if(riskScoreLatest===1){riskClass='risk-monitor';riskLabel='Monitor';}
+
+        const progressPct = currentGA!=null ? Math.min(100, Math.max(0, Math.round((currentGA/40)*100))) : 0;
+
+        const flagsCount = {
+          vaginal_bleeding:0, urinary_infection:0, high_blood_pressure:0, fever_38_celsius:0,
+          pallor:0, abnormal_abdominal_size:0, abnormal_presentation:0, absent_fetal_heartbeat:0,
+          swelling:0, vaginal_infection:0
+        };
+        records.forEach(r=>{
+          Object.keys(flagsCount).forEach(k=>{ if(parseInt(r[k])===1) flagsCount[k]++; });
+        });
+
+        const weightSeries = records.map(r=>num(r.weight_kg)).filter(v=>v!=null);
+        const sysSeries = systolics;
+
+        // Sparkline SVG builders
+        function sparkline(data,color){
+          if(!data.length) return '<svg class="sparkline"></svg>';
+            const w=260,h=60,pad=4;
+            const min=Math.min(...data), max=Math.max(...data);
+            const range = (max-min)||1;
+            const step = (w - pad*2) / Math.max(1,data.length-1);
+            let d='';
+            data.forEach((v,i)=>{
+              const x = pad + i*step;
+              const y = h - pad - ((v-min)/range)*(h-pad*2);
+              d += (i===0?'M':'L')+x+' '+y+' ';
+            });
+            return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+              <path class="axis" d="M${pad} ${h-pad}H${w-pad}"></path>
+              <path d="${d.trim()}" stroke="${color}" fill="none"></path>
+            </svg>`;
+        }
+
+        // Build risk chip legend counts
+        function riskChips(){
+          const mapLabels={
+            vaginal_bleeding:'VB', urinary_infection:'UTI', high_blood_pressure:'HBP', fever_38_celsius:'FEV',
+            pallor:'PAL', abnormal_abdominal_size:'ABD', abnormal_presentation:'PRES', absent_fetal_heartbeat:'FHT',
+            swelling:'SWL', vaginal_infection:'VAG'
+          };
+          return Object.keys(flagsCount).map(k=>{
+            const on = flagsCount[k]>0;
+            return `<span class="mh-risk-chip ${on?'on':'off'}" title="${mapLabels[k]}: ${flagsCount[k]} rec(s)">${mapLabels[k]}</span>`;
+          }).join('');
+        }
+
+        // Table rows with deltas
+        let prev=null;
+        const tableRows = records.map(r=>{
+          const w = num(r.weight_kg);
+          const sys = num(r.blood_pressure_systolic);
+          const dia = num(r.blood_pressure_diastolic);
+          let dW='', dBP='';
+          if(prev){
+            if(w!=null && prev.w!=null){
+              const diff = +(w - prev.w).toFixed(2);
+              dW = diff===0?'0': (diff>0?`<span class="mh-delta-plus">+${diff}</span>`:`<span class="mh-delta-minus">${diff}</span>`);
+            }
+            if(sys!=null && dia!=null && prev.sys!=null && prev.dia!=null){
+              const dS = sys - prev.sys;
+              const dD = dia - prev.dia;
+              const part=(x)=> x===0?'0':(x>0?`<span class="mh-delta-plus">+${x}</span>`:`<span class="mh-delta-minus">${x}</span>`);
+              dBP = `${part(dS)}/${part(dD)}`;
+            }
+          }
+          prev={w,sys,dia};
+
+            const rs = r._risk_score;
+            let rCls='consult-risk-normal', rLbl='Normal';
+            if(rs>=2){rCls='consult-risk-high';rLbl='High';}
+            else if(rs===1){rCls='consult-risk-monitor';rLbl='Monitor';}
+
+          return `<tr>
+            <td>${escapeHtml(r.consultation_date||'')}</td>
+            <td>${r.pregnancy_age_weeks!=null? r.pregnancy_age_weeks:'—'}</td>
+            <td>${w!=null? w:'—'} ${dW?'<br><small>'+dW+'</small>':''}</td>
+            <td>${(sys!=null&&dia!=null)? `${sys}/${dia}`:'—'} ${dBP?'<br><small>'+dBP+'</small>':''}</td>
+            <td><span class="consult-risk-badge ${rCls}" style="font-size:.5rem;">${rLbl}</span></td>
+          </tr>`;
+        }).join('');
+
+        box.innerHTML = `
+          <div class="mh-mon-head d-flex flex-wrap justify-content-between align-items-center">
+            <h6>Pregnancy Monitoring - ${escapeHtml(mother.full_name)}</h6>
+            <div class="mh-mon-actions">
+              <button class="btn btn-sm btn-outline-success" id="monAddConsult"><i class="bi bi-plus-lg me-1"></i>Add Consultation</button>
+              <button class="btn btn-sm btn-outline-primary" id="monViewConsults"><i class="bi bi-list-ul me-1"></i>Consult History</button>
+            </div>
+          </div>
+
+          <div class="mh-mon-summary">
+            <div class="mh-mon-card">
+              <div class="mh-mon-label">Current GA</div>
+              <div class="mh-mon-value">${currentGA!=null? currentGA+'w':'—'}</div>
+              <div class="mh-mon-sub">Gestational Age</div>
+            </div>
+            <div class="mh-mon-card">
+              <div class="mh-mon-label">Weeks to EDD</div>
+              <div class="mh-mon-value">${weeksToEDD!=null? weeksToEDD:'—'}</div>
+              <div class="mh-mon-sub">Remaining</div>
+            </div>
+            <div class="mh-mon-card">
+              <div class="mh-mon-label">Consults</div>
+              <div class="mh-mon-value">${records.length}</div>
+              <div class="mh-mon-sub">Total</div>
+            </div>
+            <div class="mh-mon-card ${riskClass==='risk-high'?'mh-mon-risk-high':(riskClass==='risk-monitor'?'mh-mon-risk-monitor':'')}">
+              <div class="mh-mon-label">Risk Level</div>
+              <div class="mh-mon-value" style="font-size:1.05rem;">${riskLabel}</div>
+              <div class="mh-mon-sub">Latest Assessment</div>
+            </div>
+          </div>
+
+          <div class="mh-mon-progress-wrap">
+            <div class="mh-mon-progress-label">
+              <span>Pregnancy Progress</span>
+              <span>${currentGA!=null? progressPct+'%':''}</span>
+            </div>
+            <div class="mh-mon-progress">
+              <div class="mh-mon-bar ${riskClass.replace('risk-','')}" style="width:${progressPct}%;"></div>
+            </div>
+          </div>
+
+          <div class="mh-mon-grid">
+            <div class="mh-mon-mini">
+              <h6>Weight Gain</h6>
+              <div class="val">${weightGain!=null? (weightGain>0? '+'+weightGain.toFixed(1): weightGain.toFixed(1))+' kg':'—'}</div>
+              <small>From first recorded (${firstWeight!=null?firstWeight+'kg':'?'})</small>
+            </div>
+            <div class="mh-mon-mini">
+              <h6>Avg BP</h6>
+              <div class="val">${avgSys!=null && avgDia!=null? `${avgSys}/${avgDia}`:'—'}</div>
+              <small>Across records</small>
+            </div>
+            <div class="mh-mon-mini">
+              <h6>Latest Weight</h6>
+              <div class="val">${latestWeight!=null? latestWeight+' kg':'—'}</div>
+              <small>${escapeHtml(latest.consultation_date||'')}</small>
+            </div>
+            <div class="mh-mon-mini">
+              <h6>Latest BP</h6>
+              <div class="val">${(latest.blood_pressure_systolic && latest.blood_pressure_diastolic)? `${latest.blood_pressure_systolic}/${latest.blood_pressure_diastolic}`:'—'}</div>
+              <small>${escapeHtml(latest.consultation_date||'')}</small>
+            </div>
+            <div class="mh-mon-mini">
+              <h6>Risk Flags Seen</h6>
+              <div class="val">${Object.values(flagsCount).reduce((a,b)=>a+(b>0?1:0),0)}</div>
+              <small>Distinct types</small>
+            </div>
+            <div class="mh-mon-mini">
+              <h6>Flag Instances</h6>
+              <div class="val">${Object.values(flagsCount).reduce((a,b)=>a+b,0)}</div>
+              <small>Total occurrences</small>
+            </div>
+          </div>
+
+          <div class="mh-trend-legend mb-2">
+            <span><strong>Risk Flags:</strong> ${riskChips()}</span>
+          </div>
+
+          <div class="mh-mon-trends">
+            <div class="mh-trend-box">
+              <h6>Weight Trend</h6>
+              ${sparkline(weightSeries,'#0d7c4e')}
+              <div class="mh-trend-legend">
+                <span style="--c:#0d7c4e;"><span style="background:#0d7c4e;"></span>Weight (kg)</span>
+              </div>
+            </div>
+            <div class="mh-trend-box">
+              <h6>Blood Pressure (Systolic)</h6>
+              ${sparkline(sysSeries,'#cc2b1f')}
+              <div class="mh-trend-legend">
+                <span style="--c:#cc2b1f;"><span style="background:#cc2b1f;"></span>Systolic (mmHg)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mh-mon-table-wrap">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div style="font-size:.62rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#2e4a4d;">Progression</div>
+              <div style="font-size:.55rem;" class="text-muted">${records.length} record(s)</div>
+            </div>
+            <div class="table-responsive" style="max-height:340px;">
+              <table class="mh-mon-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>GA (wks)</th>
+                    <th>Weight (Δ)</th>
+                    <th>BP (Δ)</th>
+                    <th>Risk</th>
+                  </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        // Actions
+        box.querySelector('#monAddConsult')?.addEventListener('click',()=>{
+          const tabBtn=document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
+          tabBtn?.click();
+        });
+        box.querySelector('#monViewConsults')?.addEventListener('click',()=>{
+          const tabBtn=document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
+          tabBtn?.click();
+        });
+      }
+    }
+    
+/* REPLACE the old loadPostnatalPanel() placeholder with this full implementation */
+function loadPostnatalPanel(){
+  const panel = document.getElementById('mhPanel');
+  const mothers = mothersFull.slice().sort((a,b)=>a.full_name.localeCompare(b.full_name));
+  let activeMotherId = mothers.length ? mothers[0].mother_id : null;
+
+  panel.innerHTML = `
+    <div class="mh-post-layout">
+      <div class="mh-mother-list">
+        <h6>Mothers</h6>
+        <input type="text" class="form-control mh-mother-search" id="mhPostMotherSearch" placeholder="Search mother / purok">
+        <div class="mh-mother-scroll" id="mhPostMotherList">
+          ${mothers.map(m=>`
+            <div class="mh-mother-item ${m.mother_id===activeMotherId?'active':''}" data-id="${m.mother_id}">
+              <span>${escapeHtml(m.full_name)}</span>
+              <small>${escapeHtml(m.purok_name||'')}</small>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="mh-post-main" id="mhPostMain">
+        <div class="text-muted" style="font-size:.7rem;">${activeMotherId?'Loading postnatal data...':'No mothers.'}</div>
+      </div>
+    </div>
+  `;
+
+  const motherListEl = panel.querySelector('#mhPostMotherList');
+  const searchInput  = panel.querySelector('#mhPostMotherSearch');
+
+  function filterMothers(){
+    const q=(searchInput.value||'').toLowerCase();
+    motherListEl.querySelectorAll('.mh-mother-item').forEach(it=>{
+      const txt=it.innerText.toLowerCase();
+      it.classList.toggle('d-none', !txt.includes(q));
+    });
+  }
+  searchInput.addEventListener('input',filterMothers);
+
+  motherListEl.addEventListener('click',e=>{
+    const item=e.target.closest('.mh-mother-item');
+    if(!item)return;
+    motherListEl.querySelectorAll('.mh-mother-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    activeMotherId=parseInt(item.dataset.id,10);
+    loadPostnatal();
   });
 
-  // Initial load
-  loadModule('dashboard_home','Dashboard');
+  if(activeMotherId) loadPostnatal();
+
+  function loadPostnatal(){
+    const mother = mothers.find(m=>m.mother_id==activeMotherId);
+    const box = panel.querySelector('#mhPostMain');
+    box.innerHTML = `<div class="text-muted" style="font-size:.7rem;">Loading postnatal visits...</div>`;
+    Promise.all([
+      fetchJSON(api.postnatal+`?list=1&mother_id=${activeMotherId}`),
+      fetchJSON(api.postnatal+`?children_of=${activeMotherId}`)
+    ]).then(([visitsRes,childRes])=>{
+      if(!visitsRes.success) throw new Error('Load failed');
+      const visits = visitsRes.visits||[];
+      const children = childRes.children||[];
+      renderPostnatal(mother,visits,children);
+    }).catch(err=>{
+      box.innerHTML = `<div class="text-danger small">Error loading: ${escapeHtml(err.message)}</div>`;
+    });
+  }
+
+  function renderPostnatal(mother,visits,children){
+    const box = panel.querySelector('#mhPostMain');
+
+    // Sort ascending by visit_date then ID
+    visits.sort((a,b)=>{
+      if(a.visit_date<b.visit_date) return -1;
+      if(a.visit_date>b.visit_date) return 1;
+      return a.postnatal_visit_id - b.postnatal_visit_id;
+    });
+
+    const latest = visits.length? visits[visits.length-1]: null;
+
+    // Danger score = fever + foul_lochia + mastitis + postpartum_depression + swelling (already computed in API summary logic)
+    function dangerScore(v){
+      return ['fever','foul_lochia','mastitis','postpartum_depression','swelling']
+        .reduce((acc,k)=>acc + (parseInt(v[k])||0),0);
+    }
+
+    const dangerCounts = {fever:0,foul_lochia:0,mastitis:0,postpartum_depression:0,swelling:0};
+    visits.forEach(v=>{
+      Object.keys(dangerCounts).forEach(k=>{
+        if(parseInt(v[k])===1) dangerCounts[k]++; 
+      });
+    });
+
+    const latestScore = latest? dangerScore(latest) : 0;
+    let riskClassCard='', riskBadgeClass='';
+    let riskLabel='Normal';
+    if(latestScore>=2){ riskLabel='High'; riskClassCard='mh-post-risk-high'; riskBadgeClass='mh-post-risk-high-badge'; }
+    else if(latestScore===1){ riskLabel='Monitor'; riskClassCard='mh-post-risk-monitor'; riskBadgeClass='mh-post-risk-monitor-badge'; }
+    else { riskBadgeClass='mh-post-risk-normal-badge'; }
+
+    const latestPPDay = latest?.postpartum_day!=null ? latest.postpartum_day : '—';
+    const totalVisits = visits.length;
+
+    const distinctDangerTypes = Object.values(dangerCounts).reduce((a,b)=>a+(b>0?1:0),0);
+    const totalDangerInstances = Object.values(dangerCounts).reduce((a,b)=>a+b,0);
+
+    function dangerLegend(){
+      const mapLbl={
+        fever:'Fever', foul_lochia:'Foul Lochia', mastitis:'Mastitis',
+        postpartum_depression:'PP Depression', swelling:'Swelling'
+      };
+      return Object.keys(dangerCounts).map(k=>{
+        const on = dangerCounts[k]>0;
+        return `<span style="display:inline-block;font-size:.5rem;font-weight:700;padding:2px 6px;border-radius:10px;margin:1px;
+          background:${on?'#ffe0de':'#e2e8eb'};color:${on?'#b22218':'#58656b'};" title="${mapLbl[k]}: ${dangerCounts[k]}">
+          ${mapLbl[k].split(' ').map(w=>w[0]).join('')}
+        </span>`;
+      }).join('');
+    }
+
+    // Build history table rows
+    const tableRows = visits.map(v=>{
+      const dScore = dangerScore(v);
+      let bClass='mh-post-risk-normal-badge', rLbl='Normal';
+      if(dScore>=2){bClass='mh-post-risk-high-badge'; rLbl='High';}
+      else if(dScore===1){bClass='mh-post-risk-monitor-badge'; rLbl='Monitor';}
+      const bp=(v.bp_systolic && v.bp_diastolic)?`${v.bp_systolic}/${v.bp_diastolic}`:'';
+      const flags = ['fever','foul_lochia','mastitis','postpartum_depression','swelling']
+        .filter(k=>parseInt(v[k])===1)
+        .map(k=>k.replace('postpartum_depression','pp_dep'))
+        .map(x=>`<span style="display:inline-block;background:#e7efe9;color:#134a3d;font-size:.48rem;font-weight:700;padding:2px 5px;border-radius:8px;margin:1px;">${x.toUpperCase()}</span>`)
+        .join('');
+      return `<tr>
+        <td>${escapeHtml(v.visit_date||'')}</td>
+        <td>${v.postpartum_day!=null? v.postpartum_day:'—'}</td>
+        <td>${bp||'—'}</td>
+        <td>${v.temperature_c!=null? escapeHtml(v.temperature_c):'—'}</td>
+        <td><span class="mh-post-badge ${bClass}">${rLbl}</span></td>
+        <td>${flags||'<span class="text-muted" style="font-size:.5rem;">None</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    // Child select options
+    const childOptions = `<option value="">(Optional) Select Child</option>` +
+      children.map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.birth_date})</option>`).join('');
+
+    // Form (Add Visit)
+    const formHtml = `
+      <form class="mh-post-form" id="postnatalForm" autocomplete="off">
+        <div class="row g-2">
+          <div class="col-6">
+            <label>Visit Date *</label>
+            <input type="date" name="visit_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
+          </div>
+          <div class="col-6">
+            <label>Delivery Date</label>
+            <input type="date" name="delivery_date" class="form-control">
+          </div>
+          <div class="col-12">
+            <label>Child</label>
+            <select name="child_id" class="form-select">
+              ${childOptions}
+            </select>
+          </div>
+          <div class="col-4">
+            <label>BP Sys</label>
+            <input type="number" name="bp_systolic" class="form-control">
+          </div>
+            <div class="col-4">
+            <label>BP Dia</label>
+            <input type="number" name="bp_diastolic" class="form-control">
+          </div>
+          <div class="col-4">
+            <label>Temp (°C)</label>
+            <input type="number" step="0.1" name="temperature_c" class="form-control">
+          </div>
+          <div class="col-6">
+            <label>Lochia Status</label>
+            <input name="lochia_status" class="form-control" placeholder="e.g. normal/scant">
+          </div>
+          <div class="col-6">
+            <label>Breastfeeding</label>
+            <input name="breastfeeding_status" class="form-control" placeholder="exclusive / mixed / none">
+          </div>
+          <div class="col-12">
+            <label style="margin-bottom:.35rem;">Danger Signs</label>
+            <div class="mh-post-flags">
+              ${[
+                ['fever','Fever'],
+                ['foul_lochia','Foul Lochia'],
+                ['mastitis','Mastitis'],
+                ['postpartum_depression','PP Depression'],
+                ['swelling','Swelling']
+              ].map(([k,l])=>`
+                <label class="mh-post-flag-box">
+                  <input type="checkbox" name="${k}" value="1">
+                  <span>${l}</span>
+                </label>`).join('')}
+            </div>
+          </div>
+          <div class="col-12">
+            <label>Other Findings</label>
+            <input name="other_findings" class="form-control">
+          </div>
+          <div class="col-12">
+            <label>Notes</label>
+            <textarea name="notes" rows="2" class="form-control"></textarea>
+          </div>
+        </div>
+        <input type="hidden" name="mother_id" value="${mother.mother_id}">
+        <input type="hidden" name="add_visit" value="1">
+        <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-success btn-sm"><i class="bi bi-save me-1"></i>Save Visit</button>
+          <button type="reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+        </div>
+        <div class="small text-danger mt-2 d-none" id="postErr"></div>
+        <div class="small text-success mt-2 d-none" id="postOk">Saved!</div>
+        <div class="mt-2 mh-post-mini-legend">
+          <span><strong>Legend:</strong> Fever, Foul Lochia, Mastitis, PP Depression, Swelling</span>
+        </div>
+      </form>
+    `;
+
+    if(!visits.length){
+      box.innerHTML=`
+        <div class="mh-post-head d-flex justify-content-between align-items-center mb-2">
+          <h6>Postnatal Care - ${escapeHtml(mother.full_name)}</h6>
+        </div>
+        <div class="mh-post-summary">
+          <div class="mh-post-card"><div class="mh-post-label">Visits</div><div class="mh-post-value">0</div><div class="mh-post-sub">No records</div></div>
+          <div class="mh-post-card"><div class="mh-post-label">Danger Flags</div><div class="mh-post-value">0</div><div class="mh-post-sub">None yet</div></div>
+          <div class="mh-post-card"><div class="mh-post-label">Children</div><div class="mh-post-value">${children.length}</div><div class="mh-post-sub">Linked</div></div>
+          <div class="mh-post-card"><div class="mh-post-label">Latest Day</div><div class="mh-post-value">—</div><div class="mh-post-sub">Postpartum</div></div>
+        </div>
+        <div class="mh-post-empty">
+          Walang postnatal visit records pa.<br>Mag-save ng unang visit gamit ang form sa ibaba.
+        </div>
+        <hr>
+        ${formHtml}
+      `;
+      attachPostForm(box,mother);
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="mh-post-head d-flex flex-wrap justify-content-between align-items-center">
+        <h6>Postnatal Care - ${escapeHtml(mother.full_name)}</h6>
+        <div class="mh-post-actions">
+          <button class="btn btn-sm btn-outline-primary" id="btnScrollHistory"><i class="bi bi-list-ul me-1"></i>History</button>
+        </div>
+      </div>
+
+      <div class="mh-post-summary">
+        <div class="mh-post-card">
+          <div class="mh-post-label">Latest Day</div>
+          <div class="mh-post-value">${latestPPDay}</div>
+          <div class="mh-post-sub">Postpartum Day</div>
+        </div>
+        <div class="mh-post-card">
+          <div class="mh-post-label">Visits</div>
+          <div class="mh-post-value">${totalVisits}</div>
+          <div class="mh-post-sub">Total</div>
+        </div>
+        <div class="mh-post-card">
+          <div class="mh-post-label">Danger Types</div>
+          <div class="mh-post-value">${distinctDangerTypes}</div>
+          <div class="mh-post-sub">Seen</div>
+        </div>
+        <div class="mh-post-card">
+          <div class="mh-post-label">Flag Inst.</div>
+          <div class="mh-post-value">${totalDangerInstances}</div>
+          <div class="mh-post-sub">Occurrences</div>
+        </div>
+        <div class="mh-post-card">
+          <div class="mh-post-label">Children</div>
+          <div class="mh-post-value">${children.length}</div>
+          <div class="mh-post-sub">Linked</div>
+        </div>
+        <div class="mh-post-card ${riskClassCard}">
+          <div class="mh-post-label">Risk</div>
+          <div class="mh-post-value" style="font-size:1.05rem;">${riskLabel}</div>
+          <div class="mh-post-sub">Latest Visit</div>
+        </div>
+      </div>
+
+      <div class="mb-2" style="font-size:.55rem;font-weight:600;color:#5a6b71;">
+        Danger Flag Summary: ${dangerLegend()}
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-5">
+          <h6 style="font-size:.63rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin:0 0 .5rem;color:#2a474d;">Add Postnatal Visit</h6>
+          ${formHtml}
+        </div>
+        <div class="col-lg-7">
+          <div class="mh-post-table-wrap" id="postHistoryBox">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div style="font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Visit History</div>
+              <div style="font-size:.55rem;" class="text-muted">${visits.length} record(s)</div>
+            </div>
+            <div class="table-responsive" style="max-height:420px;">
+              <table class="mh-post-table">
+                <thead>
+                  <tr>
+                    <th>Visit Date</th>
+                    <th>PP Day</th>
+                    <th>BP</th>
+                    <th>Temp</th>
+                    <th>Risk</th>
+                    <th>Flags</th>
+                  </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    attachPostForm(box,mother);
+
+    box.querySelector('#btnScrollHistory')?.addEventListener('click',()=>{
+      const h = box.querySelector('#postHistoryBox');
+      if(h) h.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  }
+
+  function attachPostForm(container,mother){
+    const form = container.querySelector('#postnatalForm');
+    if(!form) return;
+    const deliveryEl = form.querySelector('[name=delivery_date]');
+    const visitEl    = form.querySelector('[name=visit_date]');
+    // Auto compute postpartum day (display only – optional enhancement)
+    function computePPDay(){
+      const d = deliveryEl.value;
+      const v = visitEl.value;
+      if(!d||!v) return;
+      const dd=new Date(d+'T00:00:00');
+      const vd=new Date(v+'T00:00:00');
+      if(isNaN(dd)||isNaN(vd)) return;
+      const diff=Math.floor((vd-dd)/(1000*60*60*24));
+      // We could show a small hint
+      let hint = form.querySelector('#ppDayHint');
+      if(!hint){
+        hint=document.createElement('div');
+        hint.id='ppDayHint';
+        hint.style.fontSize='.55rem';
+        hint.style.fontWeight='600';
+        hint.style.color='#607078';
+        hint.style.marginTop='4px';
+        visitEl.closest('.col-6')?.appendChild(hint);
+      }
+      hint.textContent='Computed PP Day: '+ (diff>=0?diff:'—');
+    }
+    [deliveryEl,visitEl].forEach(el=>el.addEventListener('change',computePPDay));
+
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const fd=new FormData(form);
+      // POST add_visit
+      fetch(api.postnatal,{method:'POST',body:fd})
+        .then(r=>r.json())
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Save failed');
+          form.querySelector('#postErr')?.classList.add('d-none');
+          const ok=form.querySelector('#postOk');
+            ok?.classList.remove('d-none');
+          setTimeout(()=>ok?.classList.add('d-none'),1500);
+          // Reload mother panel
+          loadPostnatal();
+        })
+        .catch(err=>{
+          const er=form.querySelector('#postErr');
+          if(er){
+            er.textContent=err.message;
+            er.classList.remove('d-none');
+          }
+        });
+    });
+  }
+}
+
+    // Register Mother
+    document.getElementById('btnRegisterMother').addEventListener('click',()=>{
+      const modalEl = document.getElementById('modalRegisterMother');
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+    document.getElementById('motherForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      fetch(api.mothers,{method:'POST',body:fd})
+        .then(r=>r.json())
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Save failed');
+          document.getElementById('motherSuccess').classList.remove('d-none');
+          document.getElementById('motherError').classList.add('d-none');
+          setTimeout(()=>{
+            bootstrap.Modal.getInstance(document.getElementById('modalRegisterMother')).hide();
+            renderMaternalHealth(label);
+          },650);
+        }).catch(err=>{
+          const el=document.getElementById('motherError');
+          el.textContent=err.message;
+          el.classList.remove('d-none');
+        });
+    });
+
+    // View mother details (simple placeholder – expand as needed)
+    function openMotherModal(mother_id){
+      const modal = document.getElementById('modalViewMother');
+      const body  = document.getElementById('viewMotherBody');
+      const title = document.getElementById('viewMotherTitle');
+      const mother = mothersFull.find(m=>String(m.mother_id)===String(mother_id));
+      const latest = riskMap[mother_id];
+      if(!mother){
+        body.innerHTML='<div class="text-danger small">Mother not found.</div>';
+      } else {
+        title.textContent = mother.full_name;
+        body.innerHTML = `
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="border rounded p-3 h-100">
+                <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Profile</h6>
+                <p class="mb-1"><strong>Purok:</strong> ${escapeHtml(mother.purok_name||'')}</p>
+                <p class="mb-1"><strong>Contact:</strong> ${escapeHtml(mother.contact_number||'—')}</p>
+                <p class="mb-1"><strong>Gravida / Para:</strong> ${(mother.gravida??'—')} / ${(mother.para??'—')}</p>
+                <p class="mb-1"><strong>Blood Type:</strong> ${escapeHtml(mother.blood_type||'—')}</p>
+                <p class="mb-0"><strong>Emergency:</strong> ${escapeHtml(mother.emergency_contact_name||'')} <small class="text-muted">${escapeHtml(mother.emergency_contact_number||'')}</small></p>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <div class="border rounded p-3">
+                <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Latest Consultation Snapshot</h6>
+                ${latest ? `
+                  <div class="row small g-2">
+                    <div class="col-6"><strong>Date:</strong> ${latest.consultation_date||'—'}</div>
+                    <div class="col-6"><strong>GA:</strong> ${latest.pregnancy_age_weeks!==null?latest.pregnancy_age_weeks+' wks':'—'}</div>
+                    <div class="col-6"><strong>BP:</strong> ${(latest.blood_pressure_systolic||'') && (latest.blood_pressure_diastolic||'')?`${latest.blood_pressure_systolic}/${latest.blood_pressure_diastolic}`:'—'}</div>
+                    <div class="col-6"><strong>EDD:</strong> ${latest.expected_delivery_date||'—'}</div>
+                    <div class="col-12 mt-2">
+                      <strong>Risk Flags:</strong><br>
+                      ${buildFlagChips(latest) || '<span class="text-muted">None</span>'}
+                    </div>
+                  </div>
+                `: '<div class="text-muted small">No consultations recorded yet.</div>'}
+                <hr>
+                <div>
+                  <button class="btn btn-sm btn-success" id="btnQuickConsult"><i class="bi bi-journal-plus me-1"></i> Add Consultation</button>
+                  <button class="btn btn-sm btn-outline-primary" id="btnOpenFullConsults"><i class="bi bi-list-ul me-1"></i> View All Consultations</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        // Quick actions (switch tabs)
+        body.querySelector('#btnOpenFullConsults')?.addEventListener('click',()=>{
+          bootstrap.Modal.getInstance(modal).hide();
+          const tabBtn = document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
+          tabBtn?.click();
+        });
+      }
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+    }
+
+    function buildFlagChips(r){
+      const map = {
+        vaginal_bleeding:'VB',
+        urinary_infection:'UI',
+        high_blood_pressure:'HBP',
+        fever_38_celsius:'FEV',
+        pallor:'PAL',
+        abnormal_abdominal_size:'ABD',
+        abnormal_presentation:'PRES',
+        absent_fetal_heartbeat:'FHT',
+        swelling:'SWL',
+        vaginal_infection:'VAG'
+      };
+      const chips = [];
+      Object.keys(map).forEach(k=>{
+        if(r[k]==1){
+          chips.push(`<span class="mh-flag-chip">${map[k]}</span>`);
+        }
+      });
+      return chips.join('');
+    }
+
+  }).catch(err=>{
+    moduleContent.innerHTML = `<div class="alert alert-danger small">Error loading: ${escapeHtml(err.message)}</div>`;
+  });
+}
+
+/* ===== Replace stubs below with your real full module implementations ===== */
+function renderRecentActivities(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Recent Activities code here.</div>';}
+function renderAlertSystem(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Alert System code here.</div>';}
+function renderUpcomingImmunizations(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-secondary">Upcoming Immunizations placeholder.</div>';}
+function renderVaccinationEntry(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Vaccination Entry - insert original code.</div>';}
+function renderImmunizationCard(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Immunization Card - insert original code.</div>';}
+function renderVaccineSchedule(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Vaccine Schedule - insert original code.</div>';}
+function renderOverdueAlerts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Overdue Alerts - insert original code.</div>';}
+function renderParentNotifications(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Notifications - insert original code.</div>';}
+function renderCreateParentAccounts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Accounts - insert original code.</div>';}
+function renderLinkChildParent(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Link Child - insert original code.</div>';}
+function renderAccessCredentials(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Access Credentials - insert original code.</div>';}
+function renderAccountActivity(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Account Activity - insert original code.</div>';}
+function renderHealthCalendar(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Health Calendar - insert original code.</div>';}
+function renderReportVaccinationCoverage(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Coverage Report - insert original code.</div>';}
+function renderReportMaternalStatistics(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Maternal Stats Report - insert original code.</div>';}
+function renderReportHealthRisks(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Health Risks Report - insert original code.</div>';}
+function renderHealthRecordsAll(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Health Records - insert original code.</div>';}
+/* ========================================================================== */
+
+const moduleHandlers={
+  health_stats:renderHealthStats,
+  recent_activities:renderRecentActivities,
+  alert_system:renderAlertSystem,
+  upcoming_immunizations:renderUpcomingImmunizations,
+  maternal_health:renderMaternalHealth,
+  vaccination_entry:renderVaccinationEntry,
+  immunization_card:renderImmunizationCard,
+  vaccine_schedule:renderVaccineSchedule,
+  overdue_alerts:renderOverdueAlerts,
+  parent_notifications:renderParentNotifications,
+  create_parent_accounts:renderCreateParentAccounts,
+  link_child_parent:renderLinkChildParent,
+  access_credentials:renderAccessCredentials,
+  account_activity:renderAccountActivity,
+  health_calendar:renderHealthCalendar,
+  report_vaccination_coverage:renderReportVaccinationCoverage,
+  report_maternal_statistics:renderReportMaternalStatistics,
+  report_health_risks:renderReportHealthRisks,
+  health_records_all:renderHealthRecordsAll
+};
+
+function loadModule(mod,label){
+  titleEl.textContent=label;
+  (moduleHandlers[mod]||function(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-secondary">Module not implemented.</div>';})(label);
+  moduleContent.scrollTop=0;
+}
+
+/* Sidebar interactions */
+document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
+  link.addEventListener('click',e=>{
+    e.preventDefault();
+    setActiveLink(link);
+    loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+    if(window.innerWidth<992) document.getElementById('sidebar').classList.remove('show');
+  });
+});
+
+const sidebar=document.getElementById('sidebar');
+document.getElementById('sidebarToggle')?.addEventListener('click',()=>sidebar.classList.toggle('show'));
+document.addEventListener('click',e=>{
+  if(window.innerWidth>=992) return;
+  if(sidebar.classList.contains('show') && !sidebar.contains(e.target) && !e.target.closest('#sidebarToggle')){
+    sidebar.classList.remove('show');
+  }
+});
+
+/* Capability-based hiding */
+fetch(api.caps).then(r=>r.json()).then(j=>{
+  if(!j.success)return;
+  const feats=j.features||{};
+  ['vaccination_entry','immunization_card','vaccine_schedule','overdue_alerts','parent_notifications']
+    .forEach(m=>{
+      if(!feats[m]){
+        const l=document.querySelector(`.nav-link-modern[data-module="${m}"]`);
+        if(l) l.closest('li').remove();
+      }
+    });
+}).catch(()=>{});
+
+/* Font Zoom Controls */
+const zoomKey='bhw_zoom_px';
+function applyZoom(px){
+  document.documentElement.style.setProperty('--zoom-step', px+'px');
+}
+function currentZoom(){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom-step'))||0;}
+(function initZoom(){
+  const stored=localStorage.getItem(zoomKey);
+  if(stored) applyZoom(parseFloat(stored));
+  document.getElementById('zoomIn').addEventListener('click',()=>{
+    let z=currentZoom()+1; if(z>6) z=6; applyZoom(z); localStorage.setItem(zoomKey,z);
+  });
+  document.getElementById('zoomOut').addEventListener('click',()=>{
+    let z=currentZoom()-1; if(z<-2) z=-2; applyZoom(z); localStorage.setItem(zoomKey,z);
+  });
+  document.getElementById('zoomReset').addEventListener('click',()=>{
+    applyZoom(0); localStorage.removeItem(zoomKey);
+  });
+})();
+
+/* Initial load */
+loadModule('health_stats','Dashboard');
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

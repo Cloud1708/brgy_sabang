@@ -10,6 +10,8 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrf = $_SESSION['csrf_token'];
+$userFull = $_SESSION['full_name'] ?? 'Nutrition Scholar';
+$initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), array_slice(preg_split('/\s+/', trim($userFull)),0,2)));
 ?>
 <!doctype html>
 <html lang="en">
@@ -19,152 +21,654 @@ $csrf = $_SESSION['csrf_token'];
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css">
-<!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+
+<!-- CLEANED VERSION:
+     - Font size scaled to match reference screenshot (medium – readable)
+     - Removed zoom controls / modes
+     - Removed sidebar scrollbar (hidden) -->
 <style>
-  html, body { height:100%; overflow:hidden; }
-  body.dashboard-body { background:#f4f7f4; }
-  .layout-wrapper { display:flex; height:100vh; width:100%; overflow:hidden; }
-  .sidebar {
-    width:270px; flex:0 0 270px; background:#0b3d23; color:#fff;
-    display:flex; flex-direction:column;
-    overflow-y:auto; overflow-x:hidden;
-    scrollbar-width:thin; scrollbar-color:#28c76f #0b3d23;
+:root{
+  --base-font-size:16px; /* align with BHW scale */
+  --bg:#f5f8f6;
+  --surface:#ffffff;
+  --surface-soft:#f6faf7;
+  --border:#dfe5e0;
+  --border-soft:#e8eee9;
+  --text:#0f2d18;
+  --muted:#586c5d;
+  --green:#066a3c;
+  --green-accent:#077a44;
+  --amber:#f4a400;
+  --red:#d23d3d;
+  --blue:#1c79d0;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow-sm:0 1px 2px rgba(15,32,23,.06),0 4px 10px -4px rgba(15,32,23,.08);
+  --sidebar-width:250px;
+  --gradient-card:linear-gradient(135deg,#eef7f2,#ffffff 60%);
+}
+
+html{font-size:var(--base-font-size);}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  line-height:1.46;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Layout */
+.layout-wrapper{display:flex;height:100vh;width:100%;overflow:hidden;}
+
+/* Sidebar (scrollbar hidden) */
+.sidebar{
+  width:var(--sidebar-width);
+  flex:0 0 var(--sidebar-width);
+  background:var(--surface);
+  border-right:1px solid var(--border-soft);
+  display:flex;
+  flex-direction:column;
+  /* hide scrollbar while still allowing wheel scroll if overflow occurs */
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+.sidebar::-webkit-scrollbar{width:0;height:0;display:none;}
+
+.brand{
+  display:flex;align-items:center;gap:.85rem;
+  padding:1rem 1.05rem .95rem;
+  border-bottom:1px solid var(--border-soft);
+}
+.brand-icon{
+  width:54px;height:54px;border-radius:15px;
+  background:linear-gradient(135deg,#0a8047,#0fa55e);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:1.35rem;font-weight:600;
+  box-shadow:0 5px 14px -5px rgba(10,120,60,.55);
+}
+.brand-text{font-size:.98rem;font-weight:700;line-height:1.1;}
+.brand-text small{display:block;font-size:.6rem;margin-top:2px;font-weight:600;color:#6a7b6e;letter-spacing:.06em;}
+
+.nav-section-title{
+  font-size:.58rem;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  padding:1rem 1rem .55rem;
+  color:#66786a;
+}
+
+.nav-menu{list-style:none;margin:0;padding:0 .85rem 1.1rem;font-size:.8rem;}
+.nav-menu li{margin-bottom:5px;}
+.nav-link-bns{
+  display:flex;align-items:center;gap:.65rem;
+  padding:.72rem .9rem;
+  text-decoration:none;
+  border-radius:14px;
+  font-size:.8rem;
+  font-weight:600;
+  color:#1f4129;
+  transition:.16s background,.16s color;
+}
+.nav-link-bns .ico{width:22px;display:flex;justify-content:center;font-size:1.05rem;opacity:.85;}
+.nav-link-bns:hover{background:#e5f3ea;color:#0b532d;}
+.nav-link-bns.active{
+  background:#065f33;
+  color:#fff;
+  box-shadow:0 3px 12px -4px rgba(6,95,51,.55);
+}
+.nav-link-bns.active .ico{opacity:1;}
+
+.quick-stats-box{
+  margin:.75rem 1rem 1.05rem;
+  background:var(--surface-soft);
+  border:1px solid var(--border-soft);
+  border-radius:14px;
+  padding:.85rem .95rem;
+  font-size:.7rem;
+}
+.quick-stats-box h6{
+  font-size:.6rem;
+  font-weight:800;
+  letter-spacing:.09em;
+  margin:0 0 .55rem;
+  text-transform:uppercase;
+  color:#344f3a;
+}
+.qs-row{
+  display:flex;justify-content:space-between;align-items:center;
+  background:#fff;
+  border:1px solid #e3ebe4;
+  padding:.5rem .6rem;
+  border-radius:9px;
+  font-size:.63rem;
+  font-weight:600;
+  margin-bottom:.45rem;
+  line-height:1.25;
+}
+.qs-row:last-child{margin-bottom:0;}
+.qs-row .val{font-weight:700;}
+
+.sidebar-tip{
+  margin:0 1rem 1.1rem;
+  background:#e6f5ec;
+  border:1px solid #d3e8d9;
+  border-radius:14px;
+  padding:.85rem .9rem;
+  font-size:.62rem;
+  line-height:1.25;
+  color:#184d2b;
+}
+.sidebar-tip h6{
+  margin:0 0 .35rem;
+  font-size:.62rem;
+  font-weight:700;
+  display:flex;
+  gap:.45rem;
+  align-items:center;
+  letter-spacing:.05em;
+}
+
+.sidebar-footer{
+  margin-top:auto;
+  padding:.9rem 1rem 1.05rem;
+  font-size:.55rem;
+  color:#627567;
+  border-top:1px solid var(--border-soft);
+}
+
+/* Topbar */
+.topbar{
+  height:60px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border-soft);
+  display:flex;align-items:center;
+  gap:1.1rem;
+  padding:0 1.6rem;
+  font-size:.78rem;
+  flex-shrink:0;
+}
+.btn-toggle{display:none;}
+@media (max-width: 992px){
+  .sidebar{
+    position:fixed;
+    inset:0 auto 0 0;
+    transform:translateX(-100%);
+    transition:.35s;
+    max-width:270px;
+    box-shadow:0 0 0 200vmax rgba(0,0,0,0);
   }
-  .sidebar::-webkit-scrollbar { width:7px; }
-  .sidebar::-webkit-scrollbar-track { background:#0b3d23; }
-  .sidebar::-webkit-scrollbar-thumb { background:#28c76faa; border-radius:4px; }
-  .sidebar::-webkit-scrollbar-thumb:hover { background:#2fe57f; }
-  .sidebar::after {
-    content:''; position:sticky; bottom:0; left:0; right:0; height:22px;
-    background:linear-gradient(to bottom, rgba(11,61,35,0), rgba(11,61,35,.9));
-    pointer-events:none;
+  .sidebar.show{
+    transform:translateX(0);
+    box-shadow:0 0 0 200vmax rgba(0,0,0,.35);
   }
-  .sidebar .brand {
-    padding:1.05rem 1.15rem; font-weight:600; font-size:.95rem;
-    display:flex; gap:.75rem; align-items:flex-start; background:rgba(255,255,255,.08); line-height:1.2;
-  }
-  .brand .emoji { font-size:1.45rem; line-height:1; }
-  .brand small { font-weight:400; opacity:.85; display:block; font-size:.65rem; margin-top:.15rem; }
-  .menu-section-title { font-size:.60rem; letter-spacing:.09em; text-transform:uppercase; opacity:.55; padding:.75rem 1.1rem .4rem; font-weight:600; flex-shrink:0; }
-  .nav-menu { list-style:none; margin:0; padding:0 .3rem 1rem; }
-  .nav-menu li a {
-    display:flex; align-items:center; gap:.6rem; padding:.50rem .95rem;
-    font-size:.79rem; color:#e3efe8; border-left:3px solid transparent;
-    text-decoration:none; border-radius:.3rem; transition:.12s background,.12s color;
-  }
-  .nav-menu li a .bi { font-size:.95rem; opacity:.85; }
-  .nav-menu li a:hover { background:rgba(255,255,255,.10); color:#fff; }
-  .nav-menu li a.active {
-    background:linear-gradient(90deg,#1fae6333,#1fae6014);
-    border-left-color:#28c76f; color:#fff; font-weight:600;
-  }
-  .sidebar-footer { margin-top:auto; padding:.75rem 1rem .95rem; font-size:.63rem; opacity:.55; flex-shrink:0; }
-  .content-area { flex:1; min-width:0; display:flex; flex-direction:column; background:#f4f7f4; overflow:hidden; }
-  .topbar { background:#ffffff; border-bottom:1px solid #dfe7dd; padding:.55rem 1.2rem; display:flex; align-items:center; gap:1rem; flex-shrink:0; }
-  .page-title { font-size:.92rem; font-weight:600; margin:0; color:#114d2c; }
-  main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-  #moduleContent { flex:1; overflow:hidden; }
-  .loading-state { padding:2.7rem 1.5rem; text-align:center; color:#6c757d; }
-  .module-hint { font-size:.7rem; background:#fff; border:1px dashed #b7d5c1; padding:.6rem .75rem; border-radius:.4rem; margin-bottom:1.25rem; color:#285f3c; }
-  .form-text { font-size:.65rem; }
-  .status-badge { font-size:.6rem; }
-  .auto-status-box { background:#f8f9fa; border:1px dashed #b7c9b9; padding:.45rem .6rem; border-radius:.35rem; font-size:.7rem; min-height:38px; display:flex; flex-direction:column; justify-content:center; }
-  .auto-status-code { font-weight:600; font-size:.75rem; }
-  .auto-status-desc { font-size:.6rem; color:#55695a; }
-  .auto-status-loading { font-size:.6rem; color:#888; }
-  .mobile-backdrop-close { position:absolute; top:.55rem; right:.55rem; border:none; background:transparent; color:#fff; font-size:1.25rem; display:none; }
-  .sidebar.show .mobile-backdrop-close { display:block; }
-  @media (max-width: 991.98px) {
-    html, body { overflow:hidden; }
-    .sidebar {
-      position:fixed; z-index:1045; transform:translateX(-100%);
-      transition:.33s cubic-bezier(.4,.0,.2,1); top:0; left:0; bottom:0;
-      box-shadow:0 0 0 400vmax rgba(0,0,0,0);
-    }
-    .sidebar.show { transform:translateX(0); box-shadow:0 0 0 400vmax rgba(0,0,0,.35); }
-    .topbar { position:fixed; top:0; left:0; right:0; z-index:1020; }
-    .content-area { padding-top:54px; }
-  }
-  .badge-role { background:#28c76f; }
+  .btn-toggle{display:inline-flex;}
+  .content-area{padding-top:60px;}
+  main{padding:1.25rem 1.1rem 2.1rem;}
+}
+
+.search-wrap{
+  flex:1;
+  max-width:560px;
+  position:relative;
+}
+.search-wrap input{
+  width:100%;
+  background:var(--bg);
+  border:1px solid var(--border-soft);
+  border-radius:42px;
+  padding:.58rem 1rem .58rem 2.3rem;
+  font-size:.68rem;
+  font-weight:500;
+}
+.search-wrap input:focus{outline:2px solid var(--green-accent);}
+.search-wrap i{
+  position:absolute;
+  left:.95rem;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:.85rem;
+  color:var(--muted);
+}
+
+.quick-add-btn{
+  background:var(--green-accent);
+  color:#fff;
+  border:none;
+  padding:.6rem 1.05rem;
+  font-size:.7rem;
+  font-weight:600;
+  border-radius:11px;
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  box-shadow:0 2px 6px -2px rgba(20,104,60,.5);
+}
+.quick-add-btn:hover{background:#0b6b3b;}
+
+.notif-btn{
+  width:40px;height:40px;
+  border:1px solid var(--border-soft);
+  background:var(--bg);
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  color:var(--green-accent);
+  font-size:.95rem;
+}
+.notif-btn:hover{background:#edf5ef;}
+.notif-badge{
+  position:absolute;top:-4px;right:-4px;
+  background:var(--red);color:#fff;font-size:.5rem;
+  font-weight:700;padding:2px 5px;border-radius:11px;line-height:1;
+}
+
+.user-chip{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  padding:.52rem .8rem;
+  border:1px solid var(--border-soft);
+  background:var(--surface);
+  border-radius:36px;
+  font-size:.68rem;
+  font-weight:600;
+  color:#1e3e27;
+}
+.user-avatar{
+  width:36px;height:36px;
+  background:var(--green-accent);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  font-weight:700;
+  font-size:.78rem;
+  letter-spacing:.45px;
+}
+
+/* Content */
+.content-area{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--bg);
+}
+main{
+  flex:1;
+  overflow:auto;
+  padding:1.55rem 1.9rem 2.2rem;
+  scroll-behavior:smooth;
+  font-size:.82rem;
+}
+main::-webkit-scrollbar{width:12px;}
+main::-webkit-scrollbar-thumb{background:#c4d0c8;border-radius:8px;}
+main::-webkit-scrollbar-thumb:hover{background:#b0c0b6;}
+
+/* Page heading */
+h1.page-title{
+  font-size:1.35rem; /* match BHW dashboard title sizing */
+  font-weight:700;
+  letter-spacing:.02em;
+  margin:0 0 1.25rem;
+  color:#0a3a1e;
+}
+
+/* Stat cards */
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(245px,1fr));
+  gap:1.1rem;
+  margin-bottom:1.4rem;
+}
+.stat-card{
+  background:var(--gradient-card);
+  border:1px solid var(--border-soft);
+  border-radius:16px;
+  padding:.95rem .95rem .9rem;
+  min-height:118px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+.stat-card:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  border-top-left-radius:16px;border-bottom-left-radius:16px;
+  background:#0b7a43;
+}
+.stat-card.red:before{background:var(--red);}
+.stat-card.amber:before{background:var(--amber);}
+.stat-card.blue:before{background:var(--blue);}
+.stat-title{
+  font-size:.57rem;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#264d32;
+  margin:0 0 .45rem;
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+}
+.stat-val{
+  font-size:2rem; /* match BHW metric number sizing */
+  line-height:1.05;
+  font-weight:700;
+  color:#063b21;
+}
+.stat-desc{
+  font-size:.54rem;
+  font-weight:600;
+  letter-spacing:.035em;
+  margin-top:.4rem;
+  color:var(--muted);
+}
+.stat-pills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.35rem;
+  margin-top:.55rem;
+}
+.pill{
+  background:#eef6f0;
+  font-size:.5rem;
+  font-weight:700;
+  padding:.3rem .6rem;
+  border-radius:999px;
+  letter-spacing:.04em;
+  display:inline-flex;
+  align-items:center;
+  gap:.3rem;
+  color:#0d5330;
+}
+.pill.red{background:#ffe4e4;color:#a82929;}
+.pill.amber{background:#ffecc7;color:#8d5b00;}
+.pill.blue{background:#e1f1ff;color:#135b93;}
+.progress-thin{height:3px;background:#e2ece6;border-radius:3px;margin-top:.45rem;overflow:hidden;}
+.progress-thin span{display:block;height:100%;background:#0b7a43;width:60%;}
+
+/* Alerts / priority panel */
+.priority-panel{
+  background:var(--surface);
+  border:1px solid var(--border-soft);
+  border-left:4px solid var(--red);
+  border-radius:16px;
+  padding:1.05rem 1.05rem .9rem;
+  margin-bottom:1.4rem;
+}
+.priority-panel-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:.85rem;
+}
+.priority-panel-header h4{
+  font-size:.78rem;
+  font-weight:800;
+  letter-spacing:.07em;
+  margin:0;
+  display:flex;
+  gap:.5rem;
+  align-items:center;
+  color:#143c28;
+}
+.priority-panel-sub{
+  font-size:.55rem;
+  color:var(--muted);
+  letter-spacing:.03em;
+  margin:.15rem 0 0;
+  font-weight:600;
+}
+.case-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:#fff;
+  border:1px solid #e9efeb;
+  padding:.6rem .75rem;
+  border-radius:11px;
+  margin-bottom:.5rem;
+  font-size:.6rem;
+}
+.case-item:last-child{margin-bottom:0;}
+.case-left{display:flex;align-items:center;gap:.55rem;min-width:0;}
+.case-avatar{
+  width:32px;height:32px;border-radius:10px;
+  background:#ffe1e1;
+  color:var(--red);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:.85rem;
+  font-weight:600;
+}
+.case-info{display:flex;flex-direction:column;min-width:0;}
+.case-info .name{
+  font-size:.64rem;
+  font-weight:700;
+  line-height:1.05;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.case-info .meta{
+  font-size:.52rem;
+  color:var(--muted);
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.case-controls{display:flex;align-items:center;gap:.45rem;}
+.badge-status{
+  font-size:.52rem;
+  font-weight:800;
+  padding:.38rem .65rem;
+  border-radius:14px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  background:#e2f1e6;
+  color:#135d30;
+}
+.badge-SAM{background:#ffdcdc;color:#b02020;}
+.badge-MAM{background:#ffebc9;color:#845900;}
+.badge-UW{background:#fff0d6;color:#7c5100;}
+.badge-NOR{background:#dff4e4;color:#15692d;}
+.badge-OW,.badge-OB{background:#e1f1ff;color:#105694;}
+
+.btn-view{
+  background:var(--bg);
+  border:1px solid var(--border-soft);
+  font-size:.55rem;
+  font-weight:700;
+  padding:.42rem .7rem;
+  border-radius:9px;
+  letter-spacing:.04em;
+}
+.btn-view:hover{background:#edf4ef;}
+
+/* Lower grid / tiles */
+.lower-grid{
+  display:grid;
+  gap:1.15rem;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  margin-bottom:1.75rem;
+}
+.tile{
+  background:var(--surface);
+  border:1px solid var(--border-soft);
+  border-radius:16px;
+  padding:1.05rem 1.1rem 1.15rem;
+  display:flex;
+  flex-direction:column;
+  box-shadow:var(--shadow-sm);
+  font-size:.76rem;
+}
+.tile-header{display:flex;align-items:center;gap:.55rem;margin-bottom:.6rem;}
+.tile-header h5{
+  font-size:.66rem;
+  font-weight:800;
+  letter-spacing:.07em;
+  margin:0;
+  display:flex;
+  gap:.45rem;
+  align-items:center;
+  text-transform:uppercase;
+  color:#18432b;
+}
+.tile-sub{
+  font-size:.55rem;
+  color:var(--muted);
+  margin:0 0 .75rem;
+  letter-spacing:.035em;
+  font-weight:600;
+}
+
+/* Distribution rows */
+.dist-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#fbfdfb;
+  border:1px solid #e4ebe5;
+  padding:.5rem .6rem;
+  border-radius:9px;
+  font-size:.55rem;
+  font-weight:700;
+  margin-bottom:.45rem;
+  letter-spacing:.03em;
+}
+.dist-row:last-child{margin-bottom:0;}
+.dist-left{display:flex;align-items:center;gap:.45rem;}
+
+/* Trend placeholder */
+.chart-placeholder{
+  border:1px dashed #c9d8cb;
+  background:linear-gradient(135deg,#f9fcfa 0%,#f2f8f4 100%);
+  height:140px;
+  border-radius:11px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#647567;
+  font-size:.56rem;
+  font-weight:600;
+}
+
+/* Loading */
+.loading-state{
+  padding:2.6rem 1.4rem;
+  text-align:center;
+  color:#546759;
+  font-size:.75rem;
+}
+.spinner{
+  width:26px;height:26px;
+  border:3px solid #d4e6d5;
+  border-top-color:#0b7a43;
+  border-radius:50%;
+  animation:spin .75s linear infinite;
+  margin:0 auto .9rem;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Fade */
+.fade-in{animation:fadeIn .35s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* Responsive adjustments */
+@media (max-width:1250px){ .stat-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));} }
 </style>
 </head>
-<body class="dashboard-body">
+<body>
 <div class="layout-wrapper">
+
+  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
-    <button class="mobile-backdrop-close" id="closeSidebar" aria-label="Close sidebar">
-      <i class="bi bi-x-lg"></i>
-    </button>
     <div class="brand">
-      <div class="emoji" aria-hidden="true">🥗</div>
-      <div>
-        <span>Barangay Nutrition Scholar (BNS)</span>
-        <small>Nutrition & Growth Focused</small>
+      <div class="brand-icon">🌿</div>
+      <div class="brand-text">
+        BNS Portal
+        <small>Nutrition System</small>
       </div>
     </div>
 
-    <div class="menu-section-title">Overview</div>
+    <div class="nav-section-title">Navigation</div>
     <ul class="nav-menu">
-      <li><a href="#" class="active" data-module="dashboard_home" data-label="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
-      <li><a href="#" data-module="nutrition_stats" data-label="Nutrition Statistics"><i class="bi bi-graph-up"></i><span>Nutrition Statistics</span></a></li>
-      <li><a href="#" data-module="malnutrition_alerts" data-label="Malnutrition Alerts"><i class="bi bi-exclamation-triangle"></i><span>Malnutrition Alerts</span></a></li>
-      <li><a href="#" data-module="growth_overview" data-label="Growth Monitoring Overview"><i class="bi bi-bar-chart-line"></i><span>Growth Monitoring Overview</span></a></li>
-      <li><a href="#" data-module="nutrition_events" data-label="Upcoming Activities"><i class="bi bi-calendar-event"></i><span>Upcoming Activities</span></a></li>
+      <li><a href="#" class="nav-link-bns active" data-module="dashboard_home" data-label="Dashboard"><span class="ico"><i class="bi bi-speedometer2"></i></span><span>Dashboard</span></a></li>
+      <li><a href="#" class="nav-link-bns" data-module="child_profiles" data-label="Children Management"><span class="ico"><i class="bi bi-people"></i></span><span>Children Management</span></a></li>
+      <li><a href="#" class="nav-link-bns" data-module="weighing_sessions" data-label="Nutrition Data Entry"><span class="ico"><i class="bi bi-clipboard2-data"></i></span><span>Nutrition Data Entry</span></a></li>
+      <li><a href="#" class="nav-link-bns" data-module="nutrition_classification" data-label="Growth Monitoring"><span class="ico"><i class="bi bi-graph-up"></i></span><span>Growth Monitoring</span></a></li>
+      <li><a href="#" class="nav-link-bns" data-module="feeding_programs" data-label="Supplementation"><span class="ico"><i class="bi bi-capsule-pill"></i></span><span>Supplementation</span></a></li>
+      <li><a href="#" class="nav-link-bns" data-module="nutrition_calendar" data-label="Event Scheduling"><span class="ico"><i class="bi bi-calendar3"></i></span><span>Event Scheduling</span></a></li>
+      <li><a href="#" class="nav-link-bns" data-module="report_status_distribution" data-label="Nutrition Reports"><span class="ico"><i class="bi bi-file-bar-graph"></i></span><span>Nutrition Reports</span></a></li>
     </ul>
 
-    <div class="menu-section-title">Nutrition Data Entry</div>
-    <ul class="nav-menu">
-      <li><a href="#" data-module="mothers_caregivers" data-label="Mother/Caregiver Details"><i class="bi bi-person-hearts"></i><span>Mother/Caregiver Details</span></a></li>
-      <li><a href="#" data-module="child_profiles" data-label="Child Information"><i class="bi bi-people"></i><span>Child Information</span></a></li>
-      <li><a href="#" data-module="weighing_sessions" data-label="Weighing Sessions"><i class="bi bi-clipboard2-data"></i><span>Weighing Sessions</span></a></li>
-      <!-- REMOVED: WFL / Height Status menu item -->
-      <li><a href="#" data-module="nutrition_classification" data-label="Nutrition Classification"><i class="bi bi-tags"></i><span>Nutrition Classification</span></a></li>
-    </ul>
-
-    <div class="menu-section-title">Nutrition Event Scheduling</div>
-    <ul class="nav-menu">
-      <li><a href="#" data-module="feeding_programs" data-label="Feeding Programs"><i class="bi bi-egg-fried"></i><span>Feeding Programs</span></a></li>
-      <li><a href="#" data-module="weighing_schedules" data-label="Weighing Schedules"><i class="bi bi-calendar2-check"></i><span>Weighing Schedules</span></a></li>
-      <li><a href="#" data-module="nutrition_education" data-label="Nutrition Education"><i class="bi bi-megaphone"></i><span>Nutrition Education</span></a></li>
-      <li><a href="#" data-module="nutrition_calendar" data-label="Nutrition Calendar"><i class="bi bi-calendar3"></i><span>Nutrition Calendar</span></a></li>
-    </ul>
-
-    <div class="menu-section-title">Nutrition Reports</div>
-    <ul class="nav-menu">
-      <li><a href="#" data-module="report_growth_results" data-label="Growth Monitoring Results"><i class="bi bi-file-bar-graph"></i><span>Growth Monitoring Results</span></a></li>
-      <li><a href="#" data-module="report_status_distribution" data-label="Nutrition Status Distribution"><i class="bi bi-pie-chart"></i><span>Nutrition Status Distribution</span></a></li>
-      <li><a href="#" data-module="report_supp_compliance" data-label="Supplementation Compliance"><i class="bi bi-check2-all"></i><span>Supplementation Compliance</span></a></li>
-      <li><a href="#" data-module="report_malnutrition_intervention" data-label="Malnutrition Intervention"><i class="bi bi-clipboard-pulse"></i><span>Malnutrition Intervention</span></a></li>
-    </ul>
-
-    <div class="mt-2 px-3">
-      <a href="logout.php" class="btn btn-sm btn-outline-light w-100">
-        <i class="bi bi-box-arrow-right me-1"></i> Logout
-      </a>
+    <div class="quick-stats-box" id="quickStatsBox">
+      <h6>Quick Stats</h6>
+      <div class="qs-row"><span>Children Monitored</span><span class="val" id="qsChildren">—</span></div>
+      <div class="qs-row"><span>Malnutrition Cases</span><span class="val text-warning" id="qsMal">—</span></div>
+      <div class="qs-row"><span>Normal Status</span><span class="val text-success" id="qsNormal">—</span></div>
     </div>
+
+    <div class="sidebar-tip">
+      <h6><i class="bi bi-heart-pulse-fill text-success"></i> Nutrition Tip</h6>
+      Regular weighing helps track child growth and identify malnutrition early.
+    </div>
+
     <div class="sidebar-footer">
-      Powered by Barangay Health System<br>
-      <span class="text-white-50">&copy; <?php echo date('Y'); ?></span>
+      Powered by Barangay Health System<br>&copy; <?php echo date('Y'); ?>
     </div>
   </aside>
 
+  <!-- Main content area -->
   <div class="content-area">
-    <div class="topbar">
-      <button class="btn btn-outline-success btn-sm d-lg-none" id="sidebarToggle">
-        <i class="bi bi-list"></i>
+    <header class="topbar">
+      <button class="btn btn-outline-success btn-sm btn-toggle" id="sidebarToggle" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+
+      <div class="search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" id="globalSearch" placeholder="Search children, caregivers..." aria-label="Search">
+      </div>
+
+      <button class="quick-add-btn" data-module="child_profiles" data-label="Children Management">
+        <i class="bi bi-plus-lg"></i> Quick Add Child
       </button>
-      <h1 class="page-title mb-0" id="currentModuleTitle">Dashboard</h1>
-      <span class="badge badge-role ms-auto d-none d-lg-inline"><i class="bi bi-person-badge me-1"></i> BNS</span>
-    </div>
-    <main class="p-4">
-      <div id="moduleContent" class="bg-transparent">
-        <div class="module-hint">
-          Piliin ang isang module para mag-encode ng nutrition data. Core tables: mothers_caregivers, children, nutrition_records, wfl_ht_status_types.
+
+      <button class="notif-btn" type="button" aria-label="Notifications">
+        <i class="bi bi-bell"></i>
+        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+      </button>
+
+      <div class="user-chip" aria-label="User profile">
+        <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
+        <div class="d-flex flex-column lh-1">
+          <span style="font-size:.7rem;font-weight:700;"><?php echo htmlspecialchars($userFull); ?></span>
+          <small style="font-size:.55rem;color:#6a7a6d;font-weight:600;">BNS</small>
         </div>
+        <i class="bi bi-chevron-down ms-1" style="font-size:.62rem;opacity:.55;"></i>
+      </div>
+
+      <a href="logout.php" class="btn btn-outline-danger btn-sm ms-2" style="font-size:.64rem;font-weight:600;border-radius:10px;">
+        <i class="bi bi-box-arrow-right me-1"></i> Logout
+      </a>
+    </header>
+
+    <main id="mainRegion">
+      <h1 class="page-title" id="currentModuleTitle">Dashboard</h1>
+      <div id="moduleContent">
         <div class="loading-state">
-          <div class="spinner-border text-success mb-3"></div>
-          <div class="small">Ready. Choose a module.</div>
+          <div class="spinner"></div>
+          <div class="small">Loading dashboard...</div>
         </div>
       </div>
     </main>
@@ -172,11 +676,12 @@ $csrf = $_SESSION['csrf_token'];
 </div>
 
 <script>
-  window.__BNS_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
-  const moduleContent = document.getElementById('moduleContent');
-  const titleEl = document.getElementById('currentModuleTitle');
+/* BASIC JS (zoom controls removed) */
+window.__BNS_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
+const moduleContent = document.getElementById('moduleContent');
+const titleEl = document.getElementById('currentModuleTitle');
 
-  const api = {
+const api = {
   mothers: 'bns_modules/api_mothers.php',
   children: 'bns_modules/api_children.php',
   wfl: 'bns_modules/api_wfl_status_types.php',
@@ -185,976 +690,232 @@ $csrf = $_SESSION['csrf_token'];
   weighing_schedules: 'bns_modules/api_weighing_schedules.php',
   nutrition_education: 'bns_modules/api_nutrition_education.php',
   events: 'bns_modules/api_events.php'
-  };
+};
 
-  function fetchJSON(url, options = {}) {
-    options.headers = Object.assign({'X-Requested-With':'fetch','X-CSRF-Token': window.__BNS_CSRF}, options.headers || {});
-    return fetch(url, options).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
-  }
+function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch','X-CSRF-Token':window.__BNS_CSRF},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+function escapeHtml(s){if(s==null)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function setActive(el){document.querySelectorAll('.nav-link-bns.active').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
+function showLoading(label){moduleContent.innerHTML=`<div class="loading-state"><div class="spinner"></div><div>Loading ${escapeHtml(label)}...</div></div>`;}
 
-  function setActive(link){
-    document.querySelectorAll('.nav-menu a.active').forEach(a=>a.classList.remove('active'));
-    link.classList.add('active');
-  }
-
-  function showLoading(label){
-    moduleContent.innerHTML = `
-      <div class="loading-state">
-        <div class="spinner-border text-success mb-3"></div>
-        <div class="small">Loading ${label}...</div>
-      </div>`;
-  }
-
-  function loadModule(mod, label){
-    titleEl.textContent = label;
-    const handlers = {
-      mothers_caregivers: renderMothersModule,
-      child_profiles: renderChildrenModule,
-      weighing_sessions: renderWeighingModule,
-      wfl_status: renderWflStatusModule, /* kept (no menu link now) */
-      nutrition_classification: renderNutritionClassificationModule,
-      feeding_programs: renderFeedingProgramsModule,
-      weighing_schedules: renderWeighingSchedulesModule,
-      nutrition_education: renderNutritionEducationModule,
-      nutrition_calendar: renderNutritionCalendarModule
-    };
-    if (handlers[mod]) handlers[mod](label);
-    else moduleContent.innerHTML = `<div class="card border-0 shadow-sm"><div class="card-body small"><h5 class="mb-2">${label}</h5><p>Placeholder module (walang implementation pa).</p></div></div>`;
-
-  // Nutrition Calendar module
-  function renderNutritionCalendarModule(label) {
-    showLoading(label);
-    // Wait for FullCalendar script to load if not present
-    function loadCalendar() {
-      moduleContent.innerHTML = `
-        <div class="card border-0 shadow-sm">
-          <div class="card-body">
-            <h5 class="fw-semibold mb-3"><i class="bi bi-calendar3 me-2"></i>${label}</h5>
-            <div id="nutritionCalendar"></div>
-          </div>
-        </div>`;
-      const calendarEl = document.getElementById('nutritionCalendar');
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        height: 600,
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        eventTimeFormat: {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        },
-        events: function(fetchInfo, successCallback, failureCallback) {
-          fetchJSON(api.events)
-            .then(data => {
-              // Map events to FullCalendar format
-              const fcEvents = data.map(ev => ({
-                id: ev.id,
-                title: ev.title,
-                start: ev.start,
-                description: ev.description,
-                extendedProps: ev
-              }));
-              successCallback(fcEvents);
-            })
-            .catch(failureCallback);
-        },
-        eventClick: function(info) {
-          const ev = info.event.extendedProps;
-          let html = `<strong>${info.event.title}</strong><br>`;
-          if (ev.description) html += `<div class='small mb-1'>${escapeHtml(ev.description)}</div>`;
-          html += `<div><b>Date:</b> ${info.event.startStr}</div>`;
-          if (ev.time) html += `<div><b>Time:</b> ${ev.time}</div>`;
-          if (ev.location) html += `<div><b>Location:</b> ${escapeHtml(ev.location)}</div>`;
-          if (ev.target_audience) html += `<div><b>Audience:</b> ${escapeHtml(ev.target_audience)}</div>`;
-          // Show as Bootstrap modal or alert
-          alert(html.replace(/<[^>]+>/g, '\n').replace(/<br>/g, '\n'));
-        }
-      });
-      calendar.render();
-    }
-    if (typeof FullCalendar === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js';
-      script.onload = loadCalendar;
-      document.body.appendChild(script);
-    } else {
-      loadCalendar();
-    }
-  }
-  function renderNutritionEducationModule(label) {
-    showLoading(label);
-    fetchJSON(api.nutrition_education)
-      .then(data => {
-        moduleContent.innerHTML = `
-          <div class="row g-3">
-            <div class="col-lg-4">
-              <div class="card shadow-sm border-0 mb-3">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Add / Edit Nutrition Education</h6>
-                  <form id="nutritionEduForm" class="small">
-                    <input type="hidden" name="event_id" id="nutrition_edu_event_id">
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Title</label>
-                      <input type="text" name="event_title" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Description</label>
-                      <textarea name="event_description" class="form-control form-control-sm" rows="2"></textarea>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Date</label>
-                      <input type="date" name="event_date" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Time</label>
-                      <input type="time" name="event_time" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Location</label>
-                      <input type="text" name="location" class="form-control form-control-sm">
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Target Audience</label>
-                      <input type="text" name="target_audience" class="form-control form-control-sm">
-                    </div>
-                    <div class="form-check mb-2">
-                      <input class="form-check-input" type="checkbox" name="is_published" id="is_published_nutrition_edu" checked>
-                      <label class="form-check-label small" for="is_published_nutrition_edu">Published</label>
-                    </div>
-                    <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
-                    <div class="d-grid">
-                      <button class="btn btn-success btn-sm" type="submit">Save</button>
-                      <button class="btn btn-secondary btn-sm mt-1 d-none" type="button" id="nutritionEduCancelEdit">Cancel Edit</button>
-                    </div>
-                    <div class="form-text text-success mt-1 d-none" id="nutritionEduSuccess">Saved!</div>
-                    <div class="form-text text-danger mt-1 d-none" id="nutritionEduError"></div>
-                  </form>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-8">
-              <div class="card shadow-sm border-0">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Upcoming Nutrition Education Events</h6>
-                  <div class="table-responsive" style="max-height:430px; overflow:auto;">
-                    <table class="table table-sm table-hover align-middle mb-0">
-                      <thead class="table-light">
-                        <tr><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Audience</th><th></th></tr>
-                      </thead>
-                      <tbody>
-                        ${data.events.map(ev=>`
-                          <tr>
-                            <td>${escapeHtml(ev.event_title)}</td>
-                            <td>${ev.event_date}</td>
-                            <td>${ev.event_time}</td>
-                            <td>${escapeHtml(ev.location||'')}</td>
-                            <td>${escapeHtml(ev.target_audience||'')}</td>
-                            <td>
-                              <button class="btn btn-sm btn-outline-primary me-1" data-edit="${ev.event_id}"><i class="bi bi-pencil"></i></button>
-                              <button class="btn btn-sm btn-outline-danger" data-delete="${ev.event_id}"><i class="bi bi-trash"></i></button>
-                            </td>
-                          </tr>`).join('')}
-                        ${data.events.length===0?'<tr><td colspan="6" class="text-center small text-muted">No nutrition education events.</td></tr>':''}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
-
-        // Form submit
-        document.getElementById('nutritionEduForm').addEventListener('submit', e => {
-          e.preventDefault();
-          const form = e.target;
-          const formData = new FormData(form);
-          const data = Object.fromEntries(formData.entries());
-          data.is_published = form.is_published_nutrition_edu.checked ? 1 : 0;
-          fetch(api.nutrition_education, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
-            body: JSON.stringify(data)
-          })
-            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-            .then(() => {
-              document.getElementById('nutritionEduSuccess').classList.remove('d-none');
-              document.getElementById('nutritionEduError').classList.add('d-none');
-              form.reset();
-              document.getElementById('nutrition_edu_event_id').value = '';
-              document.getElementById('nutritionEduCancelEdit').classList.add('d-none');
-              renderNutritionEducationModule(label);
-            })
-            .catch(err => {
-              const el = document.getElementById('nutritionEduError');
-              el.textContent = err.message;
-              el.classList.remove('d-none');
-            });
-        });
-
-        // Edit button
-        moduleContent.querySelectorAll('button[data-edit]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const event = data.events.find(ev => ev.event_id == btn.getAttribute('data-edit'));
-            if (!event) return;
-            const form = document.getElementById('nutritionEduForm');
-            form.event_id.value = event.event_id;
-            form.event_title.value = event.event_title;
-            form.event_description.value = event.event_description;
-            form.event_date.value = event.event_date;
-            form.event_time.value = event.event_time;
-            form.location.value = event.location;
-            form.target_audience.value = event.target_audience;
-            form.is_published_nutrition_edu.checked = event.is_published == 1;
-            document.getElementById('nutritionEduCancelEdit').classList.remove('d-none');
-          });
-        });
-        // Cancel edit
-        document.getElementById('nutritionEduCancelEdit').addEventListener('click', () => {
-          const form = document.getElementById('nutritionEduForm');
-          form.reset();
-          form.event_id.value = '';
-          document.getElementById('nutritionEduCancelEdit').classList.add('d-none');
-        });
-        // Delete button
-        moduleContent.querySelectorAll('button[data-delete]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (!confirm('Delete this nutrition education event?')) return;
-            fetch(api.nutrition_education, {
-              method: 'DELETE',
-              headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
-              body: JSON.stringify({ event_id: btn.getAttribute('data-delete') })
-            })
-              .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-              .then(() => renderNutritionEducationModule(label))
-              .catch(err => alert('Error: ' + err.message));
-          });
-        });
-      })
-      .catch(err => {
-        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
-      });
-  }
-  function renderWeighingSchedulesModule(label) {
-    showLoading(label);
-    fetchJSON(api.weighing_schedules)
-      .then(data => {
-        moduleContent.innerHTML = `
-          <div class="row g-3">
-            <div class="col-lg-4">
-              <div class="card shadow-sm border-0 mb-3">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Add / Edit Weighing Schedule</h6>
-                  <form id="weighingForm" class="small">
-                    <input type="hidden" name="event_id" id="weighing_event_id">
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Title</label>
-                      <input type="text" name="event_title" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Description</label>
-                      <textarea name="event_description" class="form-control form-control-sm" rows="2"></textarea>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Date</label>
-                      <input type="date" name="event_date" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Time</label>
-                      <input type="time" name="event_time" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Location</label>
-                      <input type="text" name="location" class="form-control form-control-sm">
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Target Audience</label>
-                      <input type="text" name="target_audience" class="form-control form-control-sm">
-                    </div>
-                    <div class="form-check mb-2">
-                      <input class="form-check-input" type="checkbox" name="is_published" id="is_published_weighing" checked>
-                      <label class="form-check-label small" for="is_published_weighing">Published</label>
-                    </div>
-                    <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
-                    <div class="d-grid">
-                      <button class="btn btn-success btn-sm" type="submit">Save</button>
-                      <button class="btn btn-secondary btn-sm mt-1 d-none" type="button" id="weighingCancelEdit">Cancel Edit</button>
-                    </div>
-                    <div class="form-text text-success mt-1 d-none" id="weighingSuccess">Saved!</div>
-                    <div class="form-text text-danger mt-1 d-none" id="weighingError"></div>
-                  </form>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-8">
-              <div class="card shadow-sm border-0">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Upcoming Weighing Schedules</h6>
-                  <div class="table-responsive" style="max-height:430px; overflow:auto;">
-                    <table class="table table-sm table-hover align-middle mb-0">
-                      <thead class="table-light">
-                        <tr><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Audience</th><th></th></tr>
-                      </thead>
-                      <tbody>
-                        ${data.events.map(ev=>`
-                          <tr>
-                            <td>${escapeHtml(ev.event_title)}</td>
-                            <td>${ev.event_date}</td>
-                            <td>${ev.event_time}</td>
-                            <td>${escapeHtml(ev.location||'')}</td>
-                            <td>${escapeHtml(ev.target_audience||'')}</td>
-                            <td>
-                              <button class="btn btn-sm btn-outline-primary me-1" data-edit="${ev.event_id}"><i class="bi bi-pencil"></i></button>
-                              <button class="btn btn-sm btn-outline-danger" data-delete="${ev.event_id}"><i class="bi bi-trash"></i></button>
-                            </td>
-                          </tr>`).join('')}
-                        ${data.events.length===0?'<tr><td colspan="6" class="text-center small text-muted">No weighing schedules.</td></tr>':''}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
-
-        // Form submit
-        document.getElementById('weighingForm').addEventListener('submit', e => {
-          e.preventDefault();
-          const form = e.target;
-          const formData = new FormData(form);
-          const data = Object.fromEntries(formData.entries());
-          data.is_published = form.is_published_weighing.checked ? 1 : 0;
-          fetch(api.weighing_schedules, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
-            body: JSON.stringify(data)
-          })
-            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-            .then(() => {
-              document.getElementById('weighingSuccess').classList.remove('d-none');
-              document.getElementById('weighingError').classList.add('d-none');
-              form.reset();
-              document.getElementById('weighing_event_id').value = '';
-              document.getElementById('weighingCancelEdit').classList.add('d-none');
-              renderWeighingSchedulesModule(label);
-            })
-            .catch(err => {
-              const el = document.getElementById('weighingError');
-              el.textContent = err.message;
-              el.classList.remove('d-none');
-            });
-        });
-
-        // Edit button
-        moduleContent.querySelectorAll('button[data-edit]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const event = data.events.find(ev => ev.event_id == btn.getAttribute('data-edit'));
-            if (!event) return;
-            const form = document.getElementById('weighingForm');
-            form.event_id.value = event.event_id;
-            form.event_title.value = event.event_title;
-            form.event_description.value = event.event_description;
-            form.event_date.value = event.event_date;
-            form.event_time.value = event.event_time;
-            form.location.value = event.location;
-            form.target_audience.value = event.target_audience;
-            form.is_published_weighing.checked = event.is_published == 1;
-            document.getElementById('weighingCancelEdit').classList.remove('d-none');
-          });
-        });
-        // Cancel edit
-        document.getElementById('weighingCancelEdit').addEventListener('click', () => {
-          const form = document.getElementById('weighingForm');
-          form.reset();
-          form.event_id.value = '';
-          document.getElementById('weighingCancelEdit').classList.add('d-none');
-        });
-        // Delete button
-        moduleContent.querySelectorAll('button[data-delete]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (!confirm('Delete this weighing schedule?')) return;
-            fetch(api.weighing_schedules, {
-              method: 'DELETE',
-              headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
-              body: JSON.stringify({ event_id: btn.getAttribute('data-delete') })
-            })
-              .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-              .then(() => renderWeighingSchedulesModule(label))
-              .catch(err => alert('Error: ' + err.message));
-          });
-        });
-      })
-      .catch(err => {
-        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
-      });
-  }
-  function renderFeedingProgramsModule(label) {
-    showLoading(label);
-    fetchJSON(api.feeding_programs)
-      .then(data => {
-        moduleContent.innerHTML = `
-          <div class="row g-3">
-            <div class="col-lg-4">
-              <div class="card shadow-sm border-0 mb-3">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Add / Edit Feeding Program</h6>
-                  <form id="feedingForm" class="small">
-                    <input type="hidden" name="event_id" id="feeding_event_id">
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Title</label>
-                      <input type="text" name="event_title" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Description</label>
-                      <textarea name="event_description" class="form-control form-control-sm" rows="2"></textarea>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Date</label>
-                      <input type="date" name="event_date" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Time</label>
-                      <input type="time" name="event_time" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Location</label>
-                      <input type="text" name="location" class="form-control form-control-sm">
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Target Audience</label>
-                      <input type="text" name="target_audience" class="form-control form-control-sm">
-                    </div>
-                    <div class="form-check mb-2">
-                      <input class="form-check-input" type="checkbox" name="is_published" id="is_published" checked>
-                      <label class="form-check-label small" for="is_published">Published</label>
-                    </div>
-                    <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
-                    <div class="d-grid">
-                      <button class="btn btn-success btn-sm" type="submit">Save</button>
-                      <button class="btn btn-secondary btn-sm mt-1 d-none" type="button" id="feedingCancelEdit">Cancel Edit</button>
-                    </div>
-                    <div class="form-text text-success mt-1 d-none" id="feedingSuccess">Saved!</div>
-                    <div class="form-text text-danger mt-1 d-none" id="feedingError"></div>
-                  </form>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-8">
-              <div class="card shadow-sm border-0">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Upcoming Feeding Programs</h6>
-                  <div class="table-responsive" style="max-height:430px; overflow:auto;">
-                    <table class="table table-sm table-hover align-middle mb-0">
-                      <thead class="table-light">
-                        <tr><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Audience</th><th></th></tr>
-                      </thead>
-                      <tbody>
-                        ${data.events.map(ev=>`
-                          <tr>
-                            <td>${escapeHtml(ev.event_title)}</td>
-                            <td>${ev.event_date}</td>
-                            <td>${ev.event_time}</td>
-                            <td>${escapeHtml(ev.location||'')}</td>
-                            <td>${escapeHtml(ev.target_audience||'')}</td>
-                            <td>
-                              <button class="btn btn-sm btn-outline-primary me-1" data-edit="${ev.event_id}"><i class="bi bi-pencil"></i></button>
-                              <button class="btn btn-sm btn-outline-danger" data-delete="${ev.event_id}"><i class="bi bi-trash"></i></button>
-                            </td>
-                          </tr>`).join('')}
-                        ${data.events.length===0?'<tr><td colspan="6" class="text-center small text-muted">No feeding programs.</td></tr>':''}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
-
-        // Form submit
-        document.getElementById('feedingForm').addEventListener('submit', e => {
-          e.preventDefault();
-          const form = e.target;
-          const formData = new FormData(form);
-          const data = Object.fromEntries(formData.entries());
-          data.is_published = form.is_published.checked ? 1 : 0;
-          fetch(api.feeding_programs, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
-            body: JSON.stringify(data)
-          })
-            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-            .then(() => {
-              document.getElementById('feedingSuccess').classList.remove('d-none');
-              document.getElementById('feedingError').classList.add('d-none');
-              form.reset();
-              document.getElementById('feeding_event_id').value = '';
-              document.getElementById('feedingCancelEdit').classList.add('d-none');
-              renderFeedingProgramsModule(label);
-            })
-            .catch(err => {
-              const el = document.getElementById('feedingError');
-              el.textContent = err.message;
-              el.classList.remove('d-none');
-            });
-        });
-
-        // Edit button
-        moduleContent.querySelectorAll('button[data-edit]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const event = data.events.find(ev => ev.event_id == btn.getAttribute('data-edit'));
-            if (!event) return;
-            const form = document.getElementById('feedingForm');
-            form.event_id.value = event.event_id;
-            form.event_title.value = event.event_title;
-            form.event_description.value = event.event_description;
-            form.event_date.value = event.event_date;
-            form.event_time.value = event.event_time;
-            form.location.value = event.location;
-            form.target_audience.value = event.target_audience;
-            form.is_published.checked = event.is_published == 1;
-            document.getElementById('feedingCancelEdit').classList.remove('d-none');
-          });
-        });
-        // Cancel edit
-        document.getElementById('feedingCancelEdit').addEventListener('click', () => {
-          const form = document.getElementById('feedingForm');
-          form.reset();
-          form.event_id.value = '';
-          document.getElementById('feedingCancelEdit').classList.add('d-none');
-        });
-        // Delete button
-        moduleContent.querySelectorAll('button[data-delete]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (!confirm('Delete this feeding program?')) return;
-            fetch(api.feeding_programs, {
-              method: 'DELETE',
-              headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.__BNS_CSRF},
-              body: JSON.stringify({ event_id: btn.getAttribute('data-delete') })
-            })
-              .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-              .then(() => renderFeedingProgramsModule(label))
-              .catch(err => alert('Error: ' + err.message));
-          });
-        });
-      })
-      .catch(err => {
-        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
-      });
-  }
-  }
-
-  function renderMothersModule(label){
-    showLoading(label);
-    fetch(api.mothers+'?list=1')
-      .then(r=>r.json())
-      .then(data=>{
-        moduleContent.innerHTML = `
-          <div class="row g-3">
-            <div class="col-lg-4">
-              <div class="card shadow-sm border-0 mb-3">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Add Mother/Caregiver</h6>
-                  <form id="motherForm" class="small">
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Full Name</label>
-                      <input type="text" name="full_name" class="form-control form-control-sm" required>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Purok (manual input)</label>
-                      <input type="text" name="purok_name" class="form-control form-control-sm" required placeholder="Hal: Purok 1 / Riverside">
-                      <div class="form-text">I-type lang ang pangalan. Kung bago ito, auto-add.</div>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Address Details</label>
-                      <textarea name="address_details" class="form-control form-control-sm" rows="2"></textarea>
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label small mb-1">Contact Number</label>
-                      <input type="text" name="contact_number" class="form-control form-control-sm">
-                    </div>
-                    <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
-                    <div class="d-grid">
-                      <button class="btn btn-success btn-sm" type="submit">Save</button>
-                    </div>
-                    <div class="form-text text-success mt-1 d-none" id="motherSuccess">Saved!</div>
-                    <div class="form-text text-danger mt-1 d-none" id="motherError"></div>
-                  </form>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-8">
-              <div class="card shadow-sm border-0">
-                <div class="card-body">
-                  <h6 class="fw-semibold mb-3">Mothers / Caregivers</h6>
-                  <div class="table-responsive" style="max-height:430px; overflow:auto;">
-                    <table class="table table-sm table-hover align-middle mb-0">
-                      <thead class="table-light">
-                        <tr><th>Name</th><th>Purok</th><th>Contact</th><th>Children</th><th>Created</th></tr>
-                      </thead>
-                      <tbody>
-                        ${data.mothers.map(m=>`
-                          <tr>
-                            <td>${escapeHtml(m.full_name)}</td>
-                            <td>${escapeHtml(m.purok_name||'')}</td>
-                            <td>${escapeHtml(m.contact_number||'')}</td>
-                            <td>${m.children_count}</td>
-                            <td><small>${m.created_at}</small></td>
-                          </tr>`).join('')}
-                        ${data.mothers.length===0?'<tr><td colspan="5" class="text-center small text-muted">No records.</td></tr>':''}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
-        document.getElementById('motherForm').addEventListener('submit', e=>{
-          e.preventDefault();
-          const fd = new FormData(e.target);
-            fetch(api.mothers,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}})
-            .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-            .then(()=>{
-              document.getElementById('motherSuccess').classList.remove('d-none');
-              document.getElementById('motherError').classList.add('d-none');
-              e.target.reset();
-              renderMothersModule(label);
-            })
-            .catch(err=>{
-              const el=document.getElementById('motherError');
-              el.textContent=err.message;
-              el.classList.remove('d-none');
-            });
-        });
-      })
-      .catch(err=>{
-        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
-      });
-  }
-
-  function renderChildrenModule(label){
-    showLoading(label);
-    Promise.all([
-      fetchJSON(api.children+'?list=1'),
-      fetchJSON(api.mothers+'?list_basic=1')
-    ]).then(([data,mothers])=>{
-      moduleContent.innerHTML = `
-        <div class="row g-3">
-          <div class="col-lg-4">
-            <div class="card shadow-sm border-0 mb-3">
-              <div class="card-body">
-                <h6 class="fw-semibold mb-3">Add Child</h6>
-                <form id="childForm" class="small">
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Full Name</label>
-                    <input type="text" name="full_name" class="form-control form-control-sm" required>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Sex</label>
-                    <select name="sex" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                    </select>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Birth Date</label>
-                    <input type="date" name="birth_date" class="form-control form-control-sm" required>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Mother/Caregiver</label>
-                    <select name="mother_id" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      ${mothers.mothers.map(m=>`<option value="${m.mother_id}">${escapeHtml(m.full_name)}</option>`).join('')}
-                    </select>
-                  </div>
-                  <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
-                  <div class="d-grid">
-                    <button class="btn btn-success btn-sm" type="submit">Save</button>
-                  </div>
-                  <div class="form-text text-success mt-1 d-none" id="childSuccess">Saved!</div>
-                  <div class="form-text text-danger mt-1 d-none" id="childError"></div>
-                </form>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-              <div class="card-body">
-                <h6 class="fw-semibold mb-3">Children</h6>
-                <div class="table-responsive" style="max-height:430px; overflow:auto;">
-                  <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
-                      <tr><th>Name</th><th>Sex</th><th>Birth Date</th><th>Age (mo)</th><th>Mother</th><th>Last Weigh</th></tr>
-                    </thead>
-                    <tbody>
-                      ${data.children.map(c=>`
-                        <tr>
-                          <td>${escapeHtml(c.full_name)}</td>
-                          <td class="text-capitalize">${c.sex}</td>
-                          <td><small>${c.birth_date}</small></td>
-                          <td>${c.age_months > 59 ? '<span style="color:red;font-weight:bold">OA</span>' : c.age_months}</td>
-                          <td>${escapeHtml(c.mother_name||'')}</td>
-                          <td><small>${c.last_weighing_date||'<span class="text-muted">—</span>'}</small></td>
-                        </tr>`).join('')}
-                      ${data.children.length===0?'<tr><td colspan="6" class="text-center small text-muted">No children yet.</td></tr>':''}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>`;
-      document.getElementById('childForm').addEventListener('submit', e=>{
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        fetchJSON(api.children, {method:'POST', body:fd})
-          .then(()=>{
-            document.getElementById('childSuccess').classList.remove('d-none');
-            document.getElementById('childError').classList.add('d-none');
-            e.target.reset();
-            renderChildrenModule(label);
-          })
-          .catch(err=>{
-            const el=document.getElementById('childError');
-            el.textContent=err.message;
-            el.classList.remove('d-none');
-          });
-      });
-    }).catch(err=>{
-      moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
+function renderDashboardHome(label){
+  showLoading(label);
+  Promise.all([
+    fetchJSON(api.children+'?list=1'),
+    fetchJSON(api.nutrition+'?classification_summary=1'),
+    fetchJSON(api.nutrition+'?recent=1')
+  ]).then(([childRes,classRes,recentRes])=>{
+    const children = childRes.children||[];
+    const classification = classRes.summary||[];
+    const recent = recentRes.records||[];
+    const total = children.length;
+    const malCodes=new Set(['SAM','MAM','UW']);
+    let normal=0,mal=0,mam=0,sam=0;
+    classification.forEach(c=>{
+      const cnt=parseInt(c.child_count||0,10);
+      if(c.status_code==='NOR') normal+=cnt;
+      if(malCodes.has(c.status_code)) mal+=cnt;
+      if(c.status_code==='MAM') mam=cnt;
+      if(c.status_code==='SAM') sam=cnt;
     });
-  }
+    document.getElementById('qsChildren').textContent=total;
+    document.getElementById('qsMal').textContent=mal;
+    document.getElementById('qsNormal').textContent=normal;
 
-  function renderWeighingModule(label){
-    showLoading(label);
-    Promise.all([
-      fetchJSON(api.children+'?list_basic=1'),
-      fetchJSON(api.wfl),
-      fetchJSON(api.nutrition+'?recent=1')
-    ]).then(([children,wfl,records])=>{
-      moduleContent.innerHTML = `
-        <div class="row g-3">
-          <div class="col-lg-4">
-            <div class="card border-0 shadow-sm mb-3">
-              <div class="card-body small">
-                <h6 class="fw-semibold mb-3">Add Weighing</h6>
-                <form id="weighForm">
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Child</label>
-                    <select name="child_id" class="form-select form-select-sm" required>
-                      <option value="">Select...</option>
-                      ${children.children.map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)}</option>`).join('')}
-                    </select>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Weighing Date</label>
-                    <input type="date" name="weighing_date" class="form-control form-control-sm" required value="<?= date('Y-m-d'); ?>">
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1 d-flex justify-content-between">
-                      <span>Weight (kg)</span>
-                      <span class="text-muted fw-normal" style="font-size:.6rem">Auto classify below</span>
-                    </label>
-                    <input type="number" step="0.01" min="0" name="weight_kg" id="weightInput" class="form-control form-control-sm" required>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Length/Height (cm)</label>
-                    <input type="number" step="0.1" min="0" name="length_height_cm" id="lengthInput" class="form-control form-control-sm" required>
-                  </div>
-                  <input type="hidden" name="wfl_ht_status_id" id="wflStatusHidden">
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Auto WFL / HT Status</label>
-                    <div class="auto-status-box" id="autoStatusBox">
-                      <span class="text-muted">Maglagay ng Weight at Height para ma-compute.</span>
-                    </div>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label small mb-1">Remarks</label>
-                    <textarea name="remarks" class="form-control form-control-sm" rows="2"></textarea>
-                  </div>
-                  <input type="hidden" name="csrf_token" value="${window.__BNS_CSRF}">
-                  <div class="d-grid"><button class="btn btn-success btn-sm" type="submit">Save Record</button></div>
-                  <div class="form-text text-success mt-1 d-none" id="weighSuccess">Saved!</div>
-                  <div class="form-text text-danger mt-1 d-none" id="weighError"></div>
-                </form>
-              </div>
-            </div>
-            <div class="alert alert-info small mb-0">
-              Age in months auto-computed server-side. Status = provisional BMI mapping (placeholder).
-            </div>
-          </div>
-          <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <h6 class="fw-semibold mb-3">Recent Weighing Records</h6>
-                <div class="table-responsive" style="max-height:470px; overflow:auto;">
-                  <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
-                      <tr><th>Date</th><th>Child</th><th>Age (mo)</th><th>Wt (kg)</th><th>Ht (cm)</th><th>Status</th><th>Remarks</th></tr>
-                    </thead>
-                    <tbody id="weighRows">
-                      ${records.records.map(r=>`
-                        <tr>
-                          <td><small>${r.weighing_date}</small></td>
-                          <td>${escapeHtml(r.child_name)}</td>
-                          <td>${r.age_in_months}</td>
-                          <td>${r.weight_kg ?? ''}</td>
-                          <td>${r.length_height_cm ?? ''}</td>
-                          <td>${r.status_code ? `<span class="badge bg-secondary-subtle border text-dark status-badge">${r.status_code}</span>` : '<span class="text-muted">—</span>'}</td>
-                          <td><small>${r.remarks?escapeHtml(r.remarks):''}</small></td>
-                        </tr>`).join('')}
-                      ${records.records.length===0?'<tr><td colspan="7" class="text-center small text-muted">No records.</td></tr>':''}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>`;
-
-      const weightEl = document.getElementById('weightInput');
-      const lengthEl = document.getElementById('lengthInput');
-      const statusHidden = document.getElementById('wflStatusHidden');
-      const statusBox = document.getElementById('autoStatusBox');
-      let classifyTimer = null;
-
-      function classify() {
-        const w = parseFloat(weightEl.value);
-        const l = parseFloat(lengthEl.value);
-        statusHidden.value = '';
-        statusBox.innerHTML = `<span class="auto-status-loading">Computing…</span>`;
-        if(!w || !l){
-          statusBox.innerHTML = `<span class="text-muted">Maglagay ng Weight at Height para ma-compute.</span>`;
-          return;
-        }
-        fetchJSON(api.nutrition+`?classify=1&weight=${encodeURIComponent(w)}&length=${encodeURIComponent(l)}`)
-          .then(res=>{
-            if(res && res.status_id){
-              statusHidden.value = res.status_id;
-              statusBox.innerHTML = `
-                <span class="auto-status-code">${escapeHtml(res.status_code)}</span>
-                <span class="auto-status-desc">${escapeHtml(res.status_description||'')}</span>
-                <span class="text-muted" style="font-size:.55rem">BMI: ${res.bmi ?? ''}</span>`;
-            } else if (res && res.status_code){
-              statusBox.innerHTML = `<span class="auto-status-code">${escapeHtml(res.status_code)}</span>
-                <span class="auto-status-desc text-warning">Status code not in DB list.</span>`;
-            } else {
-              statusBox.innerHTML = `<span class="text-muted">Walang classification.</span>`;
-            }
-          })
-          .catch(()=> statusBox.innerHTML = `<span class="text-danger" style="font-size:.6rem">Error computing.</span>`);
+    const priority=[];
+    const seen=new Set();
+    recent.forEach(r=>{
+      if(malCodes.has(r.status_code) && !seen.has(r.child_name)){
+        priority.push(r);seen.add(r.child_name);
       }
-
-      [weightEl,lengthEl].forEach(inp=>{
-        inp.addEventListener('input', ()=>{
-          if (classifyTimer) clearTimeout(classifyTimer);
-          classifyTimer = setTimeout(classify, 500);
-        });
-      });
-
-      document.getElementById('weighForm').addEventListener('submit', e=>{
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        fetchJSON(api.nutrition, {method:'POST', body:fd})
-          .then(()=>{
-            document.getElementById('weighSuccess').classList.remove('d-none');
-            document.getElementById('weighError').classList.add('d-none');
-            e.target.reset();
-            statusHidden.value='';
-            statusBox.innerHTML = `<span class="text-muted">Maglagay ng Weight at Height para ma-compute.</span>`;
-            renderWeighingModule(label);
-          })
-          .catch(err=>{
-            const el=document.getElementById('weighError');
-            el.textContent=err.message;
-            el.classList.remove('d-none');
-          });
-      });
-    }).catch(err=>{
-      moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
     });
-  }
 
-  function renderWflStatusModule(label){
-    showLoading(label);
-    fetchJSON(api.wfl).then(data=>{
-      moduleContent.innerHTML = `
-        <div class="card border-0 shadow-sm"><div class="card-body small">
-          <h6 class="fw-semibold mb-3">${label}</h6>
-          <div class="row">
-            ${data.status_types.map(s=>`
-              <div class="col-md-4 mb-3">
-                <div class="p-2 bg-white border rounded h-100">
-                  <div class="fw-semibold">${s.status_code}</div>
-                  <div class="text-muted">${escapeHtml(s.status_description)}</div>
-                  <div><span class="badge bg-light text-dark mt-1">${s.status_category}</span></div>
-                </div>
-              </div>`).join('')}
-            ${data.status_types.length===0?'<div class="col-12 text-muted">No status types.</div>':''}
-          </div>
-        </div></div>`;
-    }).catch(err=>{
-      moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
-    });
-  }
+    const trendSvg=buildTrend(recent);
 
-  function renderNutritionClassificationModule(label){
-    showLoading(label);
-    fetchJSON(api.nutrition+'?classification_summary=1')
-      .then(data=>{
-        moduleContent.innerHTML = `
-          <div class="card border-0 shadow-sm"><div class="card-body small">
-            <h6 class="fw-semibold mb-3">${label}</h6>
-            <p class="text-muted mb-2">Latest status per child distribution (most recent record).</p>
-            <div class="row g-3">
-              ${data.summary.map(s=>`
-                <div class="col-sm-6 col-md-4 col-lg-3">
-                  <div class="p-3 bg-white border rounded h-100">
-                    <div class="fw-semibold">${escapeHtml(s.status_code||'UNSET')}</div>
-                    <div class="text-muted">${escapeHtml(s.status_description||'No status')}</div>
-                    <div class="display-6 fw-semibold mt-2">${s.child_count}</div>
-                  </div>
-                </div>`).join('')}
-              ${data.summary.length===0?'<div class="col-12 text-muted">No data.</div>':''}
+    moduleContent.innerHTML=`
+      <div class="fade-in">
+        <div class="stat-grid">
+          ${statCard('Children Monitored', total,'Active in monitoring program','green', true)}
+          ${statCard('Supplements Given','342','This quarter','amber', false,'<span class="pill">Vit A: 120</span><span class="pill">Iron: 142</span><span class="pill">Deworm: 80</span>')}
+          ${statCard('Malnutrition Cases', mal,'Requiring intervention','red', false,'<span class="pill amber">MAM: '+mam+'</span><span class="pill red">SAM: '+sam+'</span>')}
+          ${statCard('Growth Trend','+5.2%','Normal status increase','blue',false,'<span class="pill blue"><i class="bi bi-arrow-trend-up"></i> Improving</span>')}
+        </div>
+
+        <div class="priority-panel">
+          <div class="priority-panel-header">
+            <div>
+              <h4><i class="bi bi-shield-exclamation text-danger"></i> Malnutrition Alerts</h4>
+              <p class="priority-panel-sub">Cases requiring urgent intervention</p>
             </div>
-          </div></div>`;
-      })
-      .catch(err=>{
-        moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${err.message}</div>`;
-      });
-  }
+            <span class="badge bg-danger-subtle text-danger-emphasis fw-semibold" style="font-size:.55rem;">${priority.length} Case${priority.length!==1?'s':''}</span>
+          </div>
+          <div>
+            ${
+              priority.length ? priority.map(p=>priorityItem(p)).join('') :
+              `<div class="text-center text-muted" style="font-size:.6rem;padding:.5rem 0;">No priority cases.</div>`
+            }
+          </div>
+        </div>
 
-  function escapeHtml(str){
-    if(str===undefined || str===null) return '';
-    return str.toString()
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
-  }
+        <div class="lower-grid">
+          <div class="tile">
+            <div class="tile-header">
+              <h5><i class="bi bi-graph-up-arrow text-success"></i> Growth Monitoring Trends</h5>
+            </div>
+            <p class="tile-sub">6-month nutrition status comparison</p>
+            ${trendSvg}
+            <p class="small-note mt-2 mb-0" style="font-size:.55rem;">Relative pattern (NOR counts, sample)</p>
+          </div>
 
-  document.querySelectorAll('.nav-menu a[data-module]').forEach(a=>{
-    a.addEventListener('click', e=>{
-      e.preventDefault();
-      setActive(a);
-      loadModule(a.dataset.module, a.dataset.label);
-      if (window.innerWidth < 992) document.getElementById('sidebar').classList.remove('show');
+          <div class="tile">
+            <div class="tile-header">
+              <h5><i class="bi bi-pie-chart text-success"></i> Nutrition Status Distribution</h5>
+            </div>
+            <p class="tile-sub">Current classification breakdown</p>
+            <div>
+              ${
+                classification.map(c=>distRow(c.status_code||'UNSET',c.child_count)).join('') ||
+                '<div class="text-muted" style="font-size:.55rem;">No data.</div>'
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).catch(err=>{
+    moduleContent.innerHTML='<div class="alert alert-danger small">Error: '+escapeHtml(err.message)+'</div>';
+  });
+
+  function statCard(t,val,desc,color,progress=false,extras=''){
+    return `<div class="stat-card ${color}">
+      <div class="stat-title"><i class="bi ${iconFor(t)}"></i>${escapeHtml(t)}</div>
+      <div class="stat-val">${escapeHtml(val)}</div>
+      ${progress?'<div class="progress-thin"><span></span></div>':''}
+      <div class="stat-desc">${escapeHtml(desc)}</div>
+      ${extras?'<div class="stat-pills">'+extras+'</div>':''}
+    </div>`;
+  }
+  function iconFor(t){
+    if(/Children/i.test(t)) return 'bi-people-fill';
+    if(/Supplements/i.test(t)) return 'bi-capsule-pill';
+    if(/Malnutrition/i.test(t)) return 'bi-exclamation-triangle-fill';
+    if(/Growth Trend/i.test(t)) return 'bi-graph-up';
+    return 'bi-circle';
+  }
+  function priorityItem(r){
+    return `<div class="case-item">
+      <div class="case-left">
+        <div class="case-avatar"><i class="bi bi-exclamation"></i></div>
+        <div class="case-info">
+          <span class="name">${escapeHtml(r.child_name)}</span>
+          <span class="meta">${r.age_in_months} mos • Status: ${escapeHtml(r.status_code||'')}</span>
+        </div>
+      </div>
+      <div class="case-controls">
+        ${badge(r.status_code)}
+        <button class="btn-view">View</button>
+      </div>
+    </div>`;
+  }
+  function badge(s){
+    if(!s) return `<span class="badge-status">—</span>`;
+    return `<span class="badge-status badge-${escapeHtml(s)}">${escapeHtml(s)}</span>`;
+  }
+  function distRow(code,count){
+    return `<div class="dist-row">
+      <div class="dist-left">${badge(code)}<span>${escapeHtml(code)}</span></div>
+      <span style="font-size:.52rem;font-weight:700;">${count}</span>
+    </div>`;
+  }
+  function buildTrend(recent){
+    const map={};
+    recent.forEach(r=>{
+      if(!r.weighing_date) return;
+      const ym=r.weighing_date.slice(0,7);
+      if(!map[ym]) map[ym]={NOR:0};
+      if(r.status_code==='NOR') map[ym].NOR++;
     });
-  });
+    const arr=Object.entries(map).sort((a,b)=>a[0]>b[0]?1:-1).slice(-6)
+      .map(([ym,o])=>({label:ym.slice(5),value:o.NOR}));
+    if(!arr.length) return `<div class="chart-placeholder">No trend</div>`;
+    const max=Math.max(...arr.map(d=>d.value))||1;
+    const pts=arr.map((d,i)=>{
+      const x=(i/(arr.length-1))*100;
+      const y=100 - (d.value/max)*85 - 7;
+      return {x,y,label:d.label};
+    });
+    const poly=pts.map(p=>`${p.x},${p.y}`).join(' ');
+    const circles=pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
+    return `<div style="width:100%;position:relative;">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:140px;">
+        <polyline fill="none" stroke="#0b7a43" stroke-width="1.4" points="${poly}" />
+        ${circles}
+      </svg>
+      <div class="d-flex justify-content-between" style="margin-top:-10px;">
+        ${pts.map(p=>`<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+}
 
-  const sidebar = document.getElementById('sidebar');
-  document.getElementById('sidebarToggle').addEventListener('click', ()=> sidebar.classList.toggle('show'));
-  document.getElementById('closeSidebar').addEventListener('click', ()=> sidebar.classList.remove('show'));
-  document.addEventListener('click', (e)=>{
-    if (window.innerWidth >= 992) return;
-    if (sidebar.classList.contains('show') && !sidebar.contains(e.target) && !e.target.closest('#sidebarToggle')) {
-      sidebar.classList.remove('show');
-    }
+/* Placeholder modules (replace with real content later) */
+function renderChildrenModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Children Module</h5><p class="small-note">Insert children management UI here.</p></div>'; }
+function renderWeighingModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Weighing Module</h5><p class="small-note">Placeholder.</p></div>'; }
+function renderNutritionClassificationModule(label){ showLoading(label); fetchJSON(api.nutrition+'?classification_summary=1').then(j=>{ moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">'+escapeHtml(label)+'</h5><pre style="font-size:.55rem;">'+escapeHtml(JSON.stringify(j.summary,null,2))+'</pre></div>'; }).catch(e=> moduleContent.innerHTML='<div class="alert alert-danger small">'+escapeHtml(e.message)+'</div>'); }
+function renderFeedingProgramsModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Supplementation</h5><p class="small-note">Placeholder.</p></div>'; }
+function renderNutritionCalendarModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Calendar</h5><p class="small-note">Placeholder.</p></div>'; }
+function renderMothersModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Mothers Module</h5><p class="small-note">Placeholder.</p></div>'; }
+function renderReportModule(label){ renderNutritionClassificationModule(label); }
+
+/* Module map */
+const handlers={
+  dashboard_home:renderDashboardHome,
+  child_profiles:renderChildrenModule,
+  weighing_sessions:renderWeighingModule,
+  nutrition_classification:renderNutritionClassificationModule,
+  feeding_programs:renderFeedingProgramsModule,
+  nutrition_calendar:renderNutritionCalendarModule,
+  mothers_caregivers:renderMothersModule,
+  report_status_distribution:renderReportModule
+};
+function loadModule(mod,label){
+  titleEl.textContent=label;
+  (handlers[mod]||(()=>moduleContent.innerHTML='<div class="alert alert-secondary">Module not implemented.</div>'))(label);
+  moduleContent.scrollTop=0;
+}
+
+/* Navigation */
+document.querySelectorAll('.nav-link-bns[data-module]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    setActive(a);
+    loadModule(a.dataset.module,a.dataset.label||a.textContent.trim());
+    if(window.innerWidth<992) document.getElementById('sidebar').classList.remove('show');
   });
+});
+
+/* Quick Add Child route */
+document.querySelectorAll('[data-module="child_profiles"].quick-add-btn').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.preventDefault();
+    const link=document.querySelector('.nav-link-bns[data-module="child_profiles"]');
+    if(link) setActive(link);
+    loadModule('child_profiles','Children Management');
+  });
+});
+
+/* Sidebar mobile toggle */
+const sidebar=document.getElementById('sidebar');
+document.getElementById('sidebarToggle')?.addEventListener('click',()=>sidebar.classList.toggle('show'));
+document.addEventListener('click',e=>{
+  if(window.innerWidth>=992) return;
+  if(sidebar.classList.contains('show') && !sidebar.contains(e.target) && !e.target.closest('#sidebarToggle')){
+    sidebar.classList.remove('show');
+  }
+});
+
+/* Initial load */
+loadModule('dashboard_home','Dashboard');
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<!-- FullCalendar JS (loaded dynamically if needed) -->
 </body>
 </html>

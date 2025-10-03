@@ -219,7 +219,7 @@ if ($method === 'GET') {
         ok(['overdue'=>$overdue,'dueSoon'=>$dueSoon]);
     }
 
-    if (isset($_GET['schedule'])) { // still available if needed
+    if (isset($_GET['schedule'])) {
         $rows=[];
         $res=$mysqli->query("
           SELECT vt.vaccine_id, vt.vaccine_code, vt.vaccine_name, vt.vaccine_category,
@@ -232,6 +232,29 @@ if ($method === 'GET') {
         ");
         while($r=$res->fetch_assoc()) $rows[]=$r;
         ok(['schedule'=>$rows]);
+    }
+
+    // NEW: recent vaccinations (global)
+    if (isset($_GET['recent_vaccinations'])) {
+        $limit = isset($_GET['limit']) ? max(1,min(50,(int)$_GET['limit'])) : 20;
+        $rows=[];
+        $stmt=$mysqli->prepare("
+          SELECT ci.immunization_id, ci.vaccination_date, ci.dose_number,
+                 vt.vaccine_code, vt.vaccine_name,
+                 c.full_name AS child_name
+          FROM child_immunizations ci
+          JOIN vaccine_types vt ON vt.vaccine_id=ci.vaccine_id
+          JOIN children c ON c.child_id=ci.child_id
+          ORDER BY ci.vaccination_date DESC, ci.immunization_id DESC
+          LIMIT ?
+        ");
+        if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
+        $stmt->bind_param('i',$limit);
+        $stmt->execute();
+        $res=$stmt->get_result();
+        while($r=$res->fetch_assoc()) $rows[]=$r;
+        $stmt->close();
+        ok(['recent_vaccinations'=>$rows]);
     }
 
     fail('Unknown GET action',404);
@@ -328,7 +351,7 @@ if ($method === 'POST') {
         }
     }
 
-    /* ---- Delete vaccine (no existing immunizations) ---- */
+    /* ---- Delete vaccine ---- */
     if (isset($_POST['delete_vaccine_id'])) {
         $vid=(int)$_POST['delete_vaccine_id'];
         if($vid<=0) fail('Invalid vaccine id');
@@ -344,7 +367,7 @@ if ($method === 'POST') {
         ok(['deleted_vaccine_id'=>$vid]);
     }
 
-    /* ---- Add Immunization Record (vaccination entry) ---- */
+    /* ---- Add Immunization Record ---- */
     if (
         isset($_POST['child_id']) &&
         isset($_POST['dose_number']) &&
@@ -365,7 +388,6 @@ if ($method === 'POST') {
         $vaccine_id_raw=trim($_POST['vaccine_id'] ?? '');
         $vaccine_id = ctype_digit($vaccine_id_raw)?(int)$vaccine_id_raw:0;
 
-        // Auto-create via code if numeric id not supplied
         if($vaccine_id<=0 && !empty($_POST['vaccine_code'])){
             $code=strtoupper(preg_replace('/[^A-Z0-9_-]/','',$_POST['vaccine_code']));
             if($code!==''){
@@ -377,7 +399,7 @@ if ($method === 'POST') {
                 } else {
                     $name=trim($_POST['vaccine_name'] ?? $code);
                     $cat=trim($_POST['vaccine_category'] ?? 'infant');
-                    $dreq=(int)($_POST['doses_required'] ?? 1);
+                    $dreq=(int)$_POST['doses_required'] ?? 1;
                     if($dreq<=0) $dreq=1;
                     $auto=$mysqli->prepare("INSERT INTO vaccine_types (vaccine_code,vaccine_name,vaccine_category,doses_required,is_active) VALUES (?,?,?,?,1)");
                     $auto->bind_param('sssi',$code,$name,$cat,$dreq);
@@ -425,7 +447,7 @@ if ($method === 'POST') {
         ok(['immunization_id'=>$iid,'next_dose_due_date'=>$next_due]);
     }
 
-    /* ---- (Optional) Add/Update schedule row (still supported) ---- */
+    /* ---- Schedule management ---- */
     if (isset($_POST['add_schedule'])) {
         $vaccine_code = strtoupper(preg_replace('/[^A-Z0-9_-]/','', $_POST['vaccine_code'] ?? ''));
         $vaccine_name = trim($_POST['vaccine_name'] ?? '');
