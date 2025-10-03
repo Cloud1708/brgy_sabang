@@ -7,7 +7,6 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 header('Content-Type: application/json; charset=utf-8');
 
-/* ---------- Uniform JSON error handling ---------- */
 ini_set('display_errors','0');
 error_reporting(E_ALL);
 
@@ -53,7 +52,7 @@ if (isset($_GET['vaccination_coverage'])) {
     $row = $res? $res->fetch_assoc():['c'=>0];
     $totalChildren = (int)$row['c'];
 
-    // Active vaccines
+    // Active vaccines & total required doses
     $activeVaccines = [];
     $sumRequired = 0;
     $res = $mysqli->query("SELECT vaccine_id,doses_required FROM vaccine_types WHERE is_active=1");
@@ -65,7 +64,7 @@ if (isset($_GET['vaccination_coverage'])) {
     }
     $activeVaxCount = count($activeVaccines);
 
-    // Total administered doses (any immunization row)
+    // Total administered doses
     $res = $mysqli->query("SELECT COUNT(*) c FROM child_immunizations");
     $row = $res? $res->fetch_assoc():['c'=>0];
     $totalAdmin = (int)$row['c'];
@@ -73,9 +72,40 @@ if (isset($_GET['vaccination_coverage'])) {
     $theoretical = ($totalChildren>0 && $sumRequired>0) ? $totalChildren * $sumRequired : 0;
     $overallPct = $theoretical>0 ? round($totalAdmin / $theoretical * 100, 2) : 0.0;
 
-    // Per vaccine coverage:
-    // anyDose: children with >=1 dose of that vaccine
-    // fullDose: children whose recorded doses for the vaccine >= required doses
+    // Fully immunized children:
+    // A child is fully immunized if for every active vaccine, the number of doses
+    // recorded for that vaccine >= doses_required.
+    $fully = 0;
+    if ($activeVaxCount > 0 && $totalChildren > 0) {
+        $sqlFully = "
+          SELECT COUNT(*) fully_immunized FROM (
+            SELECT c.child_id
+            FROM children c
+            /* active vaccines */
+            JOIN vaccine_types vt_all ON vt_all.is_active=1
+            /* map each active vaccine to recorded dose counts */
+            LEFT JOIN (
+              SELECT child_id,vaccine_id,COUNT(*) dose_count
+              FROM child_immunizations
+              GROUP BY child_id,vaccine_id
+            ) d ON d.child_id=c.child_id AND d.vaccine_id=vt_all.vaccine_id
+            GROUP BY c.child_id
+            HAVING SUM(
+              CASE
+                WHEN d.dose_count IS NULL THEN 1           -- no record yet for an active vaccine
+                WHEN d.dose_count < vt_all.doses_required THEN 1
+                ELSE 0
+              END
+            ) = 0
+          ) x
+        ";
+        $fr = $mysqli->query($sqlFully);
+        if($fr && $fr->num_rows){
+            $fully = (int)$fr->fetch_assoc()['fully_immunized'];
+        }
+    }
+
+    // Per vaccine coverage
     $per = [];
     $sql = "
         SELECT vt.vaccine_id,
@@ -117,20 +147,19 @@ if (isset($_GET['vaccination_coverage'])) {
     }
 
     ok([
-        'total_children'            => $totalChildren,
-        'active_vaccines'           => $activeVaxCount,
-        'total_required_doses'      => $theoretical,         // theoretical total doses needed for full coverage
-        'total_administered_doses'  => $totalAdmin,
-        'overall_dose_coverage_pct' => $overallPct,
-        'per_vaccine'               => $per
+        'total_children'              => $totalChildren,
+        'active_vaccines'             => $activeVaxCount,
+        'total_required_doses'        => $theoretical,
+        'total_administered_doses'    => $totalAdmin,
+        'overall_dose_coverage_pct'   => $overallPct,
+        'fully_immunized_children'    => $fully,
+        'per_vaccine'                 => $per
     ]);
 }
 
-/* =========================================================
-   MATERNAL HEALTH STATS
-   ========================================================= */
-if (isset($_GET['maternal_stats'])) {
+/* ========== MATERNAL & RISK REPORTS UNCHANGED BELOW ========== */
 
+if (isset($_GET['maternal_stats'])) {
     $row = $mysqli->query("SELECT COUNT(*) c FROM mothers_caregivers")->fetch_assoc();
     $totalMothers = (int)$row['c'];
 
@@ -173,11 +202,7 @@ if (isset($_GET['maternal_stats'])) {
     ]);
 }
 
-/* =========================================================
-   HEALTH RISK REPORT
-   ========================================================= */
 if (isset($_GET['health_risks'])) {
-
     $agg = $mysqli->query("
       SELECT
         SUM(vaginal_bleeding) vb,

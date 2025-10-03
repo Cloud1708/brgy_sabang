@@ -503,6 +503,47 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
   .mh-post-summary{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));}
 }
 
+/* ==== Immunization Management UI ==== */
+.imm-wrap{margin-top:1rem;}
+.imm-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1.2rem;margin-bottom:1.2rem;}
+.imm-title{font-size:1.35rem;font-weight:700;color:#11312a;margin:0;}
+.imm-sub{font-size:.78rem;font-weight:500;color:#5e6d75;margin:.25rem 0 0;}
+.imm-add-btn{display:inline-flex;align-items:center;gap:.45rem;font-weight:600;border-radius:.9rem;background:#047a4c;border:1px solid #047242;color:#fff;padding:.65rem 1.05rem;font-size:.75rem;}
+.imm-add-btn:hover{background:#059a61;border-color:#059a61;color:#fff;}
+
+.imm-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.4rem;}
+.imm-metric{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.35rem;position:relative;overflow:hidden;box-shadow:var(--shadow-sm);}
+.imm-metric:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 85% 18%,rgba(0,150,100,.12),transparent 60%);}
+.imm-metric-label{font-size:.6rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:#476066;display:flex;align-items:center;gap:.45rem;}
+.imm-metric-value{font-size:1.85rem;font-weight:800;line-height:1;color:#053129;}
+.imm-metric-sub{font-size:.6rem;font-weight:600;color:#617178;}
+
+.imm-tabs{background:#f5f8fa;border-radius:999px;padding:.45rem .55rem;display:inline-flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1.1rem;}
+.imm-tabs .nav-link{border-radius:30px;font-size:.68rem;font-weight:600;padding:.5rem .95rem;color:#355155;background:transparent;border:0;}
+.imm-tabs .nav-link.active{background:#ffffff;border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,.06);color:#0a5c3d;font-weight:700;}
+.imm-tabs .nav-link:hover{background:#e9f4ef;color:#0a5c3d;}
+
+.imm-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.1rem 1.3rem;box-shadow:var(--shadow-sm);font-size:.78rem;}
+.imm-card h6{font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin:0 0 .65rem;color:#23423f;}
+.imm-table{width:100%;border-collapse:collapse;font-size:.7rem;}
+.imm-table thead th{background:#f1f6f7;font-size:.58rem;font-weight:800;letter-spacing:.07em;padding:.55rem .65rem;color:#2a454a;position:sticky;top:0;}
+.imm-table tbody td{padding:.52rem .65rem;border-top:1px solid var(--border);vertical-align:middle;}
+.imm-table tbody tr:hover td{background:#f3faf6;}
+.imm-badge{display:inline-block;font-size:.53rem;font-weight:700;padding:.3rem .55rem;border-radius:16px;letter-spacing:.05em;}
+.imm-badge-overdue{background:#fde0dd;color:#b62218;}
+.imm-badge-duesoon{background:#fff1cd;color:#8b6700;}
+.imm-badge-ok{background:#e1edff;color:#144f9b;}
+
+.imm-small-muted{font-size:.58rem;color:#67767d;font-weight:600;}
+.imm-flex-between{display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.imm-scroll{max-height:420px;overflow:auto;}
+.imm-placeholder{padding:2rem 1rem;text-align:center;font-size:.66rem;color:#6a7b82;}
+
+@media (max-width:650px){
+  .imm-metric-value{font-size:1.55rem;}
+}
+
+
 </style>
 </head>
 <body class="dashboard-body">
@@ -2214,46 +2255,417 @@ function loadPostnatalPanel(){
   });
 }
 
+/* REPLACE the existing renderVaccinationEntry function with this new implementation */
+function renderVaccinationEntry(label){
+  showLoading(label);
+
+  Promise.allSettled([
+    fetchJSON(api.reports+'?vaccination_coverage=1'),
+    fetchJSON(api.immun+'?overdue=1'),
+    fetchJSON(api.immun+'?schedule=1'),
+    fetchJSON(api.notif+'?list=1')
+  ]).then(results=>{
+    const cov = results[0].value||{};
+    const over = results[1].value||{};
+    const sched = results[2].value||{};
+    const notifs = results[3].value||{};
+
+    if(!cov.success || !over.success || !sched.success){
+      moduleContent.innerHTML = '<div class="alert alert-danger small">Failed to load immunization data.</div>';
+      return;
+    }
+
+    const totalChildren = cov.total_children ?? 0;
+    const fullyImm = (cov.fully_immunized_children != null) ? cov.fully_immunized_children : '—';
+    const coverageRate = cov.overall_dose_coverage_pct ?? 0;
+    const dueSoon = (over.dueSoon||[]).length;
+    const overdue = (over.overdue||[]).length;
+
+    // Build schedule table
+    const scheduleRows = buildScheduleRows(sched.schedule||[]);
+    // Build overdue table
+    const overdueRows = buildOverdueRows(over);
+
+    const notifRows = buildNotifRows(notifs.notifications||[]);
+
+    moduleContent.innerHTML = `
+      <div class="imm-wrap fade-in">
+        <div class="imm-head">
+          <div>
+            <h2 class="imm-title">Immunization Management</h2>
+            <p class="imm-sub">Track vaccinations, schedules, and coverage</p>
+          </div>
+          <button class="imm-add-btn" id="immRecordBtn"><i class="bi bi-plus-lg"></i> Record Vaccination</button>
+        </div>
+
+        <div class="imm-metrics">
+          ${metricCard('Total Children', totalChildren,'Registered for immunization','bi-people')}
+          ${metricCard('Fully Immunized', fullyImm, 'Completed schedule','bi-clipboard-check')}
+          ${metricCard('Due This Week', dueSoon, 'Scheduled vaccinations','bi-calendar-week')}
+          ${metricCard('Overdue', overdue, 'Require follow-up','bi-exclamation-octagon')}
+        </div>
+
+        <div class="imm-tabs nav" id="immTabs">
+          <button class="nav-link active" data-tab="schedule">Vaccine Schedule</button>
+          <button class="nav-link" data-tab="records">Vaccination Records</button>
+          <button class="nav-link" data-tab="overdue">Overdue Alerts</button>
+          <button class="nav-link" data-tab="cards">Immunization Cards</button>
+          <button class="nav-link" data-tab="parent_notifs">Parent Notifications</button>
+        </div>
+
+        <div id="immPanel"></div>
+      </div>
+
+      <!-- Record Vaccination Modal -->
+      <div class="modal fade" id="immRecordModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <form id="immRecordForm" autocomplete="off">
+              <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-syringe me-1"></i> Record Vaccination</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Child *</label>
+                    <select name="child_id" id="immChildSel" class="form-select form-select-sm" required>
+                      <option value="">Loading...</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Vaccine *</label>
+                    <select name="vaccine_id" id="immVaxSel" class="form-select form-select-sm" required>
+                      <option value="">Loading...</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Dose # *</label>
+                    <input type="number" min="1" name="dose_number" class="form-control form-control-sm" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Date *</label>
+                    <input type="date" name="vaccination_date" value="${new Date().toISOString().slice(0,10)}" class="form-control form-control-sm" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Site</label>
+                    <input name="vaccination_site" class="form-control form-control-sm" placeholder="Left arm / etc">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Batch / Lot #</label>
+                    <input name="batch_lot_number" class="form-control form-control-sm">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Adverse Reactions</label>
+                    <input name="adverse_reactions" class="form-control form-control-sm">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" style="font-size:.65rem;font-weight:700;">Notes</label>
+                    <textarea name="notes" rows="2" class="form-control form-control-sm"></textarea>
+                  </div>
+                </div>
+                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+              </div>
+              <div class="modal-footer">
+                <div class="me-auto small text-danger d-none" id="immRecErr"></div>
+                <div class="me-auto small text-success d-none" id="immRecOk">Saved!</div>
+                <button class="btn btn-success btn-sm"><i class="bi bi-save me-1"></i>Save</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Initial panel content (schedule)
+    loadSchedulePanel();
+
+    // Tab switching
+    document.getElementById('immTabs').addEventListener('click',e=>{
+      const b=e.target.closest('.nav-link'); if(!b) return;
+      document.querySelectorAll('#immTabs .nav-link').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      const tab=b.dataset.tab;
+      if(tab==='schedule') loadSchedulePanel();
+      else if(tab==='records') loadRecordsPanel();
+      else if(tab==='overdue') loadOverduePanel();
+      else if(tab==='cards') loadCardsPanel();
+      else if(tab==='parent_notifs') loadParentNotifPanel();
+    });
+
+    // Record Vaccination Modal logic
+    document.getElementById('immRecordBtn').addEventListener('click',()=>{
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('immRecordModal')).show();
+      preloadRecordForm();
+    });
+
+    function preloadRecordForm(){
+      // children
+      fetchJSON(api.immun+'?children=1').then(j=>{
+        const sel=document.getElementById('immChildSel');
+        if(!j.success){ sel.innerHTML='<option value="">Error</option>'; return; }
+        sel.innerHTML='<option value="">Select child...</option>'+ (j.children||[]).map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.age_months}m)</option>`).join('');
+      }).catch(()=>{});
+      // vaccines
+      fetchJSON(api.immun+'?vaccines=1').then(j=>{
+        const sel=document.getElementById('immVaxSel');
+        if(!j.success){ sel.innerHTML='<option value="">Error</option>'; return; }
+        sel.innerHTML='<option value="">Select vaccine...</option>'+ (j.vaccines||[]).map(v=>`<option value="${v.vaccine_id}">${escapeHtml(v.vaccine_code)} - ${escapeHtml(v.vaccine_name)}</option>`).join('');
+      }).catch(()=>{});
+    }
+
+    document.getElementById('immRecordForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const fd=new FormData(e.target);
+      fetch(api.immun,{method:'POST',body:fd})
+        .then(r=>r.json())
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Save failed');
+          const ok=document.getElementById('immRecOk');
+          const er=document.getElementById('immRecErr');
+          er.classList.add('d-none');
+          ok.classList.remove('d-none');
+          setTimeout(()=>ok.classList.add('d-none'),1500);
+        }).catch(err=>{
+          const ok=document.getElementById('immRecOk');
+          const er=document.getElementById('immRecErr');
+            ok.classList.add('d-none');
+          er.textContent=err.message;
+          er.classList.remove('d-none');
+        });
+    });
+
+    /* Panel loaders */
+    function loadSchedulePanel(){
+      const panel=document.getElementById('immPanel');
+      panel.innerHTML = `
+        <div class="imm-card">
+          <h6>Vaccine Schedule Management</h6>
+          <div class="imm-small-muted mb-3">Age-based immunization recommendations</div>
+          <div class="imm-scroll">
+            <table class="imm-table">
+              <thead>
+                <tr><th>Age</th><th>Vaccine</th><th>Dose</th><th>Route</th><th>Site</th></tr>
+              </thead>
+              <tbody>${scheduleRows || `<tr><td colspan="5" class="text-center text-muted py-4">No schedule data.</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadRecordsPanel(){
+      const panel=document.getElementById('immPanel');
+      panel.innerHTML = `
+        <div class="imm-card">
+          <h6>Vaccination Records</h6>
+          <div class="imm-small-muted mb-3">Placeholder – integrate per child records table here.</div>
+          <div class="imm-placeholder">Coming soon.</div>
+        </div>
+      `;
+    }
+
+    function loadOverduePanel(){
+      const panel=document.getElementById('immPanel');
+      panel.innerHTML = `
+        <div class="imm-card">
+          <h6>Overdue & Upcoming Doses</h6>
+          <div class="imm-small-muted mb-3">Prioritize Overdue first, then Due Soon.</div>
+          <div class="imm-scroll">
+            <table class="imm-table">
+              <thead>
+                <tr><th>Child</th><th>Vaccine Dose</th><th>Status</th><th>Target Age</th><th>Current Age (m)</th></tr>
+              </thead>
+              <tbody>${overdueRows || `<tr><td colspan="5" class="text-center text-muted py-4">No items.</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadCardsPanel(){
+      const panel=document.getElementById('immPanel');
+      panel.innerHTML = `
+        <div class="imm-card">
+          <h6>Immunization Cards</h6>
+          <div class="imm-small-muted mb-3">Generate or view a child’s immunization card.</div>
+          <div class="imm-placeholder">Card view / PDF export placeholder.</div>
+        </div>
+      `;
+    }
+
+    function loadParentNotifPanel(){
+      const panel=document.getElementById('immPanel');
+      panel.innerHTML = `
+        <div class="imm-card">
+          <h6>Parent Notifications</h6>
+          <div class="imm-small-muted mb-3">Recent automatic reminders sent / pending.</div>
+          <div class="imm-scroll">
+            <table class="imm-table">
+              <thead>
+                <tr><th>When</th><th>Parent</th><th>Child</th><th>Type</th><th>Title</th><th>Status</th></tr>
+              </thead>
+              <tbody>${notifRows || `<tr><td colspan="6" class="text-center text-muted py-4">No notifications.</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    /* Helpers */
+
+    function metricCard(label,value,sub,icon){
+      return `<div class="imm-metric">
+        <div class="imm-metric-label"><i class="bi ${icon}"></i>${escapeHtml(label)}</div>
+        <div class="imm-metric-value">${escapeHtml(value)}</div>
+        <div class="imm-metric-sub">${escapeHtml(sub)}</div>
+      </div>`;
+    }
+
+    function buildScheduleRows(rows){
+      if(!rows.length) return '';
+      // We may have multiple doses per vaccine; convert age months to label used in PH schedules
+      return rows.map(r=>{
+        const ageLabel = mapAge(r.recommended_age_months);
+        const doseText = ordinal(r.dose_number)+' Dose';
+        const route = guessRoute(r.vaccine_code);
+        const site = guessSite(r.vaccine_code);
+        return `<tr>
+          <td>${escapeHtml(ageLabel)}</td>
+          <td>${escapeHtml(r.vaccine_code)}${r.vaccine_name? ', '+escapeHtml(r.vaccine_name):''}</td>
+          <td>${doseText}</td>
+          <td>${route}</td>
+          <td>${site}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function mapAge(m){
+      const mm = parseInt(m,10);
+      if(mm===0) return 'At Birth';
+      if(mm===1) return '6 Weeks';
+      if(mm===2) return '10 Weeks';
+      if(mm===3) return '14 Weeks';
+      if(mm===9) return '9 Months';
+      if(mm===12) return '12 Months';
+      if(mm>=24 && mm<36) return mm+' Months';
+      if(mm>=36 && mm<60) return (mm/12).toFixed(0)+' Years';
+      return mm+' Months';
+    }
+
+    function guessRoute(code){
+      // Simplified mapping
+      const c = (code||'').toUpperCase();
+      if(['BCG'].includes(c)) return 'Intradermal, IM';
+      if(['HEPB','PENTA','OPV','IPV','PCV','TD','HPV'].includes(c)) return 'IM, Oral';
+      if(['MMR','MCV'].includes(c)) return 'SC';
+      return 'IM';
+    }
+    function guessSite(code){
+      const c = (code||'').toUpperCase();
+      if(c==='BCG') return 'Right arm, Right thigh';
+      if(['HEPB','PENTA','OPV','IPV','PCV'].includes(c)) return 'Left thigh, Oral, Right thigh';
+      if(['MMR','MCV'].includes(c)) return 'Right arm';
+      return 'Left arm';
+    }
+
+    function buildOverdueRows(overObj){
+      const overdue = overObj.overdue||[];
+      const dueSoon = overObj.dueSoon||[];
+      const rows=[];
+      overdue.forEach(o=>{
+        rows.push({
+          child:o.child_name,
+          code:o.vaccine_code,
+          dose:o.dose_number,
+          status:'overdue',
+          age:o.target_age_months,
+          current:o.age_months
+        });
+      });
+      dueSoon.forEach(o=>{
+        rows.push({
+          child:o.child_name,
+          code:o.vaccine_code,
+          dose:o.dose_number,
+          status:'due',
+          age:o.target_age_months,
+          current:o.age_months
+        });
+      });
+      if(!rows.length) return '';
+      // Sort: overdue first, then by target age
+      rows.sort((a,b)=>{
+        if(a.status!==b.status){
+          return a.status==='overdue' ? -1 : 1;
+        }
+        return a.age - b.age;
+      });
+      return rows.map(r=>{
+        const badge = r.status==='overdue'
+          ? `<span class="imm-badge imm-badge-overdue">Overdue</span>`
+          : `<span class="imm-badge imm-badge-duesoon">Due Soon</span>`;
+        return `<tr>
+          <td>${escapeHtml(r.child)}</td>
+          <td>${escapeHtml(r.code)} - ${ordinal(r.dose)} Dose</td>
+          <td>${badge}</td>
+          <td>${escapeHtml(mapAge(r.age))}</td>
+          <td>${r.current}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function buildNotifRows(list){
+      if(!list.length) return '';
+      return list.slice(0,120).map(n=>{
+        const st = n.is_read ? 'Read' : 'Unread';
+        const stBadge = n.is_read
+          ? '<span class="imm-badge imm-badge-ok">Read</span>'
+          : '<span class="imm-badge imm-badge-duesoon">Unread</span>';
+        return `<tr>
+          <td>${escapeHtml(n.created_at||'')}</td>
+          <td>${escapeHtml(n.parent_username||'')}</td>
+          <td>${escapeHtml(n.child_name||'')}</td>
+          <td>${escapeHtml(n.notification_type||'')}</td>
+          <td>${escapeHtml(n.title||'')}</td>
+          <td>${stBadge}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function ordinal(n){
+      n=parseInt(n,10)||0;
+      const s=['th','st','nd','rd'],v=n%100;
+      return n+(s[(v-20)%10]||s[v]||s[0]);
+    }
+
+  }).catch(err=>{
+    moduleContent.innerHTML = `<div class="alert alert-danger small">Error: ${escapeHtml(err.message)}</div>`;
+  });
+}
+
 /* ===== Replace stubs below with your real full module implementations ===== */
-function renderRecentActivities(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Recent Activities code here.</div>';}
-function renderAlertSystem(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Alert System code here.</div>';}
-function renderUpcomingImmunizations(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-secondary">Upcoming Immunizations placeholder.</div>';}
-function renderVaccinationEntry(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Vaccination Entry - insert original code.</div>';}
-function renderImmunizationCard(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Immunization Card - insert original code.</div>';}
-function renderVaccineSchedule(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Vaccine Schedule - insert original code.</div>';}
-function renderOverdueAlerts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Overdue Alerts - insert original code.</div>';}
-function renderParentNotifications(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Notifications - insert original code.</div>';}
-function renderCreateParentAccounts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Accounts - insert original code.</div>';}
-function renderLinkChildParent(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Link Child - insert original code.</div>';}
-function renderAccessCredentials(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Access Credentials - insert original code.</div>';}
-function renderAccountActivity(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Account Activity - insert original code.</div>';}
-function renderHealthCalendar(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Health Calendar - insert original code.</div>';}
-function renderReportVaccinationCoverage(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Coverage Report - insert original code.</div>';}
-function renderReportMaternalStatistics(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Maternal Stats Report - insert original code.</div>';}
-function renderReportHealthRisks(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Health Risks Report - insert original code.</div>';}
-function renderHealthRecordsAll(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Health Records - insert original code.</div>';}
+ /* ===== Replace stubs below with your real full module implementations ===== */
+ function renderRecentActivities(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Recent Activities code here.</div>';}
+ function renderAlertSystem(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Alert System code here.</div>';}
+ function renderUpcomingImmunizations(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-secondary">Upcoming Immunizations placeholder.</div>';}
+-function renderVaccinationEntry(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Vaccination Entry - insert original code.</div>';}
+ function renderImmunizationCard(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Immunization Card - insert original code.</div>';}
+ function renderVaccineSchedule(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Vaccine Schedule - insert original code.</div>';}
+ function renderOverdueAlerts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Overdue Alerts - insert original code.</div>';}
+ function renderParentNotifications(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Notifications - insert original code.</div>';}
+ function renderCreateParentAccounts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Accounts - insert original code.</div>';}
 /* ========================================================================== */
 
 const moduleHandlers={
-  health_stats:renderHealthStats,
-  recent_activities:renderRecentActivities,
-  alert_system:renderAlertSystem,
-  upcoming_immunizations:renderUpcomingImmunizations,
-  maternal_health:renderMaternalHealth,
-  vaccination_entry:renderVaccinationEntry,
-  immunization_card:renderImmunizationCard,
-  vaccine_schedule:renderVaccineSchedule,
-  overdue_alerts:renderOverdueAlerts,
-  parent_notifications:renderParentNotifications,
-  create_parent_accounts:renderCreateParentAccounts,
-  link_child_parent:renderLinkChildParent,
-  access_credentials:renderAccessCredentials,
-  account_activity:renderAccountActivity,
-  health_calendar:renderHealthCalendar,
-  report_vaccination_coverage:renderReportVaccinationCoverage,
-  report_maternal_statistics:renderReportMaternalStatistics,
-  report_health_risks:renderReportHealthRisks,
-  health_records_all:renderHealthRecordsAll
+   health_stats:renderHealthStats,
+   recent_activities:renderRecentActivities,
+   alert_system:renderAlertSystem,
+   upcoming_immunizations:renderUpcomingImmunizations,
+   maternal_health:renderMaternalHealth,
+   vaccination_entry:renderVaccinationEntry,
+   immunization_card:renderImmunizationCard,
 };
 
 function loadModule(mod,label){
