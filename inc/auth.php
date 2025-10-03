@@ -7,10 +7,8 @@ if (session_status() === PHP_SESSION_NONE) {
  * I-define mo ang base URL path ng project mo.
  * Kung ang URL mo ay http://localhost/brgy_sabang/index.php
  * ibig sabihin base path = /brgy_sabang/
- *
- * Kung iba folder name mo, palitan mo dito.
  */
-define('APP_BASE_PATH', '/brgy_sabang/');  // IMPORTANT: may leading at trailing slash kung gusto mo
+define('APP_BASE_PATH', '/brgy_sabang/');  // IMPORTANT
 
 function require_role(array $allowed) {
     if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
@@ -32,6 +30,8 @@ function redirect_by_role(string $role) {
             header('Location: '.APP_BASE_PATH.'dashboard_bhw.php'); break;
         case 'BNS':
             header('Location: '.APP_BASE_PATH.'dashboard_bns.php'); break;
+        case 'Parent': // ADDED
+            header('Location: '.APP_BASE_PATH.'parent_portal.php'); break;
         default:
             header('Location: '.APP_BASE_PATH.'staff_login.php?error=role');
     }

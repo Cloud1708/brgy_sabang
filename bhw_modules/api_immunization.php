@@ -17,70 +17,38 @@ function age_months($birth){
     $diff = (int)floor(($now - $b)/86400);
     return (int)floor($diff/30.4375);
 }
-
 function require_csrf(){
     if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token'])
         || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         fail('CSRF failed',419);
     }
 }
+function standard_vaccines(){ return [
+  ['code'=>'BCG','name'=>'BCG Vaccine','category'=>'birth','doses_required'=>1,'schedule'=>[['dose'=>1,'age'=>0]]],
+  ['code'=>'HEPB','name'=>'Hepatitis B Vaccine','category'=>'infant','doses_required'=>3,'schedule'=>[['dose'=>1,'age'=>0],['dose'=>2,'age'=>1],['dose'=>3,'age'=>6]]],
+  ['code'=>'PENTA','name'=>'Pentavalent Vaccine (DPT-Hep B-HIB)','category'=>'infant','doses_required'=>3,'schedule'=>[['dose'=>1,'age'=>1],['dose'=>2,'age'=>2],['dose'=>3,'age'=>3]]],
+  ['code'=>'OPV','name'=>'Oral Polio Vaccine (OPV)','category'=>'infant','doses_required'=>3,'schedule'=>[['dose'=>1,'age'=>1],['dose'=>2,'age'=>2],['dose'=>3,'age'=>3]]],
+  ['code'=>'IPV','name'=>'Inactivated Polio Vaccine (IPV)','category'=>'infant','doses_required'=>2,'schedule'=>[['dose'=>1,'age'=>3],['dose'=>2,'age'=>14]]],
+  ['code'=>'PCV','name'=>'Pneumococcal Conjugate Vaccine (PCV)','category'=>'infant','doses_required'=>3,'schedule'=>[['dose'=>1,'age'=>1],['dose'=>2,'age'=>2],['dose'=>3,'age'=>12]]],
+  ['code'=>'MMR','name'=>'Measles, Mumps, Rubella Vaccine (MMR)','category'=>'child','doses_required'=>2,'schedule'=>[['dose'=>1,'age'=>9],['dose'=>2,'age'=>12]]],
+  ['code'=>'MCV','name'=>'Measles Containing Vaccine (MCV) MR/MMR Booster','category'=>'child','doses_required'=>1,'schedule'=>[['dose'=>1,'age'=>24]]],
+  ['code'=>'TD','name'=>'Tetanus Diphtheria (TD)','category'=>'booster','doses_required'=>2,'schedule'=>[['dose'=>1,'age'=>132],['dose'=>2,'age'=>144]]],
+  ['code'=>'HPV','name'=>'Human Papillomavirus Vaccine (HPV)','category'=>'booster','doses_required'=>2,'schedule'=>[['dose'=>1,'age'=>132],['dose'=>2,'age'=>138]]]
+]; }
 
-/* ---------- Standard Vaccine Template (used by bulk add) ---------- */
-function standard_vaccines(){
-    return [
-        [
-            'code'=>'BCG','name'=>'BCG Vaccine','category'=>'birth','doses_required'=>1,
-            'schedule'=>[['dose'=>1,'age'=>0]]
-        ],
-        [
-            'code'=>'HEPB','name'=>'Hepatitis B Vaccine','category'=>'infant','doses_required'=>3,
-            'schedule'=>[['dose'=>1,'age'=>0],['dose'=>2,'age'=>1],['dose'=>3,'age'=>6]]
-        ],
-        [
-            'code'=>'PENTA','name'=>'Pentavalent Vaccine (DPT-Hep B-HIB)','category'=>'infant','doses_required'=>3,
-            'schedule'=>[['dose'=>1,'age'=>1],['dose'=>2,'age'=>2],['dose'=>3,'age'=>3]]
-        ],
-        [
-            'code'=>'OPV','name'=>'Oral Polio Vaccine (OPV)','category'=>'infant','doses_required'=>3,
-            'schedule'=>[['dose'=>1,'age'=>1],['dose'=>2,'age'=>2],['dose'=>3,'age'=>3]]
-        ],
-        [
-            'code'=>'IPV','name'=>'Inactivated Polio Vaccine (IPV)','category'=>'infant','doses_required'=>2,
-            'schedule'=>[['dose'=>1,'age'=>3],['dose'=>2,'age'=>14]]
-        ],
-        [
-            'code'=>'PCV','name'=>'Pneumococcal Conjugate Vaccine (PCV)','category'=>'infant','doses_required'=>3,
-            'schedule'=>[['dose'=>1,'age'=>1],['dose'=>2,'age'=>2],['dose'=>3,'age'=>12]]
-        ],
-        [
-            'code'=>'MMR','name'=>'Measles, Mumps, Rubella Vaccine (MMR)','category'=>'child','doses_required'=>2,
-            'schedule'=>[['dose'=>1,'age'=>9],['dose'=>2,'age'=>12]]
-        ],
-        [
-            'code'=>'MCV','name'=>'Measles Containing Vaccine (MCV) MR/MMR Booster','category'=>'child','doses_required'=>1,
-            'schedule'=>[['dose'=>1,'age'=>24]]
-        ],
-        [
-            'code'=>'TD','name'=>'Tetanus Diphtheria (TD)','category'=>'booster','doses_required'=>2,
-            'schedule'=>[['dose'=>1,'age'=>132],['dose'=>2,'age'=>144]]
-        ],
-        [
-            'code'=>'HPV','name'=>'Human Papillomavirus Vaccine (HPV)','category'=>'booster','doses_required'=>2,
-            'schedule'=>[['dose'=>1,'age'=>132],['dose'=>2,'age'=>138]]
-        ]
-    ];
-}
-
-/* =============================== GET =============================== */
+/* ===================== GET ===================== */
 if ($method === 'GET') {
 
+    /* Children list now includes mother & contact */
     if (isset($_GET['children'])) {
         $rows=[];
         $res=$mysqli->query("
-          SELECT child_id, full_name, sex, birth_date,
-                 TIMESTAMPDIFF(MONTH,birth_date,CURDATE()) AS age_months
-          FROM children
-          ORDER BY full_name ASC
+          SELECT c.child_id, c.full_name, c.sex, c.birth_date,
+                 TIMESTAMPDIFF(MONTH,c.birth_date,CURDATE()) AS age_months,
+                 c.mother_id, m.full_name AS mother_name, m.contact_number AS mother_contact
+          FROM children c
+          LEFT JOIN mothers_caregivers m ON m.mother_id=c.mother_id
+          ORDER BY c.full_name ASC
           LIMIT 1000
         ");
         while($r=$res->fetch_assoc()) $rows[]=$r;
@@ -134,7 +102,6 @@ if ($method === 'GET') {
     if (isset($_GET['card']) && isset($_GET['child_id'])) {
         $cid=(int)$_GET['child_id'];
         if($cid<=0) fail('Invalid child_id');
-
         $child=null;
         $stmt=$mysqli->prepare("SELECT child_id,full_name,sex,birth_date FROM children WHERE child_id=? LIMIT 1");
         $stmt->bind_param('i',$cid);
@@ -165,9 +132,16 @@ if ($method === 'GET') {
         ok(['child'=>$child,'vaccines'=>array_values($vaccines)]);
     }
 
+    /* ENHANCED overdue endpoint */
     if (isset($_GET['overdue'])) {
         $children=[];
-        $res=$mysqli->query("SELECT child_id,full_name,birth_date, TIMESTAMPDIFF(MONTH,birth_date,CURDATE()) AS age_months FROM children");
+        $res=$mysqli->query("
+          SELECT c.child_id,c.full_name,c.birth_date,
+                 TIMESTAMPDIFF(MONTH,c.birth_date,CURDATE()) AS age_months,
+                 c.mother_id, m.full_name AS mother_name, m.contact_number AS mother_contact
+          FROM children c
+          LEFT JOIN mothers_caregivers m ON m.mother_id=c.mother_id
+        ");
         while($r=$res->fetch_assoc()) $children[$r['child_id']]=$r;
         if(!$children) ok(['overdue'=>[],'dueSoon'=>[]]);
 
@@ -188,31 +162,49 @@ if ($method === 'GET') {
         while($r=$res->fetch_assoc()) $sched[]=$r;
 
         $overdue=[]; $dueSoon=[];
+        $today = new DateTime('today');
         foreach($children as $c){
             foreach($sched as $sc){
                 if(isset($existing[$c['child_id']][$sc['vaccine_id']][$sc['dose_number']])) continue;
                 $age = (int)$c['age_months'];
                 $target=(int)$sc['recommended_age_months'];
-                if($age > $target + 1){
-                    $overdue[]=[
-                      'child_id'=>$c['child_id'],
-                      'child_name'=>$c['full_name'],
-                      'age_months'=>$age,
-                      'vaccine_code'=>$sc['vaccine_code'],
-                      'vaccine_name'=>$sc['vaccine_name'],
-                      'dose_number'=>$sc['dose_number'],
-                      'target_age_months'=>$target
-                    ];
-                } elseif ($age >= ($target - 1) && $age <= $target){
-                    $dueSoon[]=[
-                      'child_id'=>$c['child_id'],
-                      'child_name'=>$c['full_name'],
-                      'age_months'=>$age,
-                      'vaccine_code'=>$sc['vaccine_code'],
-                      'vaccine_name'=>$sc['vaccine_name'],
-                      'dose_number'=>$sc['dose_number'],
-                      'target_age_months'=>$target
-                    ];
+                // due date = birth + target months
+                $dueDate = null;
+                if($c['birth_date']){
+                    $dt = DateTime::createFromFormat('Y-m-d',$c['birth_date']);
+                    if($dt){ $dt->modify('+'.$target.' months'); $dueDate = $dt->format('Y-m-d'); }
+                }
+                $isOver = ($age > $target + 1);
+                $isSoon = (!$isOver && ($age >= ($target - 1) && $age <= $target));
+                if(!$isOver && !$isSoon) continue;
+
+                $base = [
+                  'child_id'=>$c['child_id'],
+                  'child_name'=>$c['full_name'],
+                  'birth_date'=>$c['birth_date'],
+                  'age_months'=>$age,
+                  'vaccine_id'=>$sc['vaccine_id'],
+                  'vaccine_code'=>$sc['vaccine_code'],
+                  'vaccine_name'=>$sc['vaccine_name'],
+                  'dose_number'=>$sc['dose_number'],
+                  'target_age_months'=>$target,
+                  'due_date'=>$dueDate,
+                  'mother_name'=>$c['mother_name'],
+                  'parent_contact'=>$c['mother_contact']
+                ];
+                if($isOver){
+                    $daysOverdue = null;
+                    if($dueDate){
+                        $dd = DateTime::createFromFormat('Y-m-d',$dueDate);
+                        if($dd){
+                            $diff = $today->diff($dd)->days;
+                            if($dd < $today) $daysOverdue = $diff;
+                        }
+                    }
+                    $base['days_overdue']=$daysOverdue;
+                    $overdue[]=$base;
+                } else {
+                    $dueSoon[]=$base;
                 }
             }
         }
@@ -234,13 +226,18 @@ if ($method === 'GET') {
         ok(['schedule'=>$rows]);
     }
 
-    // NEW: recent vaccinations (global)
     if (isset($_GET['recent_vaccinations'])) {
-        $limit = isset($_GET['limit']) ? max(1,min(50,(int)$_GET['limit'])) : 20;
+        $limit = isset($_GET['limit']) ? max(1,min(100,(int)$_GET['limit'])) : 20;
         $rows=[];
         $stmt=$mysqli->prepare("
-          SELECT ci.immunization_id, ci.vaccination_date, ci.dose_number,
-                 vt.vaccine_code, vt.vaccine_name,
+          SELECT ci.immunization_id,
+                 ci.vaccine_id,
+                 ci.vaccination_date,
+                 ci.dose_number,
+                 ci.batch_lot_number,
+                 ci.next_dose_due_date,
+                 vt.vaccine_code,
+                 vt.vaccine_name,
                  c.full_name AS child_name
           FROM child_immunizations ci
           JOIN vaccine_types vt ON vt.vaccine_id=ci.vaccine_id
@@ -260,28 +257,24 @@ if ($method === 'GET') {
     fail('Unknown GET action',404);
 }
 
-/* =============================== POST =============================== */
+/* ===================== POST ===================== */
 if ($method === 'POST') {
     require_csrf();
 
-    /* ---- Add child ---- */
     if (isset($_POST['add_child'])) {
         $full_name = trim($_POST['full_name'] ?? '');
         $sex = $_POST['sex'] ?? '';
         $birth_date = $_POST['birth_date'] ?? '';
         $mother_id = (int)($_POST['mother_id'] ?? 0);
         $rec_by = (int)($_SESSION['user_id'] ?? 0);
-
         if ($full_name==='' || ($sex!=='male' && $sex!=='female') || !$birth_date || $mother_id<=0) {
             fail('Required child fields missing.');
         }
-
         $chk=$mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE mother_id=? LIMIT 1");
         $chk->bind_param('i',$mother_id);
         $chk->execute(); $chk->bind_result($mid);
         if(!$chk->fetch()){ $chk->close(); fail('Mother not found',404); }
         $chk->close();
-
         $ins=$mysqli->prepare("
           INSERT INTO children (full_name,sex,birth_date,mother_id,created_by)
           VALUES (?,?,?,?,?)
@@ -290,11 +283,10 @@ if ($method === 'POST') {
         if(!$ins->execute()) fail('Child insert failed: '.$ins->error,500);
         $cid=$ins->insert_id;
         $ins->close();
-
         ok(['child_id'=>$cid,'age_months'=>age_months($birth_date)]);
     }
 
-    /* ---- Add / Update vaccine ---- */
+    /* (rest of POST logic unchanged below) */
     if (isset($_POST['add_update_vaccine'])) {
         $vaccine_id = (int)($_POST['vaccine_id'] ?? 0);
         $vaccine_code = strtoupper(trim($_POST['vaccine_code'] ?? ''));
@@ -305,13 +297,9 @@ if ($method === 'POST') {
         $doses_required = (int)($_POST['doses_required'] ?? 1);
         $interval_raw = trim($_POST['interval_between_doses_days'] ?? '');
         $interval_between = ($interval_raw==='' ? null : (int)$interval_raw);
-
-        if ($vaccine_code==='' || $vaccine_name==='' || $doses_required<=0) {
-            fail('Required vaccine fields missing.');
-        }
+        if ($vaccine_code==='' || $vaccine_name==='' || $doses_required<=0) fail('Required vaccine fields missing.');
         $validCats=['birth','infant','child','booster','adult'];
         if(!in_array($vaccine_category,$validCats,true)) fail('Invalid vaccine_category');
-
         $dup=$mysqli->prepare("SELECT vaccine_id FROM vaccine_types WHERE vaccine_code=? LIMIT 1");
         $dup->bind_param('s',$vaccine_code);
         $dup->execute(); $dup->bind_result($eid);
@@ -320,7 +308,6 @@ if ($method === 'POST') {
         $dup->close();
         if($exists && $vaccine_id===0) fail('Vaccine code already exists.');
         if($exists && $vaccine_id>0 && $exists!=$vaccine_id) fail('Vaccine code belongs to another record.');
-
         if($vaccine_id>0){
             $sql="UPDATE vaccine_types
                   SET vaccine_code=?,vaccine_name=?,vaccine_description=?,target_age_group=?,
@@ -351,7 +338,6 @@ if ($method === 'POST') {
         }
     }
 
-    /* ---- Delete vaccine ---- */
     if (isset($_POST['delete_vaccine_id'])) {
         $vid=(int)$_POST['delete_vaccine_id'];
         if($vid<=0) fail('Invalid vaccine id');
@@ -367,7 +353,6 @@ if ($method === 'POST') {
         ok(['deleted_vaccine_id'=>$vid]);
     }
 
-    /* ---- Add Immunization Record ---- */
     if (
         isset($_POST['child_id']) &&
         isset($_POST['dose_number']) &&
@@ -384,7 +369,6 @@ if ($method === 'POST') {
         $notes=trim($_POST['notes'] ?? '');
         $adverse=trim($_POST['adverse_reactions'] ?? '');
         $recorded_by=(int)($_SESSION['user_id'] ?? 0);
-
         $vaccine_id_raw=trim($_POST['vaccine_id'] ?? '');
         $vaccine_id = ctype_digit($vaccine_id_raw)?(int)$vaccine_id_raw:0;
 
@@ -447,7 +431,6 @@ if ($method === 'POST') {
         ok(['immunization_id'=>$iid,'next_dose_due_date'=>$next_due]);
     }
 
-    /* ---- Schedule management ---- */
     if (isset($_POST['add_schedule'])) {
         $vaccine_code = strtoupper(preg_replace('/[^A-Z0-9_-]/','', $_POST['vaccine_code'] ?? ''));
         $vaccine_name = trim($_POST['vaccine_name'] ?? '');

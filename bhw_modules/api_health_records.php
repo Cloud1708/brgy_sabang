@@ -67,8 +67,8 @@ if ($method === 'GET') {
                  hr.vaginal_infection,
                  hr.hgb_result, hr.urine_result, hr.vdrl_result, hr.other_lab_results,
                  hr.created_at
-          FROM health_records hr
-          JOIN mothers_caregivers m ON m.mother_id = hr.mother_id
+                FROM health_records hr
+                JOIN maternal_patients m ON m.mother_id = hr.mother_id
           ORDER BY hr.consultation_date DESC, hr.health_record_id DESC
           LIMIT ?
         ";
@@ -127,7 +127,7 @@ if ($method === 'GET') {
             hr.fever_38_celsius, hr.pallor, hr.abnormal_abdominal_size,
             hr.abnormal_presentation, hr.absent_fetal_heartbeat, hr.swelling,
             hr.vaginal_infection
-          FROM mothers_caregivers m
+         FROM maternal_patients m
           JOIN (
             SELECT x.*
             FROM health_records x
@@ -162,7 +162,7 @@ if ($method === 'GET') {
                  hr.high_blood_pressure, hr.vaginal_bleeding, hr.fever_38_celsius,
                  hr.swelling, hr.urinary_infection
           FROM health_records hr
-          JOIN mothers_caregivers m ON m.mother_id=hr.mother_id
+          JOIN maternal_patients m ON m.mother_id=hr.mother_id
           ORDER BY hr.consultation_date DESC, hr.health_record_id DESC
           LIMIT ?
         ");

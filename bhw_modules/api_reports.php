@@ -160,7 +160,7 @@ if (isset($_GET['vaccination_coverage'])) {
 /* ========== MATERNAL & RISK REPORTS UNCHANGED BELOW ========== */
 
 if (isset($_GET['maternal_stats'])) {
-    $row = $mysqli->query("SELECT COUNT(*) c FROM mothers_caregivers")->fetch_assoc();
+    $row = $mysqli->query("SELECT COUNT(*) c FROM maternal_patients")->fetch_assoc();
     $totalMothers = (int)$row['c'];
 
     $row = $mysqli->query("SELECT COUNT(*) c FROM health_records")->fetch_assoc();
@@ -186,7 +186,7 @@ if (isset($_GET['maternal_stats'])) {
       SELECT m.mother_id,m.full_name,
         (SELECT COUNT(*) FROM health_records hr WHERE hr.mother_id=m.mother_id) AS consults,
         (SELECT MAX(consultation_date) FROM health_records hr2 WHERE hr2.mother_id=m.mother_id) AS last_consult
-      FROM mothers_caregivers m
+      FROM maternal_patients m
       ORDER BY last_consult DESC
       LIMIT 10
     ");
@@ -239,7 +239,7 @@ if (isset($_GET['health_risks'])) {
         hr.fever_38_celsius, hr.pallor, hr.abnormal_abdominal_size,
         hr.abnormal_presentation, hr.absent_fetal_heartbeat, hr.swelling,
         hr.vaginal_infection
-      FROM mothers_caregivers m
+      FROM maternal_patients m
       JOIN (
         SELECT x.*
         FROM health_records x

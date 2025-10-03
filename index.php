@@ -2,19 +2,32 @@
 require_once __DIR__.'/inc/db.php';
 require_once __DIR__.'/partials/header.php';
 
-// Dynamic stats
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/* Flag if current session is a logged-in Parent */
+$isParentLogged = (isset($_SESSION['role']) && $_SESSION['role'] === 'Parent');
+
+/* Generate CSRF token for parent quick-login modal */
+if (empty($_SESSION['parent_csrf'])) {
+    $_SESSION['parent_csrf'] = bin2hex(random_bytes(16));
+}
+
+/* Dynamic stats */
 $statVaccines = $statMothers = $statChildren = '—';
 
-$res = $mysqli->query("SELECT COUNT(*) AS cnt FROM vaccine_types WHERE is_active=1");
-if ($row = $res->fetch_assoc()) $statVaccines = $row['cnt'];
+if ($res = $mysqli->query("SELECT COUNT(*) AS cnt FROM vaccine_types WHERE is_active=1")) {
+    if ($row = $res->fetch_assoc()) $statVaccines = $row['cnt'];
+}
+if ($res = $mysqli->query("SELECT COUNT(*) AS cnt FROM mothers_caregivers")) {
+    if ($row = $res->fetch_assoc()) $statMothers = $row['cnt'];
+}
+if ($res = $mysqli->query("SELECT COUNT(*) AS cnt FROM children")) {
+    if ($row = $res->fetch_assoc()) $statChildren = $row['cnt'];
+}
 
-$res = $mysqli->query("SELECT COUNT(*) AS cnt FROM mothers_caregivers");
-if ($row = $res->fetch_assoc()) $statMothers = $row['cnt'];
-
-$res = $mysqli->query("SELECT COUNT(*) AS cnt FROM children");
-if ($row = $res->fetch_assoc()) $statChildren = $row['cnt'];
-
-// Events logic
+/* Events */
 $events = [];
 $stmt = $mysqli->prepare("
   SELECT event_id, event_title, event_description, event_type,
@@ -32,28 +45,20 @@ if ($stmt && $stmt->execute()) {
     }
 }
 ?>
-
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  // Get all filter buttons
   const filterBtns = document.querySelectorAll(".filter-controls button");
-  // Get all announcement cards
   const announcementCards = document.querySelectorAll(".announcement-card");
 
   filterBtns.forEach(btn => {
     btn.addEventListener("click", function() {
-      // Remove 'active' class from all buttons
       filterBtns.forEach(b => b.classList.remove("active"));
-      // Add 'active' class to clicked button
       btn.classList.add("active");
       const filter = btn.getAttribute("data-filter");
-
       announcementCards.forEach(card => {
-        // Show all if filter is 'all'
         if (filter === "all") {
           card.style.display = "";
         } else {
-          // Hide/show based on data-type
           card.style.display = (card.getAttribute("data-type") === filter) ? "" : "none";
         }
       });
@@ -62,8 +67,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-<section class="hero d-flex align-items-center vh-100" style="background-color: #e7e7e7ff; background-image: url(''); background-size: cover; background-position: center;">
-  <!-- Paste your background image URL in the url('') above, e.g., url('https://example.com/image.jpg') -->
+<section class="hero d-flex align-items-center vh-100" style="background-color:#e7e7e7ff;">
   <div class="container pb-5">
     <div class="row align-items-center g-5 pb-5">
       <div class="col-lg-6">
@@ -72,36 +76,63 @@ document.addEventListener("DOMContentLoaded", function() {
           Stay informed about immunizations, nutrition programs, maternal care, and community health events.
         </p>
         <div class="d-flex justify-content-center gap-3">
-          <a href="#announcements" class="btn btn-danger btn-lg px-4">
-            View Announcements
-          </a>
-          <a href="#programs" class="btn btn-outline-danger btn-lg px-4">
-            Community Programs
-          </a>
+          <a href="#announcements" class="btn btn-danger btn-lg px-4">View Announcements</a>
+          <a href="#programs" class="btn btn-outline-danger btn-lg px-4">Community Programs</a>
         </div>
+
         <div class="stats-row mt-5 row g-3">
           <div class="col-4">
-            <div class="stat-box text-center" style="border-color: #fd0d0dff;">
-              <div class="stat-value" id="statImmunizations"><?= $statVaccines ?></div>
+            <div class="stat-box text-center" style="border-color:#fd0d0dff;">
+              <div class="stat-value" id="statImmunizations"><?= htmlspecialchars($statVaccines) ?></div>
               <div class="stat-label pt-2">Vaccines Tracked</div>
             </div>
           </div>
           <div class="col-4">
-            <div class="stat-box text-center" style="border-color: #fd0d0dff;">
-              <div class="stat-value" id="statMothers"><?= $statMothers ?></div>
+            <div class="stat-box text-center" style="border-color:#fd0d0dff;">
+              <div class="stat-value" id="statMothers"><?= htmlspecialchars($statMothers) ?></div>
               <div class="stat-label pt-2">Registered Mothers</div>
             </div>
           </div>
           <div class="col-4">
-            <div class="stat-box text-center" style="border-color: #fd0d0dff;">
-              <div class="stat-value" id="statChildren"><?= $statChildren ?></div>
+            <div class="stat-box text-center" style="border-color:#fd0d0dff;">
+              <div class="stat-value" id="statChildren"><?= htmlspecialchars($statChildren) ?></div>
               <div class="stat-label pt-2">Children Monitored</div>
             </div>
           </div>
         </div>
+
+        <!-- PARENT PORTAL CARD -->
+        <div class="card shadow-sm mt-5 border-0" style="border-radius:1.4rem;">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3">
+              <div class="me-3 rounded-circle bg-danger text-white d-flex align-items-center justify-content-center" style="width:52px;height:52px;font-size:1.4rem;">
+                <i class="bi bi-people"></i>
+              </div>
+              <div>
+                <h5 class="mb-0 fw-bold">Parent / Guardian Portal</h5>
+                <small class="text-muted">Access your child’s immunization & growth records</small>
+              </div>
+            </div>
+            <?php if ($isParentLogged): ?>
+              <a href="parent_portal.php" class="btn btn-danger w-100 fw-semibold">
+                Go to My Portal
+              </a>
+              <small class="d-block text-center mt-2 text-success">You are logged in.</small>
+            <?php else: ?>
+              <button class="btn btn-danger w-100 fw-semibold" data-bs-toggle="modal" data-bs-target="#parentLoginModal">
+                Login as Parent / Guardian
+              </button>
+              <small class="d-block text-center mt-2 text-muted">
+                New? Request account from BHW/BNS.
+              </small>
+            <?php endif; ?>
+          </div>
+        </div>
+        <!-- END PARENT PORTAL CARD -->
+
       </div>
       <div class="col-lg-6 hero-visual">
-        <div class="card shadow border-1 announcement-slider" style="border-radius: 2rem; overflow: hidden;">
+        <div class="card shadow border-1 announcement-slider" style="border-radius:2rem;overflow:hidden;">
           <div class="card-header bg-danger d-flex justify-content-center align-items-center px-4 pt-3">
             <h2 class="fw-bold text-white">Highlighted Events</h2>
           </div>
@@ -111,28 +142,28 @@ document.addEventListener("DOMContentLoaded", function() {
             <?php else: ?>
               <div id="highlightCarousel" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner">
-                  <?php foreach ($events as $i => $ev): 
-                    $dateFmt = date('M d, Y', strtotime($ev['event_date']));
-                    $ex = mb_strimwidth(strip_tags($ev['event_description'] ?? ''), 0, 140, '...');
+                  <?php foreach ($events as $i => $ev):
+                        $dateFmt = date('M d, Y', strtotime($ev['event_date']));
+                        $ex = mb_strimwidth(strip_tags($ev['event_description'] ?? ''), 0, 140, '...');
                   ?>
-                  <div class="carousel-item <?php echo $i===0 ? 'active' : ''; ?>">
+                  <div class="carousel-item <?= $i===0 ? 'active' : '' ?>">
                     <div class="p-4">
                       <div class="text-center mb-3">
-                        <h3 class="fw-bold my-1 pb-2 px-3" style="border-bottom:3px solid #fd0d0dff; display:inline-block;">
-                          <?php echo htmlspecialchars($ev['event_title']); ?>
+                        <h3 class="fw-bold my-1 pb-2 px-3" style="border-bottom:3px solid #fd0d0dff;display:inline-block;">
+                          <?= htmlspecialchars($ev['event_title']) ?>
                         </h3>
                       </div>
                       <p class="small my-2 fw-bold">
                         <span class="me-2">
-                          <i class="bi bi-calendar-event"></i> <?php echo $dateFmt; ?>
+                          <i class="bi bi-calendar-event"></i> <?= $dateFmt ?>
                         </span>
                         <?php if (!empty($ev['event_time'])): ?>
-                          <span><i class="bi bi-clock"></i> <?php echo date('h:i A', strtotime($ev['event_time'])); ?></span>
+                          <span><i class="bi bi-clock"></i> <?= date('h:i A', strtotime($ev['event_time'])) ?></span>
                         <?php endif; ?>
                       </p>
-                      <p class="small mb-2"><?php echo htmlspecialchars($ex); ?></p>
+                      <p class="small mb-2"><?= htmlspecialchars($ex) ?></p>
                       <?php if (!empty($ev['location'])): ?>
-                        <div class="small fw-bold"><i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($ev['location']); ?></div>
+                        <div class="small fw-bold"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($ev['location']) ?></div>
                       <?php endif; ?>
                     </div>
                   </div>
@@ -170,40 +201,42 @@ document.addEventListener("DOMContentLoaded", function() {
           <div class="alert alert-info">No announcements posted yet.</div>
         </div>
       <?php else: ?>
-        <?php foreach ($events as $ev): 
-          $type = htmlspecialchars($ev['event_type']);
-          $dateFmt = date('M d, Y', strtotime($ev['event_date']));
+        <?php foreach ($events as $ev):
+              $type = htmlspecialchars($ev['event_type']);
+              $dateFmt = date('M d, Y', strtotime($ev['event_date']));
         ?>
-        <div class="col-md-6 col-lg-4 announcement-card" data-type="<?php echo $type; ?>">
+        <div class="col-md-6 col-lg-4 announcement-card" data-type="<?= $type ?>">
           <div class="card h-100 shadow-sm border-0">
             <div class="card-body d-flex flex-column">
               <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="badge text-bg-<?php echo match($ev['event_type']) {
-                  'health' => 'danger',
-                  'nutrition' => 'success',
-                  'vaccination' => 'warning',
-                  'feeding' => 'primary',
-                  default => 'secondary'
-                }; ?>">
-                  <?php echo ucfirst($ev['event_type']); ?>
+                <span class="badge text-bg-<?=
+                  match($ev['event_type']) {
+                    'health' => 'danger',
+                    'nutrition' => 'success',
+                    'vaccination' => 'warning',
+                    'feeding' => 'primary',
+                    default => 'secondary'
+                  };
+                ?>">
+                  <?= ucfirst($ev['event_type']) ?>
                 </span>
-                <small class="fw-bold"><?php echo $dateFmt; ?></small>
+                <small class="fw-bold"><?= $dateFmt ?></small>
               </div>
-              <h4 class="card-title mb-2"><?php echo htmlspecialchars($ev['event_title']); ?></h4>
+              <h4 class="card-title mb-2"><?= htmlspecialchars($ev['event_title']) ?></h4>
               <p class="card-text small flex-grow-1">
-                <?php echo htmlspecialchars(mb_strimwidth(strip_tags($ev['event_description'] ?? ''), 0, 160, '...')); ?>
+                <?= htmlspecialchars(mb_strimwidth(strip_tags($ev['event_description'] ?? ''), 0, 160, '...')) ?>
               </p>
               <?php if (!empty($ev['location'])): ?>
                 <div class="small fw-bold mb-2">
-                  <i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($ev['location']); ?>
+                  <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($ev['location']) ?>
                 </div>
               <?php endif; ?>
               <button class="btn btn-outline-danger btn-sm mt-auto view-announcement"
-                data-title="<?php echo htmlspecialchars($ev['event_title']); ?>"
-                data-date="<?php echo $dateFmt; ?>"
-                data-time="<?php echo !empty($ev['event_time']) ? date('h:i A', strtotime($ev['event_time'])) : '—'; ?>"
-                data-location="<?php echo htmlspecialchars($ev['location'] ?? ''); ?>"
-                data-body="<?php echo htmlspecialchars($ev['event_description'] ?? ''); ?>">
+                data-title="<?= htmlspecialchars($ev['event_title']) ?>"
+                data-date="<?= $dateFmt ?>"
+                data-time="<?= !empty($ev['event_time']) ? date('h:i A', strtotime($ev['event_time'])) : '—' ?>"
+                data-location="<?= htmlspecialchars($ev['location'] ?? '') ?>"
+                data-body="<?= htmlspecialchars($ev['event_description'] ?? '') ?>">
                 Read More
               </button>
             </div>
@@ -236,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <i class="bi bi-apple"></i>
           </div>
           <h5>Nutrition Monitoring</h5>
-          <p class="small text-secondary">
+            <p class="small text-secondary">
             Regular growth assessments, weight-for-length/height evaluations, and supplementation tracking.
           </p>
         </div>
@@ -276,11 +309,10 @@ document.addEventListener("DOMContentLoaded", function() {
       </div>
       <div class="col-lg-6">
         <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow">
-          <!-- Google Map embed starts here -->
           <iframe
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3550.8190585948946!2d121.16785557339493!3d13.946972827182208!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b62894b2ff7%3A0x858154ec3465aece!2sSabang%2C%20Lipa%20City%2C%20Batangas!5e0!3m2!1sen!2sph!4v1759315532961!5m2!1sen!2sph"
-            style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-          <!-- Google Map embed ends here -->
+            style="border:0;" allowfullscreen="" loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
       </div>
     </div>
@@ -298,7 +330,7 @@ document.addEventListener("DOMContentLoaded", function() {
         <ul class="list-unstyled small">
           <li><i class="bi bi-telephone text-danger me-2"></i> Health Center: (012) 345-6789</li>
           <li><i class="bi bi-envelope text-danger me-2"></i> health@sabang.gov</li>
-          <li><i class="bi bi-geo-alt text-danger me-2"></i> Purok 1, Barangay Sabang</li>
+            <li><i class="bi bi-geo-alt text-danger me-2"></i> Purok 1, Barangay Sabang</li>
         </ul>
         <div class="alert alert-warning small mt-4 mb-0">
           <strong>Reminder:</strong> Always bring your child’s immunization card during visits.
@@ -338,7 +370,7 @@ document.addEventListener("DOMContentLoaded", function() {
   </div>
 </section>
 
-<!-- Modal for Announcement -->
+<!-- Announcement Modal -->
 <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
     <div class="modal-content">
@@ -348,7 +380,7 @@ document.addEventListener("DOMContentLoaded", function() {
       </div>
       <div class="modal-body">
         <div class="small text-secondary mb-2">
-          <span class="announcement-modal-date"></span> • 
+          <span class="announcement-modal-date"></span> •
           <span class="announcement-modal-time"></span>
         </div>
         <div class="announcement-modal-location small mb-3 text-muted d-none"></div>
@@ -360,5 +392,37 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
   </div>
 </div>
+
+<!-- Parent Quick Login Modal -->
+<?php if (!$isParentLogged): ?>
+<div class="modal fade" id="parentLoginModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="auth/login_parent_process.php" novalidate>
+      <div class="modal-header">
+        <h5 class="modal-title">Parent / Guardian Login</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <?php /* CSRF hidden field already prepared in session */ ?>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Username</label>
+          <input type="text" class="form-control" name="username" maxlength="100" required autofocus>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Password</label>
+          <input type="password" class="form-control" name="password" required>
+        </div>
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['parent_csrf']) ?>">
+        <div class="alert alert-warning small">
+          Kung wala ka pang account, makipag-ugnayan sa Barangay Health Worker.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger fw-semibold px-4" type="submit">Login</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php require_once __DIR__.'/partials/footer.php'; ?>

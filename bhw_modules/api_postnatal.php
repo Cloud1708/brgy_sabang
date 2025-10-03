@@ -1,162 +1,210 @@
 <?php
 require_once __DIR__.'/../inc/db.php';
 require_once __DIR__.'/../inc/auth.php';
-require_role(['BHW']);
-if (session_status() === PHP_SESSION_NONE) session_start();
+
 header('Content-Type: application/json; charset=utf-8');
 
-ini_set('display_errors','0');
-error_reporting(E_ALL);
-
-function fail($m,$c=400){ http_response_code($c); echo json_encode(['success'=>false,'error'=>$m]); exit; }
-function ok($d=[]){ echo json_encode(array_merge(['success'=>true],$d)); exit; }
-
-$method = $_SERVER['REQUEST_METHOD'];
-
-function csrf_ok(){
-  return !empty($_POST['csrf_token']) && !empty($_SESSION['csrf_token'])
-    && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
+if ($_SERVER['REQUEST_METHOD']==='OPTIONS') {
+    http_response_code(204); exit;
 }
 
-/* --------------------- GET --------------------- */
-if($method==='GET'){
+if (session_status() === PHP_SESSION_NONE) session_start();
 
-  // List visits per mother
-  if(isset($_GET['list']) && isset($_GET['mother_id'])){
-    $mother_id=(int)$_GET['mother_id'];
-    if($mother_id<=0) fail('Invalid mother_id');
-    $rows=[];
-    $stmt=$GLOBALS['mysqli']->prepare("
-      SELECT pv.postnatal_visit_id, pv.mother_id, pv.child_id,
-             c.full_name AS child_name,
-             pv.delivery_date, pv.visit_date, pv.postpartum_day,
-             pv.bp_systolic, pv.bp_diastolic, pv.temperature_c,
-             pv.lochia_status, pv.breastfeeding_status, pv.danger_signs,
-             pv.swelling, pv.fever, pv.foul_lochia, pv.mastitis, pv.postpartum_depression,
-             pv.other_findings, pv.notes, pv.created_at
-      FROM postnatal_visits pv
-      LEFT JOIN children c ON c.child_id=pv.child_id
-      WHERE pv.mother_id=?
-      ORDER BY pv.visit_date DESC, pv.postnatal_visit_id DESC
-      LIMIT 300
-    ");
-    if(!$stmt) fail('Prepare failed: '.$GLOBALS['mysqli']->error,500);
-    $stmt->bind_param('i',$mother_id);
-    $stmt->execute();
-    $res=$stmt->get_result();
-    while($r=$res->fetch_assoc()) $rows[]=$r;
-    $stmt->close();
-    ok(['visits'=>$rows]);
-  }
-
-  // Summary (latest per mother) risk snapshot
-  if(isset($_GET['summary'])){
-    $rows=[];
-    $sql="
-      SELECT m.mother_id, m.full_name,
-             pv.visit_date, pv.postpartum_day,
-             (pv.fever + pv.foul_lochia + pv.mastitis + pv.postpartum_depression + pv.swelling) AS danger_score,
-             pv.fever, pv.foul_lochia, pv.mastitis, pv.postpartum_depression, pv.swelling
-      FROM mothers_caregivers m
-      JOIN (
-        SELECT x.*
-        FROM postnatal_visits x
-        JOIN (
-          SELECT mother_id, MAX(visit_date) max_date
-          FROM postnatal_visits
-          GROUP BY mother_id
-        ) r ON r.mother_id=x.mother_id AND r.max_date=x.visit_date
-      ) pv ON pv.mother_id=m.mother_id
-      WHERE (pv.fever=1 OR pv.foul_lochia=1 OR pv.mastitis=1 OR pv.postpartum_depression=1 OR pv.swelling=1)
-      ORDER BY danger_score DESC, pv.visit_date DESC
-      LIMIT 300
-    ";
-    $res=$GLOBALS['mysqli']->query($sql);
-    if($res) while($r=$res->fetch_assoc()) $rows[]=$r;
-    ok(['summary'=>$rows]);
-  }
-
-  // Children of a mother (helper)
-  if(isset($_GET['children_of']) ){
-    $mid=(int)$_GET['children_of'];
-    $rows=[];
-    if($mid>0){
-      $stmt=$GLOBALS['mysqli']->prepare("SELECT child_id, full_name, birth_date FROM children WHERE mother_id=? ORDER BY birth_date DESC");
-      $stmt->bind_param('i',$mid);
-      $stmt->execute();
-      $res=$stmt->get_result();
-      while($r=$res->fetch_assoc()) $rows[]=$r;
-      $stmt->close();
-    }
-    ok(['children'=>$rows]);
-  }
-
-  fail('Unknown GET action',404);
+function fail($msg,$code=400){
+    http_response_code($code);
+    echo json_encode(['success'=>false,'error'=>$msg]);
+    exit;
 }
 
-/* --------------------- POST --------------------- */
-if($method==='POST'){
-  if(!csrf_ok()) fail('CSRF failed',419);
-
-  if(isset($_POST['add_visit'])){
-    $mother_id=(int)($_POST['mother_id']??0);
-    $child_id = ($_POST['child_id']!=='') ? (int)$_POST['child_id'] : null;
-    $delivery_date = trim($_POST['delivery_date']??'');
-    if($delivery_date==='') $delivery_date=null;
-    $visit_date = trim($_POST['visit_date']??'');
-    if($mother_id<=0 || !$visit_date) fail('Required: mother_id & visit_date');
-
-    // Vitals
-    $bp_sys = ($_POST['bp_systolic']!=='') ? (int)$_POST['bp_systolic'] : null;
-    $bp_dia = ($_POST['bp_diastolic']!=='') ? (int)$_POST['bp_diastolic'] : null;
-    $temp   = ($_POST['temperature_c']!=='') ? (float)$_POST['temperature_c'] : null;
-
-    $lochia = trim($_POST['lochia_status']??'');
-    $bf     = trim($_POST['breastfeeding_status']??'');
-    $dangerSigns=[];
-    foreach(['fever','foul_lochia','mastitis','postpartum_depression','swelling'] as $k){
-      $$k = isset($_POST[$k]) ? 1 : 0;
-      if($$k) $dangerSigns[]=$k;
-    }
-    $other_findings = trim($_POST['other_findings']??'');
-    $notes          = trim($_POST['notes']??'');
-
-    // compute postpartum day
-    $pp_day=null;
-    if($delivery_date){
-      $vd=strtotime($visit_date.' 00:00:00');
-      $dd=strtotime($delivery_date.' 00:00:00');
-      if($vd && $dd){
-        $pp_day = (int)floor(($vd-$dd)/86400);
-      }
-    }
-
-    $danger_text = trim(implode(',',$dangerSigns));
-    $recorded_by = (int)($_SESSION['user_id']??0);
-
-    $stmt=$GLOBALS['mysqli']->prepare("
-      INSERT INTO postnatal_visits
-        (mother_id,child_id,delivery_date,visit_date,postpartum_day,
-         bp_systolic,bp_diastolic,temperature_c,lochia_status,breastfeeding_status,
-         danger_signs,swelling,fever,foul_lochia,mastitis,postpartum_depression,
-         other_findings,notes,recorded_by)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ");
-    if(!$stmt) fail('Prepare failed: '.$GLOBALS['mysqli']->error,500);
-    $stmt->bind_param(
-      'iissiiidsssiiiiiissi',
-      $mother_id,$child_id,$delivery_date,$visit_date,$pp_day,
-      $bp_sys,$bp_dia,$temp,$lochia,$bf,
-      $danger_text,$swelling,$fever,$foul_lochia,$mastitis,$postpartum_depression,
-      $other_findings,$notes,$recorded_by
-    );
-    if(!$stmt->execute()) fail('Insert failed: '.$stmt->error,500);
-    $id=$stmt->insert_id;
-    $stmt->close();
-    ok(['postnatal_visit_id'=>$id,'postpartum_day'=>$pp_day]);
-  }
-
-  fail('Unknown POST action',400);
+function nullIfEmpty($v){
+    return ($v === '' || $v === null) ? null : $v;
 }
 
-fail('Invalid method',405);
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    require_role(['BHW']);
+    $csrf = $_POST['csrf_token'] ?? '';
+    if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'],$csrf)) {
+        fail('Invalid CSRF token',403);
+    }
+
+    if (isset($_POST['add_visit'])) {
+
+        $mother_id  = (int)($_POST['mother_id'] ?? 0);
+        if ($mother_id <= 0) fail('mother_id required');
+
+        $child_id       = ($_POST['child_id'] ?? '') === '' ? null : (int)$_POST['child_id'];
+        $delivery_date  = nullIfEmpty(trim($_POST['delivery_date'] ?? ''));
+        $visit_date     = trim($_POST['visit_date'] ?? '');
+        if ($visit_date === '') fail('visit_date required');
+
+        // postpartum_day
+        $pp_day = null;
+        if ($delivery_date) {
+            $d1 = DateTime::createFromFormat('Y-m-d',$delivery_date);
+            $d2 = DateTime::createFromFormat('Y-m-d',$visit_date);
+            if ($d1 && $d2) {
+                $pp_day = (int)$d1->diff($d2)->format('%a');
+                if ($pp_day < 0) $pp_day = 0;
+            }
+        }
+
+        $bp_systolic   = nullIfEmpty($_POST['bp_systolic']  ?? '');
+        $bp_diastolic  = nullIfEmpty($_POST['bp_diastolic'] ?? '');
+        $bp_systolic   = $bp_systolic  === null ? null : (int)$bp_systolic;
+        $bp_diastolic  = $bp_diastolic === null ? null : (int)$bp_diastolic;
+
+        $temperature_c = nullIfEmpty($_POST['temperature_c'] ?? '');
+        $temperature_c = $temperature_c === null ? null : (float)$temperature_c;
+
+        $lochia_status        = trim($_POST['lochia_status'] ?? '');
+        $breastfeeding_status = trim($_POST['breastfeeding_status'] ?? '');
+        $other_findings       = trim($_POST['other_findings'] ?? '');
+        $notes                = trim($_POST['notes'] ?? '');
+
+        // Danger flags (store as ints)
+        $fever                 = isset($_POST['fever']) ? 1 : 0;
+        $foul_lochia           = isset($_POST['foul_lochia']) ? 1 : 0;
+        $mastitis              = isset($_POST['mastitis']) ? 1 : 0;
+        $postpartum_depression = isset($_POST['postpartum_depression']) ? 1 : 0;
+        $swelling              = isset($_POST['swelling']) ? 1 : 0;
+
+        $dangerPieces=[];
+        if($fever) $dangerPieces[]='fever';
+        if($foul_lochia) $dangerPieces[]='foul_lochia';
+        if($mastitis) $dangerPieces[]='mastitis';
+        if($postpartum_depression) $dangerPieces[]='postpartum_depression';
+        if($swelling) $dangerPieces[]='swelling';
+        $danger_signs = implode(',', $dangerPieces);
+
+        $recorded_by = (int)($_SESSION['user_id'] ?? 0);
+
+        $sql = "INSERT INTO postnatal_visits
+          (mother_id,child_id,delivery_date,visit_date,postpartum_day,
+           bp_systolic,bp_diastolic,temperature_c,lochia_status,breastfeeding_status,
+           danger_signs,swelling,fever,foul_lochia,mastitis,postpartum_depression,
+           other_findings,notes,recorded_by)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+        $stmt = $mysqli->prepare($sql);
+        if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
+
+        // Explicit types array (NO hidden chars)
+        $typesParts = [
+            'i', // mother_id
+            'i', // child_id
+            's', // delivery_date
+            's', // visit_date
+            'i', // postpartum_day
+            'i', // bp_systolic
+            'i', // bp_diastolic
+            'd', // temperature_c
+            's', // lochia_status
+            's', // breastfeeding_status
+            's', // danger_signs
+            'i', // swelling
+            'i', // fever
+            'i', // foul_lochia
+            'i', // mastitis
+            'i', // postpartum_depression
+            's', // other_findings
+            's', // notes
+            'i', // recorded_by
+        ];
+
+        $types = implode('', $typesParts);
+
+        $placeholderCount = substr_count($sql,'?');
+        if ($placeholderCount !== count($typesParts)) {
+            fail("Internal mismatch (placeholders=$placeholderCount typeSlots=".count($typesParts).')',500);
+        }
+
+        // Params in exact order as columns
+        $params = [
+            $mother_id,$child_id,$delivery_date,$visit_date,$pp_day,
+            $bp_systolic,$bp_diastolic,$temperature_c,$lochia_status,$breastfeeding_status,
+            $danger_signs,$swelling,$fever,$foul_lochia,$mastitis,$postpartum_depression,
+            $other_findings,$notes,$recorded_by
+        ];
+
+        // Bind dynamically to avoid copy errors
+        $bindOk = $stmt->bind_param($types, ...$params);
+        if(!$bindOk){
+            fail('bind_param failed',500);
+        }
+
+        if(!$stmt->execute()){
+            fail('Insert failed: '.$stmt->error,500);
+        }
+
+        echo json_encode(['success'=>true,'postnatal_visit_id'=>$stmt->insert_id]);
+        exit;
+    }
+
+    fail('Unknown POST action',400);
+}
+
+/* ==== READ endpoints ==== */
+if ($_SERVER['REQUEST_METHOD']==='GET') {
+    require_role(['BHW']);
+
+    if (isset($_GET['list']) && isset($_GET['mother_id'])) {
+        $mother_id = (int)$_GET['mother_id'];
+        $res = $mysqli->prepare("SELECT * FROM postnatal_visits WHERE mother_id=? ORDER BY visit_date ASC, postnatal_visit_id ASC");
+        $res->bind_param('i',$mother_id);
+        $res->execute();
+        $q = $res->get_result();
+        $vis = [];
+        while($row=$q->fetch_assoc()){
+            $vis[] = $row;
+        }
+        echo json_encode(['success'=>true,'visits'=>$vis]);
+        exit;
+    }
+
+    if (isset($_GET['children_of'])) {
+        $mid = (int)$_GET['children_of'];
+        $res = $mysqli->prepare("SELECT child_id, full_name, birth_date FROM children WHERE mother_id=? ORDER BY birth_date ASC");
+        $res->bind_param('i',$mid);
+        $res->execute();
+        $q=$res->get_result();
+        $kids=[];
+        while($r=$q->fetch_assoc()) $kids[]=$r;
+        echo json_encode(['success'=>true,'children'=>$kids]);
+        exit;
+    }
+
+    if (isset($_GET['followups'])) {
+        $rows = $mysqli->query("SELECT v.*,
+            (v.fever+v.foul_lochia+v.mastitis+v.postpartum_depression+v.swelling) AS danger_score
+            FROM postnatal_visits v
+            INNER JOIN (
+              SELECT mother_id, MAX(visit_date) AS latest_visit
+              FROM postnatal_visits GROUP BY mother_id
+            ) t ON t.mother_id = v.mother_id AND t.latest_visit = v.visit_date
+        ");
+        $out=[];
+        $today = new DateTime('today');
+        while($r=$rows->fetch_assoc()){
+            $needs = 0;
+            if ((int)$r['danger_score']>0) {
+                $needs=1;
+            } else {
+                if ($r['visit_date']) {
+                    $vd = DateTime::createFromFormat('Y-m-d',$r['visit_date']);
+                    if($vd){
+                        $diff = $today->diff($vd)->days;
+                        if ($diff>7 && (int)$r['postpartum_day'] <= 42) $needs=1;
+                    }
+                }
+            }
+            $r['needs_followup']=$needs;
+            $out[]=$r;
+        }
+        echo json_encode(['success'=>true,'followups'=>$out]);
+        exit;
+    }
+
+    fail('Unknown GET action',400);
+}
+
+fail('Unsupported method',405);
