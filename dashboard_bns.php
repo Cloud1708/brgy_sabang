@@ -2320,32 +2320,30 @@ function clearPreviousRecords() {
   `;
 }
 
-// Setup save record handler
+// REPLACE the existing setupSaveRecordHandler() with this safe version
 function setupSaveRecordHandler() {
   const saveBtn = document.getElementById('saveNutritionRecord');
-  
+  if (!saveBtn) return;
+
   saveBtn.addEventListener('click', function() {
-    const childId = document.getElementById('childSelect').value;
-    const weighingDate = document.getElementById('weighingDate').value;
-    const weight = document.getElementById('childWeight').value;
-    const height = document.getElementById('childHeight').value;
-    const status = document.getElementById('nutritionStatus').value;
-    const remarks = document.getElementById('remarks').value;
-    
+    const childId = document.getElementById('childSelect')?.value;
+    const weighingDate = document.getElementById('weighingDate')?.value;
+    const weight = document.getElementById('childWeight')?.value;
+    const height = document.getElementById('childHeight')?.value;
+    const status = document.getElementById('nutritionStatusId')?.value || document.getElementById('nutritionStatus')?.value;
+    const remarks = document.getElementById('remarks')?.value || '';
+
     // Validation
-    if (!childId) {
-      alert('Please select a child');
-      return;
-    }
+    if (!childId) { alert('Please select a child'); return; }
     if (!weighingDate || !weight || !height) {
       alert('Please fill in all required fields (Date, Weight, Height)');
       return;
     }
-    
+
     // Show loading state
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
-    
+
     // Prepare data for submission
     const formData = new FormData();
     formData.append('csrf_token', window.__BNS_CSRF);
@@ -2355,47 +2353,390 @@ function setupSaveRecordHandler() {
     formData.append('length_height_cm', height);
     if (status) formData.append('wfl_ht_status_id', status);
     formData.append('remarks', remarks);
-    
-    // Submit to nutrition API
+
+    // Submit
     fetch(api.nutrition, {
       method: 'POST',
-      headers: {
-        'X-CSRF-Token': window.__BNS_CSRF
-      },
+      headers: { 'X-CSRF-Token': window.__BNS_CSRF },
       body: formData
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-      if (data.success) {
-        alert('✅ Nutrition record saved successfully!');
-        
-        // Clear form
-        document.getElementById('childWeight').value = '';
-        document.getElementById('childHeight').value = '';
-        document.getElementById('nutritionStatus').value = '';
-        document.getElementById('remarks').value = '';
-        
-        // Reload previous records
-        const childId = document.getElementById('childSelect').value;
-        if (childId) {
-          loadPreviousRecords(childId);
+      if (!data.success) throw new Error(data.error || 'Unknown error');
+
+      alert('✅ Nutrition record saved successfully!');
+
+      // Clear form fields
+      const weightEl = document.getElementById('childWeight');
+      const heightEl = document.getElementById('childHeight');
+      const statusEl = document.getElementById('nutritionStatus');
+      const statusIdEl = document.getElementById('nutritionStatusId');
+      const remarksEl = document.getElementById('remarks');
+      if (weightEl) weightEl.value = '';
+      if (heightEl) heightEl.value = '';
+      if (statusEl) {
+        // If it's a readonly text field version
+        if (statusEl.tagName === 'INPUT') {
+          statusEl.value = 'Auto-calculated when weight and height are entered';
+          statusEl.style.cssText = `
+            font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);
+            border-radius:8px;background:#f8f9fa;color:var(--muted);font-style:italic;font-weight:normal;
+          `;
+        } else {
+          statusEl.value = '';
         }
-      } else {
-        alert('❌ Error saving record: ' + (data.error || 'Unknown error'));
+      }
+      if (statusIdEl) statusIdEl.value = '';
+      if (remarksEl) remarksEl.value = '';
+
+      // Safely refresh visible panels without throwing
+      try {
+        // If the per-child history panel exists, refresh it
+        if (childId && document.getElementById('previousRecordsContainer')) {
+          loadPreviousRecords(parseInt(childId, 10));
+        }
+        // If the "All Weighing Records" table exists, refresh it
+        if (document.getElementById('allRecordsContainer')) {
+          loadAllWeighingRecords();
+        }
+      } catch (e) {
+        console.warn('Post-save UI refresh skipped:', e);
       }
     })
     .catch(error => {
       console.error('Error saving nutrition record:', error);
-      alert('❌ Error saving record: ' + error.message);
+      alert('❌ Error saving record: ' + (error.message || error));
     })
     .finally(() => {
-      // Reset button
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Weighing Record';
+      // Re-query in case the DOM was re-rendered during save
+      const btn = document.getElementById('saveNutritionRecord');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Weighing Record';
+      }
     });
   });
 }
-function renderNutritionClassificationModule(label){ showLoading(label); fetchJSON(api.nutrition+'?classification_summary=1').then(j=>{ moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">'+escapeHtml(label)+'</h5><pre style="font-size:.55rem;">'+escapeHtml(JSON.stringify(j.summary,null,2))+'</pre></div>'; }).catch(e=> moduleContent.innerHTML='<div class="alert alert-danger small">'+escapeHtml(e.message)+'</div>'); }
+
+// REPLACE this whole function
+function renderNutritionClassificationModule(label){
+  showLoading(label);
+
+  Promise.all([
+    fetchJSON(api.children + '?action=list').catch(()=>({children:[]})),
+    fetchJSON(api.nutrition + '?classification_summary=1').catch(()=>({summary:[]})),
+    fetchJSON(api.nutrition + '?recent=1').catch(()=>({records:[]}))
+  ]).then(([childRes, classRes, recentRes]) => {
+    const children = childRes.children || [];
+    const summary = classRes.summary || [];
+    const recent = recentRes.records || [];
+
+    // Local helpers (scoped to this module only)
+    function statCard(t,val,desc,color,progress=false,extras=''){
+      return `<div class="stat-card ${color}">
+        <div class="stat-title"><i class="bi ${iconFor(t)}"></i>${escapeHtml(t)}</div>
+        <div class="stat-val">${escapeHtml(val)}</div>
+        ${progress?'<div class="progress-thin"><span></span></div>':''}
+        <div class="stat-desc">${escapeHtml(desc)}</div>
+        ${extras?'<div class="stat-pills">'+extras+'</div>':''}
+      </div>`;
+    }
+    function iconFor(t){
+      if(/Normal Growth/i.test(t)) return 'bi-emoji-smile';
+      if(/Below Normal/i.test(t)) return 'bi-activity';
+      if(/Stable/i.test(t)) return 'bi-arrow-left-right';
+      if(/Improved/i.test(t)) return 'bi-graph-up-arrow';
+      return 'bi-circle';
+    }
+    function buildTrend(recentData){
+      const map = {};
+      recentData.forEach(r => {
+        if(!r.weighing_date) return;
+        const ym = r.weighing_date.slice(0,7);
+        if(!map[ym]) map[ym] = {NOR:0};
+        if(r.status_code === 'NOR') map[ym].NOR++;
+      });
+      const arr = Object.entries(map)
+        .sort((a,b) => a[0] > b[0] ? 1 : -1)
+        .slice(-6)
+        .map(([ym,o]) => ({label: ym.slice(5), value: o.NOR}));
+      if(!arr.length) return `<div class="chart-placeholder">No trend data available</div>`;
+
+      const max = Math.max(...arr.map(d => d.value)) || 1;
+      const pts = arr.map((d,i) => {
+        const x = (i/(arr.length-1)) * 100;
+        const y = 100 - (d.value/max) * 85 - 7;
+        return {x, y, label: d.label};
+      });
+      const poly = pts.map(p => `${p.x},${p.y}`).join(' ');
+      const circles = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
+      return `<div style="width:100%;position:relative;">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:140px;">
+          <polyline fill="none" stroke="#0b7a43" stroke-width="1.4" points="${poly}" />
+          ${circles}
+        </svg>
+        <div class="d-flex justify-content-between" style="margin-top:-10px;">
+          ${pts.map(p => `<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    const counts = Object.fromEntries(summary.map(s => [s.status_code, Number(s.child_count||0)]));
+    const normalCount = counts.NOR || 0;
+    const belowNormal = (counts.SAM||0) + (counts.MAM||0) + (counts.UW||0);
+
+    // Best-effort derive stable/improved using last 2 records per child
+    const {stableCount, improvedCount} = computeStabilityAndImprovement(recent);
+
+    // Default selected child
+    const firstChildId = children[0]?.child_id || null;
+
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <div class="page-header">
+          <div class="page-header-icon"><i class="bi bi-clipboard2-pulse"></i></div>
+          <div class="page-header-text">
+            <h1>Growth Monitoring</h1>
+            <p>Track child development and nutrition status trends</p>
+          </div>
+        </div>
+
+        <!-- Overview Cards -->
+        <div class="stat-grid" style="margin-top:.4rem;">
+          ${statCard('Normal Growth', normalCount, '↑ vs last month','green', true)}
+          ${statCard('Below Normal', belowNormal, '↓ vs last month','amber', false)}
+          ${statCard('Stable Cases', stableCount, 'No change','blue', false)}
+          ${statCard('Improved', improvedCount, 'This month','green', false)}
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-3">
+          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
+            <li class="nav-item">
+              <a class="nav-link active gm-tab" href="#" data-tab="individual" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
+                Individual Child
+              </a>
+            </li>
+            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="population" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Population Trends</a></li>
+            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="wfl" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">WFL/H Assessment</a></li>
+            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="progress" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Progress Documentation</a></li>
+          </ul>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="gm-tab-content">
+          ${renderIndividualChildPanel(children, firstChildId)}
+        </div>
+      </div>
+    `;
+
+    // Wire up tabs
+    document.querySelectorAll('.gm-tab').forEach(tab=>{
+      tab.addEventListener('click',e=>{
+        e.preventDefault();
+        document.querySelectorAll('.gm-tab').forEach(t=>{t.classList.remove('active');t.style.color='var(--muted)';t.style.borderBottom='none';});
+        tab.classList.add('active');
+        tab.style.color='var(--green)';
+        tab.style.borderBottom='2px solid var(--green)';
+
+        const type = tab.dataset.tab;
+        const container = document.getElementById('gm-tab-content');
+        if(type==='individual'){
+          container.innerHTML = renderIndividualChildPanel(children, firstChildId);
+          attachIndividualHandlers(children);
+        } else if (type==='population') {
+          container.innerHTML = renderPopulationPanel(summary, recent);
+        } else if (type==='wfl') {
+          container.innerHTML = renderWFLPanel();
+        } else {
+          container.innerHTML = renderProgressDocsPanel();
+        }
+      });
+    });
+
+    // After initial render, attach handlers and load first child data
+    attachIndividualHandlers(children);
+    if(firstChildId) loadAndRenderChildSeries(firstChildId);
+
+    // Helpers scoped to this module
+    function computeStabilityAndImprovement(recent){
+      const map = new Map();
+      recent.forEach(r=>{
+        const k = r.child_name;
+        if(!map.has(k)) map.set(k, []);
+        const arr = map.get(k);
+        if(arr.length<2) arr.push(r);
+      });
+      let stable=0, improved=0;
+      map.forEach(arr=>{
+        if(arr.length<2) return;
+        const [latest, prev] = arr; // latest first
+        if(latest.status_code && prev.status_code){
+          if(latest.status_code===prev.status_code) stable++;
+          const mal = new Set(['SAM','MAM','UW']);
+          if(mal.has(prev.status_code) && latest.status_code==='NOR') improved++;
+        }
+      });
+      return {stableCount:stable, improvedCount:improved};
+    }
+
+    function renderIndividualChildPanel(children, selectedId){
+      const options = children.map(c=>`<option value="${c.child_id}" ${c.child_id===selectedId?'selected':''}>${escapeHtml(c.full_name)}</option>`).join('');
+      return `
+        <div class="tile">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="tile-header mb-0">
+              <h5><i class="bi bi-graph-up-arrow text-success"></i> Individual Growth Chart</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <select id="gmChildSelect" class="form-select" style="font-size:.72rem;min-width:220px;">${options}</select>
+              <button id="gmExportBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:600;border-radius:8px;">
+                <i class="bi bi-download me-1"></i> Export
+              </button>
+            </div>
+          </div>
+
+          <!-- Status bar -->
+          <div id="gmStatusBar" class="d-flex justify-content-between align-items-center" style="background:#eaf5ee;border:1px solid var(--border-soft);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;">
+            <div><div style="font-size:.62rem;color:#5f7464;">Current Status</div><div id="gmCurrentStatus" class="badge-status" style="display:inline-block;margin-top:.2rem;">—</div></div>
+            <div><div style="font-size:.62rem;color:#5f7464;">Latest Weight</div><div id="gmLatestWeight" style="font-size:.75rem;font-weight:700;">—</div></div>
+            <div><div style="font-size:.62rem;color:#5f7464;">Latest Height</div><div id="gmLatestHeight" style="font-size:.75rem;font-weight:700;">—</div></div>
+          </div>
+
+          <!-- Chart area -->
+          <div id="gmChart" class="chart-placeholder">Select a child to load chart</div>
+        </div>
+      `;
+    }
+
+    function attachIndividualHandlers(children){
+      const sel = document.getElementById('gmChildSelect');
+      const btn = document.getElementById('gmExportBtn');
+      if(sel){
+        sel.addEventListener('change', ()=> loadAndRenderChildSeries(parseInt(sel.value,10)));
+      }
+      if(btn){
+        btn.addEventListener('click', ()=>{
+          const id = parseInt(document.getElementById('gmChildSelect').value,10);
+          if(!id) return;
+          exportChildSeriesCSV(id);
+        });
+      }
+    }
+
+    function loadAndRenderChildSeries(childId){
+      const chartEl = document.getElementById('gmChart');
+      const statusEl = document.getElementById('gmCurrentStatus');
+      const wEl = document.getElementById('gmLatestWeight');
+      const hEl = document.getElementById('gmLatestHeight');
+
+      chartEl.innerHTML = `<div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+        <span class="spinner-border spinner-border-sm me-2"></span>Loading growth data...</div>`;
+
+      fetchJSON(`${api.nutrition}?child_id=${childId}`).then(data=>{
+        const records = (data.records||[]).slice().reverse(); // oldest -> newest
+        if(!records.length){
+          chartEl.innerHTML = `<div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">No history found</div>`;
+          statusEl.textContent = '—'; wEl.textContent='—'; hEl.textContent='—';
+          return;
+        }
+
+        const latest = records[records.length-1];
+        statusEl.className = `badge-status ${latest.status_code?('badge-'+latest.status_code):''}`;
+        statusEl.textContent = latest.status_code || 'Not Available';
+        wEl.textContent = latest.weight_kg ? `${latest.weight_kg} kg` : '—';
+        hEl.textContent = latest.length_height_cm ? `${latest.length_height_cm} cm` : '—';
+
+        chartEl.innerHTML = buildWeightChartSVG(records);
+      }).catch(()=>{
+        chartEl.innerHTML = `<div class="text-center py-4" style="color:var(--red);font-size:.65rem;">Error loading data</div>`;
+      });
+    }
+
+    function buildWeightChartSVG(records){
+      const pts = records.map((r,i)=>({x:i, y: Number(r.weight_kg||0), label: new Date(r.weighing_date).toLocaleDateString('en-PH')}));
+      const values = pts.map(p=>p.y).filter(v=>v>0);
+      const min = Math.max(0, (values.length?Math.min(...values):0) - 0.5);
+      const max = values.length? Math.max(...values)+0.5 : 1;
+      const n = pts.length || 1;
+
+      const px = (i)=> n===1 ? 5 : (i/(n-1))*95+5;
+      const py = (v)=> 85 - ((v-min)/(max-min||1))*70;
+
+      const poly = pts.map(p=>`${px(p.x)},${py(p.y)}`).join(' ');
+      const circles = pts.map(p=>`<circle cx="${px(p.x)}" cy="${py(p.y)}" r="1.6" fill="#14a063"></circle>`).join('');
+
+      const xLabels = pts.map(p=>`<span style="font-size:.52rem;color:#637668;">${p.label}</span>`).join('');
+
+      return `
+        <div style="width:100%;position:relative;">
+          <svg viewBox="0 0 100 90" preserveAspectRatio="none" style="width:100%;height:220px;border:1px dashed #c9d8cb;border-radius:8px;background:linear-gradient(135deg,#f9fcfa 0%,#f2f8f4 100%);">
+            <polyline fill="none" stroke="#14a063" stroke-width="1.2" stroke-dasharray="2 2" points="${poly}"></polyline>
+            ${circles}
+          </svg>
+          <div class="d-flex justify-content-between mt-1">${xLabels}</div>
+        </div>
+      `;
+    }
+
+    function exportChildSeriesCSV(childId){
+      fetchJSON(`${api.nutrition}?child_id=${childId}`).then(data=>{
+        const rows = data.records||[];
+        if(!rows.length){ alert('No records to export'); return; }
+        const header = ['Date','Age (months)','Weight (kg)','Height (cm)','Status','Remarks'];
+        const csv = [header].concat(rows.map(r=>[
+          r.weighing_date, r.age_in_months, r.weight_kg||'', r.length_height_cm||'', r.status_code||'', (r.remarks||'').replaceAll('\n',' ')
+        ])).map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `growth_${childId}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    function renderPopulationPanel(summary, recent){
+      const trendSvg = buildTrend(recent);
+      return `
+        <div class="lower-grid">
+          <div class="tile">
+            <div class="tile-header"><h5><i class="bi bi-graph-up-arrow text-success"></i> Population Trends</h5></div>
+            <p class="tile-sub">Recent NOR pattern</p>
+            ${trendSvg}
+          </div>
+          <div class="tile">
+            <div class="tile-header"><h5><i class="bi bi-pie-chart text-success"></i> Status Distribution</h5></div>
+            ${(summary||[]).map(s=>`
+              <div class="dist-row">
+                <div class="dist-left"><span class="badge-status badge-${escapeHtml(s.status_code)}">${escapeHtml(s.status_code)}</span><span>${escapeHtml(s.status_code)}</span></div>
+                <span style="font-size:.52rem;font-weight:700;">${s.child_count}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWFLPanel(){
+      return `<div class="tile"><div class="text-center py-5"><i class="bi bi-clipboard-data text-muted" style="font-size:2.2rem;opacity:.4;"></i><p class="mt-3 mb-0" style="font-size:.72rem;">WFL/H assessment tools will be placed here.</p></div></div>`;
+    }
+
+    function renderProgressDocsPanel(){
+      return `<div class="tile"><div class="text-center py-5"><i class="bi bi-journal-text text-muted" style="font-size:2.2rem;opacity:.4;"></i><p class="mt-3 mb-0" style="font-size:.72rem;">Progress documentation view.</p></div></div>`;
+    }
+  }).catch(err=>{
+    console.error('Growth Monitoring error:', err);
+    moduleContent.innerHTML = `
+      <div class="alert alert-danger" style="font-size:.7rem;">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Error loading Growth Monitoring:</strong> ${escapeHtml(err.message||String(err))}
+      </div>
+    `;
+  });
+}
+
 function renderFeedingProgramsModule(label) {
   showLoading(label);
   setTimeout(() => {
