@@ -515,6 +515,28 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .imm-add-btn{display:inline-flex;align-items:center;gap:.45rem;font-weight:600;border-radius:.9rem;background:#047a4c;border:1px solid #047242;color:#fff;padding:.65rem 1.05rem;font-size:.75rem;}
 .imm-add-btn:hover{background:#059a61;border-color:#059a61;color:#fff;}
 
+/* Immunization Cards Search & Pagination */
+.imm-cards-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap;}
+.imm-cards-search{position:relative;max-width:280px;flex:1;}
+.imm-cards-search input{font-size:.7rem;border-radius:14px;padding:.5rem .8rem .5rem 2.2rem;border:1px solid var(--border);width:100%;}
+.imm-cards-search .search-icon{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:#6a7b82;font-size:.8rem;}
+.imm-cards-pagination{display:flex;align-items:center;gap:.5rem;font-size:.65rem;}
+.imm-cards-pagination button{background:#f5f8fa;border:1px solid var(--border);padding:.35rem .6rem;border-radius:8px;font-size:.65rem;font-weight:600;color:#355155;}
+.imm-cards-pagination button:hover:not(:disabled){background:#e9f4ef;color:#0a5c3d;}
+.imm-cards-pagination button.active{background:#0a5c3d;color:#fff;border-color:#0a5c3d;}
+.imm-cards-pagination button:disabled{opacity:.5;cursor:not-allowed;}
+.imm-cards-page-info{font-size:.6rem;color:#6a7b82;font-weight:600;margin:0 .5rem;}
+.imm-cards-page-size{font-size:.65rem;padding:.35rem .5rem;border:1px solid var(--border);border-radius:8px;background:#fff;}
+
+/* Activity Feed Pagination */
+.pa-activity-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;gap:1rem;flex-wrap:wrap;}
+.pa-activity-pagination{display:flex;align-items:center;gap:.4rem;font-size:.6rem;}
+.pa-activity-pagination button{background:#f5f8fa;border:1px solid var(--border);padding:.3rem .5rem;border-radius:6px;font-size:.6rem;font-weight:600;color:#355155;}
+.pa-activity-pagination button:hover:not(:disabled){background:#e9f4ef;color:#0a5c3d;}
+.pa-activity-pagination button:disabled{opacity:.5;cursor:not-allowed;}
+.pa-activity-page-info{font-size:.55rem;color:#6a7b82;font-weight:600;margin:0 .4rem;}
+.pa-activity-page-size{font-size:.6rem;padding:.3rem .4rem;border:1px solid var(--border);border-radius:6px;background:#fff;}
+
 .imm-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.4rem;}
 .imm-metric{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.35rem;position:relative;overflow:hidden;box-shadow:var(--shadow-sm);}
 .imm-metric:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 85% 18%,rgba(0,150,100,.12),transparent 60%);}
@@ -637,6 +659,12 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 /* --- Overdue Alerts Card List --- */
 .imm-overdue-wrap{margin-top:.6rem;}
 .imm-overdue-desc{font-size:.65rem;font-weight:600;color:#637278;margin-bottom:.85rem;}
+.imm-overdue-controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap;}
+.imm-overdue-tabs{display:flex;gap:.35rem;background:#f5f8fa;border-radius:20px;padding:.35rem;}
+.imm-overdue-tab{font-size:.62rem;font-weight:600;padding:.4rem .75rem;border-radius:14px;cursor:pointer;border:0;background:transparent;color:#355155;}
+.imm-overdue-tab.active{background:#ffffff;color:#0a5c3d;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.imm-overdue-tab:hover{background:#e9f4ef;color:#0a5c3d;}
+.imm-overdue-info{font-size:.6rem;color:#6a7b82;font-weight:600;}
 .imm-overdue-list{display:flex;flex-direction:column;gap:1rem;}
 .imm-overdue-item{
   background:#fef3f2;
@@ -649,9 +677,14 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
   gap:.55rem;
   position:relative;
   box-shadow:0 1px 2px rgba(0,0,0,.02);
+  transition:opacity .3s ease, transform .2s ease;
 }
+.imm-overdue-item.dismissed{opacity:.6;background:#f8f9fa;border-left-color:#6c757d;border-color:#dee2e6;}
+.imm-overdue-item.expired{opacity:.5;background:#fef7f0;border-left-color:#d97706;border-color:#e8d5c4;}
 .imm-overdue-head{display:flex;align-items:center;gap:.55rem;font-size:.82rem;font-weight:700;color:#25353a;}
 .imm-overdue-head i{color:#c72d20;font-size:1rem;}
+.imm-overdue-head.dismissed i{color:#6c757d;}
+.imm-overdue-head.expired i{color:#d97706;}
 .imm-overdue-badge{
   background:#b91c1c;
   color:#fff;
@@ -661,6 +694,8 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
   border-radius:999px;
   letter-spacing:.05em;
 }
+.imm-overdue-badge.dismissed{background:#6c757d;}
+.imm-overdue-badge.expired{background:#d97706;}
 .imm-overdue-meta{font-size:.62rem;font-weight:600;line-height:1.35;color:#425258;}
 .imm-overdue-meta strong{color:#122f33;}
 .imm-overdue-actions{
@@ -669,12 +704,13 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
   gap:.45rem;
   flex-wrap:wrap;
 }
-.btn-imm-notify,.btn-imm-schedule{
+.btn-imm-notify,.btn-imm-schedule,.btn-imm-dismiss,.btn-imm-restore{
   font-size:.6rem;
   font-weight:600;
   padding:.46rem .85rem;
   border-radius:20px;
   line-height:1;
+  cursor:pointer;
 }
 .btn-imm-notify{
   background:#eef2f5;
@@ -688,6 +724,18 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
   color:#fff;
 }
 .btn-imm-schedule:hover{background:#059a61;border-color:#059a61;color:#fff;}
+.btn-imm-dismiss{
+  background:#f8f9fa;
+  border:1px solid #dee2e6;
+  color:#6c757d;
+}
+.btn-imm-dismiss:hover{background:#e9ecef;color:#495057;}
+.btn-imm-restore{
+  background:#fef3cd;
+  border:1px solid #e8d5c4;
+  color:#856404;
+}
+.btn-imm-restore:hover{background:#fff3cd;color:#664308;}
 .imm-empty-cards{
   padding:2.2rem 1rem;
   text-align:center;
@@ -698,6 +746,29 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
   border-radius:16px;
   background:#f8fbfd;
 }
+.imm-overdue-pagination{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:1rem;
+  font-size:.6rem;
+}
+.imm-overdue-page-info{color:#6a7b82;font-weight:600;}
+.imm-overdue-page-controls{display:flex;align-items:center;gap:.35rem;}
+.imm-overdue-page-controls button{
+  font-size:.55rem;
+  padding:.3rem .6rem;
+  border:1px solid var(--border);
+  background:#fff;
+  color:#355155;
+  border-radius:8px;
+  cursor:pointer;
+}
+.imm-overdue-page-controls button:hover{background:#f8f9fa;}
+.imm-overdue-page-controls button:disabled{opacity:.5;cursor:not-allowed;}
+.imm-overdue-page-controls button.active{background:#0d7c4e;color:#fff;border-color:#0d7c4e;}
+.imm-overdue-page-size{font-size:.6rem;margin-left:.75rem;}
+.imm-overdue-page-size select{font-size:.6rem;padding:.25rem .4rem;border:1px solid var(--border);border-radius:6px;}
 
 /* Quick Child Registration Form */
 .imm-child-reg-card{
@@ -742,6 +813,127 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .imm-msg-ok{font-size:.6rem;font-weight:600;color:#0d7c4e;display:none;}
 .imm-msg-err{font-size:.6rem;font-weight:600;color:#b22218;display:none;}
 
+/* Immunization Cards UI */
+.imm-cards-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.15rem 1.3rem;box-shadow:var(--shadow-sm);font-size:.78rem;}
+.imm-cards-header h6{font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin:0 0 .4rem;color:#23423f;}
+.imm-card-list{display:flex;flex-direction:column;gap:1.1rem;margin-top:.4rem;}
+.imm-card-item{border:1px solid #e2e9ed;border-radius:18px;padding:1rem 1.15rem;position:relative;background:#ffffff;display:flex;flex-direction:column;gap:.55rem;}
+.imm-card-item:hover{background:#f7faf9;}
+.imm-card-title{font-size:.83rem;font-weight:700;color:#153633;margin:0;}
+.imm-card-sub{font-size:.6rem;font-weight:600;color:#66757c;}
+.imm-progress-bar-wrap{height:8px;background:#e3ebe8;border-radius:8px;overflow:hidden;position:relative;margin:.35rem 0 .15rem;}
+.imm-progress-fill{height:100%;background:linear-gradient(90deg,#02784a,#00a866);width:0;transition:width .6s ease;}
+.imm-progress-meta{font-size:.58rem;font-weight:600;color:#425256;display:flex;justify-content:space-between;}
+.imm-card-actions{position:absolute;top:12px;right:12px;display:flex;gap:.4rem;}
+.btn-imm-export{background:#f2f6f5;border:1px solid #d6e2de;font-size:.6rem;font-weight:600;padding:.45rem .75rem;border-radius:14px;display:inline-flex;align-items:center;gap:.35rem;}
+.btn-imm-export:hover{background:#e4f2ed;}
+.imm-cards-empty{padding:2rem 1rem;text-align:center;font-size:.68rem;font-weight:600;color:#6b7a82;border:1px dashed #cfd8dd;background:#f8fbfd;border-radius:16px;}
+
+/* === Parent Accounts UI === */
+.pa-wrap{}
+.pa-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin:1.2rem 0 1.6rem;}
+.pa-metric-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.4rem;position:relative;overflow:hidden;font-size:.8rem;box-shadow:var(--shadow-sm);}
+.pa-metric-card:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 82% 18%,rgba(0,150,100,.12),transparent 62%);pointer-events:none;}
+.pa-metric-label{font-size:.58rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#4a6168;display:flex;align-items:center;gap:.4rem;}
+.pa-metric-value{font-size:1.8rem;font-weight:800;line-height:1;color:#063129;}
+.pa-metric-sub{font-size:.55rem;font-weight:600;color:#617079;margin-top:-2px;}
+.pa-metric-icon{font-size:1.05rem;color:#0b7c4c;}
+
+.pa-section-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.25rem 1.35rem;margin-bottom:1.4rem;box-shadow:var(--shadow-sm);font-size:.78rem;}
+.pa-section-card h6{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#22413e;margin:0 0 .75rem;}
+.pa-table-wrap{max-height:480px;overflow:auto;}
+.pa-table{width:100%;border-collapse:collapse;font-size:.72rem;}
+.pa-table thead th{background:var(--table-head);position:sticky;top:0;padding:.58rem .7rem;font-size:.58rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#2b4550;z-index:2;}
+.pa-table tbody td{padding:.6rem .7rem;border-top:1px solid var(--border);vertical-align:middle;font-weight:500;}
+.pa-status-active{background:#ddf5ea;color:#0b6f46;padding:.3rem .6rem;border-radius:14px;font-size:.55rem;font-weight:700;letter-spacing:.05em;display:inline-block;}
+.pa-status-inactive{background:#f4e1df;color:#b7271c;padding:.3rem .6rem;border-radius:14px;font-size:.55rem;font-weight:700;letter-spacing:.05em;display:inline-block;}
+.pa-badge-child{background:#e0edff;color:#124d93;padding:.25rem .55rem;border-radius:999px;font-size:.53rem;font-weight:700;letter-spacing:.04em;display:inline-block;}
+.pa-actions .btn{font-size:.6rem;font-weight:600;padding:.35rem .75rem;border-radius:14px;}
+.pa-search-row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:.9rem;}
+.pa-search-row input{font-size:.66rem;border-radius:14px;padding:.45rem .7rem;max-width:240px;}
+.pa-filter-badge{font-size:.53rem;font-weight:600;padding:.3rem .55rem;border:1px solid var(--border);border-radius:20px;cursor:pointer;user-select:none;}
+.pa-filter-badge.active{background:#0d7c4e;color:#fff;border-color:#0d7c4e;}
+.pa-filter-badge:hover{background:#eef6f2;}
+
+.pa-activity-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.7rem;max-height:260px;overflow:auto;}
+.pa-activity-item{font-size:.62rem;font-weight:600;line-height:1.3;border-left:4px solid #0d7c4e;background:#f2faf6;padding:.55rem .7rem;border-radius:10px;border:1px solid #d5e7df;}
+.pa-activity-time{display:block;font-size:.52rem;font-weight:700;color:#5e6c72;margin-top:.25rem;}
+
+@media (max-width:820px){
+  .pa-metric-value{font-size:1.5rem;}
+  .pa-table{font-size:.68rem;}
+}
+
+/* ==== Activity Summary (old aggregate) ==== */
+.pa-activity-summary{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.65rem;}
+.pa-activity-summary-item{
+  background:#f3f9f7;border:1px solid #e1ece7;border-radius:12px;
+  padding:.60rem .8rem .55rem;font-size:.6rem;font-weight:600;line-height:1.25;
+  display:flex;flex-direction:column;gap:2px;position:relative;
+}
+.pa-activity-summary-item strong{font-size:.66rem;font-weight:800;color:#134438;letter-spacing:.02em;}
+.pa-activity-summary-meta{font-size:.55rem;font-weight:600;color:#4f6269;}
+.pa-activity-summary-item:hover{background:#eef7f3;}
+
+/* ==== Detailed Audit Feed Cards ==== */
+.pa-activity-feed{display:flex;flex-direction:column;gap:.9rem;margin:0;padding:0;list-style:none;}
+.pa-activity-item2{
+  background:#ffffff;
+  border:1px solid #e3eaed;
+  border-radius:14px;
+  padding:.95rem 1rem .85rem;
+  position:relative;
+  font-size:.7rem;
+  line-height:1.25;
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+  display:flex;
+  flex-direction:column;
+  gap:.4rem;
+}
+.pa-activity-item2:hover{background:#f9fbfc;}
+.pa-activity-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;}
+.pa-activity-name{font-weight:700;font-size:.72rem;color:#123c33;}
+.pa-activity-time{font-size:.58rem;font-weight:600;color:#6c7a80;white-space:nowrap;}
+.pa-activity-desc{font-size:.64rem;font-weight:600;color:#2d4d53;}
+.pa-activity-ip{font-size:.55rem;font-weight:600;color:#7a888e;margin-top:-4px;}
+.pa-activity-badge{
+  background:#e1f6ef;color:#0b6f46;
+  font-size:.48rem;font-weight:800;
+  padding:3px 6px;border-radius:10px;
+  letter-spacing:.04em;margin-left:.5rem;
+}
+
+/* Health Alerts v2 (Dashboard) */
+.ha-list{display:flex;flex-direction:column;gap:1rem;}
+.ha-item{
+  position:relative;display:flex;gap:.8rem;align-items:flex-start;
+  border:1px solid var(--border);border-radius:16px;padding:1rem 1.05rem;
+  background:#f9fbfc;box-shadow:0 1px 0 0 #e8eef1;
+  overflow:hidden;
+}
+.ha-item:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:8px;border-top-left-radius:16px;border-bottom-left-radius:16px;
+}
+.ha-icon{
+  height:38px;width:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:700;flex:0 0 38px;
+}
+.ha-title{font-size:.9rem;font-weight:800;color:#132f31;margin:0 0 2px;}
+.ha-desc{font-size:.72rem;color:#42545d;line-height:1.3;}
+/* variants */
+.ha-danger{background:#fff4f3;border-color:#f0c5c1;}
+.ha-danger:before{background:#b42318;}
+.ha-danger .ha-icon{background:#f7d1cd;color:#b42318;}
+
+.ha-warn{background:#fff8e7;border-color:#eedca1;}
+.ha-warn:before{background:#d39b05;}
+.ha-warn .ha-icon{background:#ffe4a6;color:#8b6400;}
+
+.ha-info{background:#f1fbf6;border-color:#bdeace;}
+.ha-info:before{background:#0d905c;}
+.ha-info .ha-icon{background:#d2f1e2;color:#0b7c4d;}
+
+
 </style>
 </head>
 <body class="dashboard-body">
@@ -756,13 +948,16 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
     <ul class="nav-list">
       <li><a href="#" class="nav-link-modern active" data-module="health_stats" data-label="Dashboard"><span class="icon-wrap"><i class="bi bi-grid-1x2"></i></span><span>Dashboard</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="maternal_health" data-label="Maternal Health"><span class="icon-wrap"><i class="bi bi-person-heart"></i></span><span>Maternal Health</span></a></li>
-      <li><a href="#" class="nav-link-modern" data-module="vaccination_entry" data-label="Vaccination Entry"><span class="icon-wrap"><i class="bi bi-syringe"></i></span><span>Immunization</span></a></li>
+      <li>
+  <a href="#" class="nav-link-modern" data-module="vaccination_entry" data-label="Vaccination Entry">
+    <span class="icon-wrap"><i class="bi bi-capsule"></i></span>
+    <span>Immunization</span>
+  </a>
+</li>
       <li><a href="#" class="nav-link-modern" data-module="create_parent_accounts" data-label="Parent Accounts"><span class="icon-wrap"><i class="bi bi-people"></i></span><span>Parent Accounts</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="health_records_all" data-label="Health Records"><span class="icon-wrap"><i class="bi bi-journal-medical"></i></span><span>Health Records</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="health_calendar" data-label="Event Scheduling"><span class="icon-wrap"><i class="bi bi-calendar3"></i></span><span>Event Scheduling</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="report_vaccination_coverage" data-label="Health Reports"><span class="icon-wrap"><i class="bi bi-bar-chart"></i></span><span>Health Reports</span></a></li>
-      <li><a href="#" class="nav-link-modern" data-module="alert_system" data-label="Alert System"><span class="icon-wrap"><i class="bi bi-exclamation-triangle"></i></span><span>Alerts</span></a></li>
-      <li><a href="#" class="nav-link-modern" data-module="parent_notifications" data-label="Parent Notification System"><span class="icon-wrap"><i class="bi bi-bell"></i></span><span>Notifications</span></a></li>
     </ul>
     <div class="sidebar-footer-box">
       <div class="system-status">
@@ -786,10 +981,6 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
         <span>Barangay Health Center</span>
       </div>
       <div class="ms-auto d-flex align-items-center gap-3">
-        <button class="notif-btn" id="notifBtn">
-          <i class="bi bi-bell"></i>
-          <span class="badge-count d-none" id="notifCount">0</span>
-        </button>
         <div class="user-chip">
           <div class="user-avatar"><?php echo strtoupper(substr($firstName,0,1)); ?></div>
           <div class="d-flex flex-column lh-1">
@@ -866,6 +1057,44 @@ function parseJSONSafe(resp){
     }
   });
 }
+
+// Global toast helper (stacked, top-right)
+function showToast(message, type = 'info', timeout = 3200) {
+  let stack = document.getElementById('bhwToastStack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'bhwToastStack';
+    stack.style.position = 'fixed';
+    stack.style.top = '16px';
+    stack.style.right = '16px';
+    stack.style.zIndex = '2000';
+    stack.style.display = 'flex';
+    stack.style.flexDirection = 'column';
+    stack.style.gap = '8px';
+    document.body.appendChild(stack);
+  }
+
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${type} alert-dismissible fade show`;
+  alert.role = 'alert';
+  alert.style.minWidth = '260px';
+  alert.style.boxShadow = '0 8px 24px rgba(0,0,0,.08)';
+  alert.innerHTML = `
+    <div style="font-weight:700; font-size:.78rem;">${escapeHtml(message)}</div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  `;
+  stack.appendChild(alert);
+
+  const timer = setTimeout(() => {
+    try {
+      alert.classList.remove('show');
+      setTimeout(() => alert.remove(), 150);
+    } catch (_) {}
+  }, timeout);
+
+  alert.querySelector('.btn-close')?.addEventListener('click', () => clearTimeout(timer));
+}
+
 function setActiveLink(el){document.querySelectorAll('.nav-link-modern.active').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
 function showLoading(label){moduleContent.innerHTML=`<div class="loading-state"><div class="spinner-border text-success mb-3"></div><div>Loading ${escapeHtml(label)}...</div></div>`;}
 
@@ -911,12 +1140,14 @@ function renderHealthStats(label){
             </div>
           </div>
           <div class="panel-card">
-            <div class="panel-title"><i class="bi bi-exclamation-octagon"></i> Health Alerts</div>
-            <div class="alert-stack">${alerts||'<div class="text-muted" style="font-size:.78rem;">No high-risk cases currently.</div>'}</div>
-            <div class="text-end mt-3">
-              <a href="#" class="link-clean" data-jump="alert_system">View detailed alerts →</a>
-            </div>
-          </div>
+<div class="panel-card">
+  <div class="panel-title"><i class="bi bi-exclamation-octagon"></i> Health Alerts</div>
+  <div class="mini-text text-muted mb-2">High-risk cases requiring attention</div>
+  <div class="ha-list">${alerts || '<div class="text-muted" style="font-size:.78rem;">No high-risk cases currently.</div>'}</div>
+  <div class="text-end mt-3">
+    <a href="#" class="link-clean" data-jump="alert_system">View detailed alerts →</a>
+  </div>
+</div>
         </div>
       </div>`;
     moduleContent.querySelectorAll('[data-jump]').forEach(a=>{
@@ -972,32 +1203,49 @@ function renderHealthStats(label){
         </tr>`;
       }).join('');
     }
-    function buildAlerts(hrData,overdueList,consults){
-      const alerts=[], detail=hrData.details||[];
-      const highBP=detail.find(r=>r.high_blood_pressure==1);
-      if(highBP) alerts.push(alertBox('High Blood Pressure',`Patient: ${escapeHtml(highBP.full_name)} (${highBP.pregnancy_age_weeks||'?'} wks)<br>Requires follow-up`,'danger','bi-activity'));
-      const abnormal=detail.find(r=>r.abnormal_presentation==1);
-      if(abnormal) alerts.push(alertBox('Abnormal Presentation',`Patient: ${escapeHtml(abnormal.full_name)} (${abnormal.pregnancy_age_weeks||'?'} wks)<br>Breech/abnormal`,'danger','bi-person-exclamation'));
-      const lowHgb=(consults||[]).find(c=>{
-        if(!c.hgb_result)return false;
-        const v=parseFloat(String(c.hgb_result).replace(/[^\d.]/g,''));return !isNaN(v)&&v<10;
-      });
-      if(lowHgb) alerts.push(alertBox('Low Hemoglobin',`Patient: ${escapeHtml(lowHgb.full_name)} (${lowHgb.pregnancy_age_weeks||'?'} wks)<br>HGB ${escapeHtml(lowHgb.hgb_result)} - monitor`,'warn','bi-droplet-half'));
-      if(overdueList.length>0) alerts.push(alertBox('Vaccination Overdue',`${overdueList.length} child${overdueList.length>1?'ren':''} overdue`,'warn','bi-bell'));
-      return alerts.join('');
-    }
-    function alertBox(title,desc,variant,icon){
-      const variantClass=variant==='danger'?'danger':(variant==='warn'?'warn':'info');
-      return `<div class="alert-box ${variantClass}">
-        <div class="alert-icon ${variantClass}"><i class="bi ${icon}"></i></div>
-        <div class="alert-content">
-          <div class="alert-title">${escapeHtml(title)}</div>
-          <div class="alert-desc">${desc}</div>
-        </div>
-      </div>`;
-    }
+function buildAlerts(hrData,overdueList,consults){
+  const alerts=[], detail=hrData.details||[];
+  const highBP=detail.find(r=>r.high_blood_pressure==1);
+  if(highBP) alerts.push(
+    alertBox('High Blood Pressure',
+      `Patient: ${escapeHtml(highBP.full_name)} (${highBP.pregnancy_age_weeks||'?'} weeks pregnant)<br>Requires immediate follow-up`,
+      'danger','bi-exclamation-triangle')
+  );
+  const abnormal=detail.find(r=>r.abnormal_presentation==1);
+  if(abnormal) alerts.push(
+    alertBox('Abnormal Presentation',
+      `Patient: ${escapeHtml(abnormal.full_name)} (${abnormal.pregnancy_age_weeks||'?'} weeks pregnant)<br>Breech position detected`,
+      'danger','bi-exclamation-triangle')
+  );
+  const lowHgb=(consults||[]).find(c=>{
+    if(!c.hgb_result)return false;
+    const v=parseFloat(String(c.hgb_result).replace(/[^\d.]/g,''));return !isNaN(v)&&v<10;
+  });
+  if(lowHgb) alerts.push(
+    alertBox('Low Hemoglobin',
+      `Patient: ${escapeHtml(lowHgb.full_name)} (${lowHgb.pregnancy_age_weeks||'?'} weeks pregnant)<br>HGB: ${escapeHtml(lowHgb.hgb_result)} - Monitor closely`,
+      'warn','bi-exclamation-circle')
+  );
+  if(overdueList.length>0) alerts.push(
+    alertBox('Vaccination Overdue',
+      `${overdueList.length} child${overdueList.length>1?'ren':''} with overdue vaccinations<br>Follow up or notify parents`,
+      'info','bi-bell')
+  );
+  return alerts.join('');
+}
+function alertBox(title,desc,variant,icon){
+  // variant: 'danger' | 'warn' | 'info'
+  const v = variant==='danger' ? 'ha-danger' : (variant==='warn' ? 'ha-warn' : 'ha-info');
+  return `<div class="ha-item ${v}">
+    <div class="ha-icon"><i class="bi ${icon}"></i></div>
+    <div class="ha-body">
+      <div class="ha-title">${escapeHtml(title)}</div>
+      <div class="ha-desc">${desc}</div>
+    </div>
+  </div>`;
+}
     function ordinal(n){n=parseInt(n,10)||0;const s=["th","st","nd","rd"],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
-    function formatDate(d){if(!d)return'';const dt=new Date(d+'T00:00:00');if(isNaN(dt))return escapeHtml(d);return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+    function formatDate(d){if(!d)return'';const dt=new Date(d+'T00:00:00');if(isNaN(dt))return escapeHtml(d);return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});}
   }).catch(err=>{
     moduleContent.innerHTML='<div class="alert alert-danger">Error: '+escapeHtml(err.message)+'</div>';
   });
@@ -1270,6 +1518,23 @@ function renderMaternalHealth(label){
               <div class="mh-filter-badge" data-filter="normal">Normal</div>
             </div>
           </div>
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2" id="mhPatientsPager" style="display:none;">
+            <div style="font-size:.6rem;font-weight:600;color:#5d6a70;" id="mhPatientsRange"></div>
+            <div class="d-flex align-items-center gap-1">
+              <button class="btn btn-outline-secondary btn-sm" id="mhPatientsPrev" style="font-size:.6rem;padding:.25rem .55rem;">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <div id="mhPatientsPageInfo" style="font-size:.6rem;font-weight:600;color:#5d6a70;min-width:90px;text-align:center;"></div>
+              <button class="btn btn-outline-secondary btn-sm" id="mhPatientsNext" style="font-size:.6rem;padding:.25rem .55rem;">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+              <select id="mhPatientsPageSize" class="form-select form-select-sm" style="font-size:.6rem;padding:.25rem .4rem;width:auto;">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
           <div class="table-responsive" style="max-height:560px;">
             <table class="mh-table" id="mhPatientsTable">
               <thead>
@@ -1282,51 +1547,113 @@ function renderMaternalHealth(label){
                   <th>Actions</th>
                 </tr>
               </thead>
-              <tbody>${patientRowsHtml || `<tr><td colspan="6" class="mh-empty">No mothers registered yet.</td></tr>`}</tbody>
+              <tbody id="mhPatientsTbody"><tr><td colspan="6" class="mh-empty">Loading mothers...</td></tr></tbody>
             </table>
           </div>
         </div>
       `;
-
-      // Search + filter
+      // Server-side pagination + filtering
       const searchInput = document.getElementById('mhSearch');
       const filterBadges = panel.querySelectorAll('.mh-filter-badge');
-      const rows = [...panel.querySelectorAll('#mhPatientsTable tbody tr')];
+      const tbody = document.getElementById('mhPatientsTbody');
+      const pagerWrap = document.getElementById('mhPatientsPager');
+      const prevBtn = document.getElementById('mhPatientsPrev');
+      const nextBtn = document.getElementById('mhPatientsNext');
+      const pageInfo = document.getElementById('mhPatientsPageInfo');
+      const rangeInfo = document.getElementById('mhPatientsRange');
+      const pageSizeSel = document.getElementById('mhPatientsPageSize');
 
-      function applyFilter(){
-        const q = (searchInput.value||'').toLowerCase();
-        const activeFilter = panel.querySelector('.mh-filter-badge.active')?.dataset.filter || 'all';
-        rows.forEach(r=>{
-          let show = true;
-            if(q){
-              const text = r.innerText.toLowerCase();
-              show = text.includes(q);
-            }
-          if(show && activeFilter!=='all'){
-            const badge = r.querySelector('.risk-badge');
-            if(activeFilter==='high') show = badge?.classList.contains('risk-high');
-            if(activeFilter==='monitor') show = badge?.classList.contains('risk-monitor');
-            if(activeFilter==='normal') show = badge?.classList.contains('risk-normal');
+      const pagestate = { page:1, pageSize: parseInt(pageSizeSel.value||'20',10), search:'', risk:'' };
+      let currentRows = [];
+
+      function activeRisk(){
+        const f = panel.querySelector('.mh-filter-badge.active')?.dataset.filter || 'all';
+        return f==='all'?'':f; // '', high, monitor, normal
+      }
+
+      function loadMothers(){
+        tbody.innerHTML = '<tr><td colspan="6" class="mh-empty">Loading mothers...</td></tr>';
+        pagestate.risk = activeRisk();
+        const params = new URLSearchParams({list:'1', page:pagestate.page, page_size:pagestate.pageSize});
+        if(pagestate.search) params.set('search', pagestate.search);
+        if(pagestate.risk) params.set('risk', pagestate.risk);
+        fetchJSON(api.maternal+'?'+params.toString()).then(j=>{
+          if(!j.success) throw new Error(j.error||'Load failed');
+          currentRows = j.mothers||[];
+          if(!currentRows.length){
+            tbody.innerHTML = '<tr><td colspan="6" class="mh-empty">No mothers found.</td></tr>';
+          } else {
+            tbody.innerHTML = currentRows.map(renderMotherRow).join('');
           }
-          r.classList.toggle('d-none', !show);
+          wireViewButtons();
+          updatePager(j);
+        }).catch(err=>{
+          tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center py-4">Error: '+escapeHtml(err.message)+'</td></tr>';
+          if(pagerWrap) pagerWrap.style.display='none';
         });
       }
-      searchInput.addEventListener('input', applyFilter);
+
+      function renderMotherRow(m){
+        const riskScore = parseInt(m.risk_count||0,10);
+        let riskClass='risk-normal', riskLabel='Normal';
+        if(riskScore>=2){ riskClass='risk-high'; riskLabel='High Risk'; }
+        else if(riskScore===1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
+        const gaWeeks = m.pregnancy_age_weeks? parseInt(m.pregnancy_age_weeks,10): null; // may not be present here
+        const ageVal = m.date_of_birth ? calcAge(m.date_of_birth) : '—';
+        const eddTxt = m.expected_delivery_date || '';
+        return `<tr>
+          <td>${escapeHtml(m.full_name||'')}</td>
+          <td>${ageVal||'—'}</td>
+          <td>${gaWeeks? `<div class="mh-progress"><div class="mh-progress-bar" style="width:${Math.min(100,Math.round((gaWeeks/40)*100))}%;"></div></div><div class=\"mh-weeks-label\">${gaWeeks} weeks</div>` : '<span class="text-muted" style="font-size:.64rem;">No data</span>'}</td>
+          <td>${eddTxt? escapeHtml(eddTxt): '<span class="text-muted">—</span>'}</td>
+          <td><span class="risk-badge ${riskClass}">${riskLabel}</span></td>
+          <td><button class="mh-action-btn btn-view" data-id="${m.mother_id}"><i class="bi bi-eye me-1"></i>View</button></td>
+        </tr>`;
+      }
+
+      function calcAge(dob){
+        const d=new Date(dob+'T00:00:00'); if(isNaN(d)) return '';
+        const today=new Date();
+        let a=today.getFullYear()-d.getFullYear();
+        const mm=today.getMonth()-d.getMonth();
+        if(mm<0 || (mm===0 && today.getDate()<d.getDate())) a--;
+        return a;
+      }
+
+      function updatePager(j){
+        const total=j.total_count||0; const totalPages=j.total_pages||1;
+        const start = total? ((j.current_page-1)*j.page_size)+1 : 0;
+        const end = Math.min(j.current_page*j.page_size,total);
+        if(rangeInfo) rangeInfo.textContent = `${start}-${end} of ${total}`;
+        if(pageInfo) pageInfo.textContent = `Page ${j.current_page} / ${totalPages}`;
+        if(prevBtn) prevBtn.disabled = j.current_page<=1;
+        if(nextBtn) nextBtn.disabled = j.current_page>=totalPages;
+        if(pagerWrap) pagerWrap.style.display = totalPages>1? 'flex':'none';
+      }
+
+      function wireViewButtons(){
+        tbody.querySelectorAll('.btn-view').forEach(btn=>{
+          btn.addEventListener('click',()=> openMotherModal(btn.dataset.id));
+        });
+      }
+
+      // Events
+      let searchTimer=null;
+      searchInput.addEventListener('input',()=>{
+        clearTimeout(searchTimer);
+        searchTimer=setTimeout(()=>{ pagestate.search=(searchInput.value||'').trim(); pagestate.page=1; loadMothers(); },300);
+      });
       filterBadges.forEach(b=>{
         b.addEventListener('click',()=>{
           filterBadges.forEach(x=>x.classList.remove('active'));
-          b.classList.add('active');
-          applyFilter();
+          b.classList.add('active'); pagestate.page=1; loadMothers();
         });
       });
+      prevBtn.addEventListener('click',()=>{ if(pagestate.page>1){ pagestate.page--; loadMothers(); } });
+      nextBtn.addEventListener('click',()=>{ pagestate.page++; loadMothers(); });
+      pageSizeSel.addEventListener('change',()=>{ pagestate.pageSize=parseInt(pageSizeSel.value||'20',10); pagestate.page=1; loadMothers(); });
 
-      // View buttons
-      panel.querySelectorAll('.btn-view').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-          const id = btn.dataset.id;
-          openMotherModal(id);
-        });
-      });
+      loadMothers();
     }
 
     // Tabs switching with debounce + soft fade to prevent flicker/glitch
@@ -2581,16 +2908,28 @@ function renderVaccinationEntry(label){
             <input name="parent_name" class="form-control" required placeholder="e.g., Maria Dela Cruz">
           </div>
           <div>
+            <label>Parent Date of Birth</label>
+            <input type="date" name="parent_date_of_birth" class="form-control">
+          </div>
+          <div>
             <label>Contact Number</label>
             <input name="contact_number" class="form-control" placeholder="09XX-XXX-XXXX">
+          </div>
+          <div>
+            <label>Emergency Contact Name</label>
+            <input name="emergency_contact_name" class="form-control" placeholder="e.g., Ana Reyes">
+          </div>
+          <div>
+            <label>Emergency Contact No.</label>
+            <input name="emergency_contact_number" class="form-control" placeholder="09XX-XXX-XXXX">
           </div>
           <div>
             <label>Purok *</label>
             <input name="purok_name" class="form-control" required placeholder="e.g., Purok 1">
           </div>
           <div style="grid-column:1/-1;">
-            <label>Address</label>
-            <input name="address_details" class="form-control" placeholder="Barangay / Landmark">
+            <label>Address Details</label>
+            <input name="address_details" class="form-control" placeholder="Barangay / Landmark / House #">
           </div>
         </div>
         <div class="imm-child-divider"></div>
@@ -2616,7 +2955,8 @@ function renderVaccinationEntry(label){
     </div>
 
     <div class="imm-tabs nav" id="immTabs">
-      <button class="nav-link active" data-tab="schedule">Vaccine Schedule</button>
+      <button class="nav-link active" data-tab="children">Registered Children</button>
+      <button class="nav-link" data-tab="schedule">Vaccine Schedule</button>
       <button class="nav-link" data-tab="records">Vaccination Records</button>
       <button class="nav-link" data-tab="overdue">Overdue Alerts</button>
       <button class="nav-link" data-tab="cards">Immunization Cards</button>
@@ -2762,6 +3102,9 @@ regForm.addEventListener('submit',e=>{
   const sex         = regForm.sex.value;
   const parentName  = regForm.parent_name.value.trim();
   const contact     = regForm.contact_number.value.trim();
+  const parentDob   = regForm.parent_date_of_birth.value;
+  const emgName     = regForm.emergency_contact_name.value.trim();
+  const emgNumber   = regForm.emergency_contact_number.value.trim();
   const purok       = regForm.purok_name.value.trim();
   const address     = regForm.address_details.value.trim();
 
@@ -2790,6 +3133,9 @@ regForm.addEventListener('submit',e=>{
     fdMother.append('purok_name', purok);
     fdMother.append('contact_number', contact);
     fdMother.append('address_details', address);
+    if(parentDob) fdMother.append('date_of_birth', parentDob);
+    if(emgName) fdMother.append('emergency_contact_name', emgName);
+    if(emgNumber) fdMother.append('emergency_contact_number', emgNumber);
     fdMother.append('csrf_token', window.__BHW_CSRF);
     return fetch(api.mothers,{method:'POST',body:fdMother})
       .then(parseJSONSafe)
@@ -2826,7 +3172,8 @@ regForm.addEventListener('submit',e=>{
       document.querySelectorAll('#immTabs .nav-link').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');
       const tab=b.dataset.tab;
-      if(tab==='schedule') loadSchedulePanel();
+      if(tab==='children') loadChildrenPanel();
+      else if(tab==='schedule') loadSchedulePanel();
       else if(tab==='records') loadRecordsPanel();
       else if(tab==='overdue') loadOverduePanel();
       else if(tab==='cards') loadCardsPanel();
@@ -2915,7 +3262,7 @@ regForm.addEventListener('submit',e=>{
     });
 
     /* Panels */
-    loadSchedulePanel();
+    loadChildrenPanel();
 
     function loadSchedulePanel(){
       document.getElementById('immPanel').innerHTML = `
@@ -2934,91 +3281,326 @@ regForm.addEventListener('submit',e=>{
     }
 function loadOverduePanel(){
   const panel=document.getElementById('immPanel');
-  const rawOver=(over.overdue||[]).slice(); // from parent scope
-  const rawSoon=(over.dueSoon||[]).slice();
+  
+  // Pagination state
+  let currentPage = 1;
+  let pageSize = 10;
+  let showType = 'active'; // 'active', 'recycle', 'all'
+  let overdueData = null;
 
-  // Sort: most days overdue first, then by child name
-  rawOver.sort((a,b)=>{
-    const da=(a.days_overdue||0), db=(b.days_overdue||0);
-    if(db!==da) return db-da;
-    return a.child_name.localeCompare(b.child_name);
-  });
+  loadOverdueData();
 
-  const today=new Date();
+  function loadOverdueData() {
+    const loadingHtml = `
+      <div class="imm-card">
+        <h6>Overdue Vaccination Alerts</h6>
+        <div class="imm-small-muted mb-3">Loading...</div>
+        <div class="loading-state">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>`;
+    panel.innerHTML = loadingHtml;
 
-  function fmtDate(d){
-    if(!d) return '—';
-    const dt=new Date(d+'T00:00:00');
-    if(isNaN(dt)) return d;
-    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const params = new URLSearchParams({
+      overdue: '1',
+      page: currentPage,
+      page_size: pageSize,
+      show: showType
+    });
+
+    fetchJSON(api.immun + '?' + params.toString())
+      .then(data => {
+        overdueData = data;
+        renderOverduePanel();
+      })
+      .catch(err => {
+        panel.innerHTML = `
+          <div class="imm-card">
+            <h6>Overdue Vaccination Alerts</h6>
+            <div class="alert alert-danger">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              Error loading overdue alerts: ${escapeHtml(err.message)}
+            </div>
+          </div>`;
+      });
   }
-  function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
 
-  const cardsHtml = rawOver.map(item=>{
-    const days = item.days_overdue!=null ? item.days_overdue : null;
-    let badge = days!==null
-      ? `<span class="imm-overdue-badge">${days} day${days===1?'':'s'} overdue</span>`
-      : `<span class="imm-overdue-badge" style="background:#d97706;">Overdue</span>`;
-    const dueTxt = fmtDate(item.due_date);
-    const parentLine = item.mother_name
-      ? `<strong>Parent:</strong> ${escapeHtml(item.mother_name)}${item.parent_contact? ' - '+escapeHtml(item.parent_contact):''}<br>`
-      : '';
-    return `
-      <div class="imm-overdue-item" data-child="${item.child_id}" data-vaccine="${item.vaccine_id}" data-dose="${item.dose_number}">
-        <div class="imm-overdue-head">
-          <i class="bi bi-exclamation-octagon"></i>
-          <span>${escapeHtml(item.child_name)}</span>
-          ${badge}
-        </div>
-        <div class="imm-overdue-meta">
-          <strong>Vaccine:</strong> ${escapeHtml(item.vaccine_code)} - ${ordinal(item.dose_number)} Dose<br>
-          <strong>Due Date:</strong> ${dueTxt}<br>
-          ${parentLine}
-        </div>
-        <div class="imm-overdue-actions">
+  function renderOverduePanel() {
+    if (!overdueData) return;
+
+    const { overdue = [], dueSoon = [], pagination = {} } = overdueData;
+    const { page = 1, pageSize: currentPageSize = 10, total = 0, totalPages = 0 } = pagination;
+
+    function fmtDate(d){
+      if(!d) return '—';
+      const dt=new Date(d+'T00:00:00');
+      if(isNaN(dt)) return d;
+      return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+    }
+    function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+
+    const cardsHtml = overdue.map(item=>{
+      const days = item.days_overdue!=null ? item.days_overdue : null;
+      const status = item.notification_status || 'active';
+      
+      let badge, itemClass = '', headClass = '', badgeClass = '';
+      if (status === 'dismissed') {
+        badge = `<span class="imm-overdue-badge dismissed">Dismissed</span>`;
+        itemClass = 'dismissed';
+        headClass = 'dismissed';
+        badgeClass = 'dismissed';
+      } else if (status === 'expired') {
+        badge = `<span class="imm-overdue-badge expired">Expired</span>`;
+        itemClass = 'expired';
+        headClass = 'expired';
+        badgeClass = 'expired';
+      } else {
+        badge = days !== null
+          ? `<span class="imm-overdue-badge">${days} day${days===1?'':'s'} overdue</span>`
+          : `<span class="imm-overdue-badge" style="background:#d97706;">Overdue</span>`;
+      }
+
+      const dueTxt = fmtDate(item.due_date);
+      const parentLine = item.mother_name
+        ? `<strong>Parent:</strong> ${escapeHtml(item.mother_name)}${item.parent_contact? ' - '+escapeHtml(item.parent_contact):''}<br>`
+        : '';
+
+      // Action buttons based on status
+      let actionButtons = '';
+      if (status === 'dismissed' || status === 'expired') {
+        actionButtons = `
+          <button class="btn-imm-restore" type="button" data-action="restore">
+            <i class="bi bi-arrow-clockwise me-1"></i>Restore
+          </button>`;
+      } else {
+        actionButtons = `
           <button class="btn-imm-notify" type="button" data-action="notify">
             <i class="bi bi-bell me-1"></i>Notify Parent
           </button>
           <button class="btn-imm-schedule" type="button" data-action="schedule">
             <i class="bi bi-plus-lg me-1"></i>Schedule / Record
           </button>
+          <button class="btn-imm-dismiss" type="button" data-action="dismiss">
+            <i class="bi bi-x-lg me-1"></i>Dismiss
+          </button>`;
+      }
+
+      return `
+        <div class="imm-overdue-item ${itemClass}" data-child="${item.child_id}" data-vaccine="${item.vaccine_id}" data-dose="${item.dose_number}">
+          <div class="imm-overdue-head ${headClass}">
+            <i class="bi bi-exclamation-octagon"></i>
+            <span>${escapeHtml(item.child_name)}</span>
+            ${badge}
+          </div>
+          <div class="imm-overdue-meta">
+            <strong>Vaccine:</strong> ${escapeHtml(item.vaccine_code)} - ${ordinal(item.dose_number)} Dose<br>
+            <strong>Due Date:</strong> ${dueTxt}<br>
+            ${parentLine}
+            ${status !== 'active' ? `<strong>Status:</strong> ${status.charAt(0).toUpperCase() + status.slice(1)}<br>` : ''}
+          </div>
+          <div class="imm-overdue-actions">
+            ${actionButtons}
+          </div>
+        </div>`;
+    }).join('');
+
+    // Tab counts
+    const activeCounts = total; // This will be updated by separate API calls if needed
+    const recycleCounts = 0; // Placeholder
+
+    // Pagination info
+    const startItem = total > 0 ? ((page - 1) * currentPageSize) + 1 : 0;
+    const endItem = Math.min(page * currentPageSize, total);
+    const pageInfo = total > 0 
+      ? `Showing ${startItem}-${endItem} of ${total} alerts`
+      : 'No alerts found';
+
+    // Page controls
+    const pageControls = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+        pageControls.push(`<button class="${i === page ? 'active' : ''}" data-page="${i}">${i}</button>`);
+      } else if (i === page - 2 || i === page + 2) {
+        pageControls.push('<span>...</span>');
+      }
+    }
+
+    panel.innerHTML=`
+      <div class="imm-card">
+        <h6>Overdue Vaccination Alerts</h6>
+        <div class="imm-small-muted mb-3">Manage overdue and dismissed vaccination notifications</div>
+        
+        <div class="imm-overdue-controls">
+          <div class="imm-overdue-tabs">
+            <button class="imm-overdue-tab ${showType === 'active' ? 'active' : ''}" data-show="active">
+              Active Alerts
+            </button>
+            <button class="imm-overdue-tab ${showType === 'recycle' ? 'active' : ''}" data-show="recycle">
+              <i class="bi bi-trash me-1"></i>Recycle Bin
+            </button>
+            <button class="imm-overdue-tab ${showType === 'all' ? 'active' : ''}" data-show="all">
+              All
+            </button>
+          </div>
+          <div class="imm-overdue-info">${pageInfo}</div>
         </div>
-      </div>`;
-  }).join('');
-
-  panel.innerHTML=`
-    <div class="imm-card">
-      <h6>Overdue Vaccination Alerts</h6>
-      <div class="imm-small-muted mb-3">Children with missed or delayed vaccinations</div>
-      <div class="imm-overdue-wrap">
-        ${cardsHtml || `<div class="imm-empty-cards">No overdue vaccinations 🎉</div>`}
+        
+        <div class="imm-overdue-wrap">
+          ${cardsHtml || `<div class="imm-empty-cards">
+            ${showType === 'active' ? 'No active overdue vaccinations 🎉' : 
+              showType === 'recycle' ? 'Recycle bin is empty' : 'No alerts found'}
+          </div>`}
+        </div>
+        
+        ${totalPages > 1 ? `
+          <div class="imm-overdue-pagination">
+            <div class="imm-overdue-page-info">${pageInfo}</div>
+            <div class="d-flex align-items-center gap-2">
+              <div class="imm-overdue-page-controls">
+                <button ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">Previous</button>
+                ${pageControls.join('')}
+                <button ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">Next</button>
+              </div>
+              <div class="imm-overdue-page-size">
+                <select data-page-size>
+                  <option value="5" ${currentPageSize === 5 ? 'selected' : ''}>5 per page</option>
+                  <option value="10" ${currentPageSize === 10 ? 'selected' : ''}>10 per page</option>
+                  <option value="20" ${currentPageSize === 20 ? 'selected' : ''}>20 per page</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+        
+        ${dueSoon.length ? `<hr class="mt-4">
+          <div style="font-size:.62rem;font-weight:700;letter-spacing:.05em;margin-bottom:.6rem;color:#264846;">Due Soon (Preview)</div>
+          <ul style="list-style:none;padding-left:0;margin:0;display:grid;gap:.4rem;font-size:.6rem;font-weight:600;color:#497;">
+            ${dueSoon.slice(0,6).map(s=>`<li style="background:#f1f6f7;border:1px solid #dae4e7;padding:.45rem .65rem;border-radius:10px;">
+               <strong>${escapeHtml(s.child_name)}</strong> · ${escapeHtml(s.vaccine_code)} ${ordinal(s.dose_number)} – target ${s.target_age_months}m
+            </li>`).join('')}
+          </ul>`: '' }
       </div>
-      ${rawSoon.length? `<hr class="mt-4">
-        <div style="font-size:.62rem;font-weight:700;letter-spacing:.05em;margin-bottom:.6rem;color:#264846;">Due Soon (Preview)</div>
-        <ul style="list-style:none;padding-left:0;margin:0;display:grid;gap:.4rem;font-size:.6rem;font-weight:600;color:#497;">
-          ${rawSoon.slice(0,6).map(s=>`<li style="background:#f1f6f7;border:1px solid #dae4e7;padding:.45rem .65rem;border-radius:10px;">
-             <strong>${escapeHtml(s.child_name)}</strong> · ${escapeHtml(s.vaccine_code)} ${ordinal(s.dose_number)} – target ${s.target_age_months}m
-          </li>`).join('')}
-        </ul>`: '' }
-    </div>
-  `;
+    `;
 
-  // Event delegation
-  panel.querySelectorAll('.imm-overdue-item').forEach(card=>{
-    card.querySelectorAll('button[data-action]').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const action=btn.getAttribute('data-action');
-        const childId=card.getAttribute('data-child');
-        const vaccineId=card.getAttribute('data-vaccine');
-        const dose=card.getAttribute('data-dose');
-        if(action==='schedule'){
-          openVaccinationModalPrefill(childId, vaccineId, dose);
-        } else if(action==='notify'){
-          notifyParentSingle(card, childId, vaccineId, dose);
+    attachOverdueEventHandlers();
+  }
+
+  function attachOverdueEventHandlers() {
+    // Tab switching
+    panel.querySelectorAll('.imm-overdue-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        showType = tab.dataset.show;
+        currentPage = 1;
+        loadOverdueData();
+      });
+    });
+
+    // Pagination
+    panel.querySelectorAll('[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newPage = parseInt(btn.dataset.page);
+        if (newPage && newPage !== currentPage) {
+          currentPage = newPage;
+          loadOverdueData();
         }
       });
     });
-  });
+
+    // Page size
+    const pageSizeSelect = panel.querySelector('[data-page-size]');
+    if (pageSizeSelect) {
+      pageSizeSelect.addEventListener('change', () => {
+        pageSize = parseInt(pageSizeSelect.value);
+        currentPage = 1;
+        loadOverdueData();
+      });
+    }
+
+    // Action buttons
+    panel.querySelectorAll('.imm-overdue-item').forEach(card=>{
+      card.querySelectorAll('button[data-action]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const action=btn.getAttribute('data-action');
+          const childId=card.getAttribute('data-child');
+          const vaccineId=card.getAttribute('data-vaccine');
+          const dose=card.getAttribute('data-dose');
+          
+          if(action==='schedule'){
+            openVaccinationModalPrefill(childId, vaccineId, dose);
+          } else if(action==='notify'){
+            notifyParentSingle(card, childId, vaccineId, dose);
+          } else if(action==='dismiss'){
+            dismissNotification(childId, vaccineId, dose);
+          } else if(action==='restore'){
+            restoreNotification(childId, vaccineId, dose);
+          }
+        });
+      });
+    });
+  }
+
+  function dismissNotification(childId, vaccineId, dose) {
+    if (!confirm('Are you sure you want to dismiss this overdue alert? It will be moved to the recycle bin.')) return;
+
+    const fd = new FormData();
+    fd.append('dismiss_notification', '1');
+    fd.append('child_id', childId);
+    fd.append('vaccine_id', vaccineId);
+    fd.append('dose_number', dose);
+    fd.append('csrf_token', window.__BHW_CSRF); // changed: use the global CSRF token
+
+    fetch(api.immun, {method: 'POST', body: fd})
+      .then(parseJSONSafe)
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'Failed to dismiss notification');
+        showAlert('Notification dismissed and moved to recycle bin', 'success');
+        loadOverdueData();
+      })
+      .catch(err => {
+        showAlert('Error dismissing notification: ' + err.message, 'danger');
+      });
+  }
+
+  function restoreNotification(childId, vaccineId, dose) {
+    const fd = new FormData();
+    fd.append('restore_notification', '1');
+    fd.append('child_id', childId);
+    fd.append('vaccine_id', vaccineId);
+    fd.append('dose_number', dose);
+    fd.append('csrf_token', window.__BHW_CSRF); // changed: use the global CSRF token
+
+    fetch(api.immun, {method: 'POST', body: fd})
+      .then(parseJSONSafe)
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'Failed to restore notification');
+        showAlert('Notification restored to active alerts', 'success');
+        loadOverdueData();
+      })
+      .catch(err => {
+        showAlert('Error restoring notification: ' + err.message, 'danger');
+      });
+  }
+
+  function showAlert(message, type = 'info') {
+    // Create a temporary alert
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+      if (alertDiv.parentNode) {
+        alertDiv.remove();
+      }
+    }, 4000);
+  }
 
   function openVaccinationModalPrefill(childId,vaccineId,dose){
     // Open modal
@@ -3089,88 +3671,1001 @@ function loadOverduePanel(){
   }
 }
 
-    function loadCardsPanel(){
-      document.getElementById('immPanel').innerHTML=`
-        <div class="imm-card">
-          <h6>Immunization Cards</h6>
-          <div class="imm-small-muted mb-3">Generate or view a child’s immunization card.</div>
-          <div class="imm-placeholder">Card view / PDF export placeholder.</div>
-        </div>`;
+function loadCardsPanel(){
+  const panel=document.getElementById('immPanel');
+  panel.innerHTML = `
+    <div class="imm-cards-wrap">
+      <div class="imm-cards-header">
+        <h6>Digital Immunization Cards</h6>
+        <div class="imm-small-muted mb-2">Generate and export vaccination records</div>
+      </div>
+      
+      <div class="imm-cards-controls">
+        <div class="imm-cards-search">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" id="cardsSearchInput" placeholder="Search by child name..." autocomplete="off">
+        </div>
+        <div class="imm-cards-pagination" id="cardsPagination" style="display:none;">
+          <button id="cardsPrevBtn" title="Previous page">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <div class="imm-cards-page-info" id="cardsPageInfo"></div>
+          <button id="cardsNextBtn" title="Next page">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+          <select id="cardsPageSize" class="imm-cards-page-size" title="Items per page">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="immCardsBody" class="py-2">
+        <div class="text-center py-4 text-muted" style="font-size:.65rem;">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading immunization cards...
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Pagination state
+  let currentPage = 1;
+  let currentPageSize = 10;
+  let currentSearch = '';
+  let totalPages = 0;
+
+  // Event listeners
+  const searchInput = panel.querySelector('#cardsSearchInput');
+  const pagination = panel.querySelector('#cardsPagination');
+  const prevBtn = panel.querySelector('#cardsPrevBtn');
+  const nextBtn = panel.querySelector('#cardsNextBtn');
+  const pageSizeSelect = panel.querySelector('#cardsPageSize');
+  const pageInfo = panel.querySelector('#cardsPageInfo');
+
+  let searchTimeout;
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      currentSearch = e.target.value.trim();
+      currentPage = 1;
+      loadCards();
+    }, 300);
+  });
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      loadCards();
     }
-    function loadParentNotifPanel(){
-      document.getElementById('immPanel').innerHTML=`
-        <div class="imm-card">
-          <h6>Parent Notifications</h6>
-          <div class="imm-small-muted mb-3">Recent automatic reminders sent / pending.</div>
-          <div class="imm-scroll">
-            <table class="imm-table">
-              <thead><tr><th>When</th><th>Parent</th><th>Child</th><th>Type</th><th>Title</th><th>Status</th></tr></thead>
-              <tbody>${notifRows || `<tr><td colspan="6" class="text-center text-muted py-4">No notifications.</td></tr>`}</tbody>
-            </table>
-          </div>
-        </div>`;
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      loadCards();
     }
-    function loadRecordsPanel(){
-      const panel=document.getElementById('immPanel');
-      panel.innerHTML=`
-        <div class="imm-card">
-          <div class="imm-recent-wrap">
-            <h6>Recent Vaccination Records</h6>
-            <div class="imm-recent-sub">All administered vaccines (latest first)</div>
-            <div class="imm-scroll" style="max-height:430px;">
-              <table class="imm-table" id="immRecentTable">
-                <thead>
-                  <tr>
-                    <th>Child Name</th>
-                    <th>Vaccine</th>
-                    <th>Dose</th>
-                    <th>Date Given</th>
-                    <th>Batch No.</th>
-                    <th>Next Dose</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td colspan="6" class="text-muted py-4 text-center">Loading...</td></tr>
-                </tbody>
-              </table>
+  });
+
+  pageSizeSelect.addEventListener('change', (e) => {
+    currentPageSize = parseInt(e.target.value);
+    currentPage = 1;
+    loadCards();
+  });
+
+  function loadCards() {
+    const body = panel.querySelector('#immCardsBody');
+    body.innerHTML = `
+      <div class="text-center py-4 text-muted" style="font-size:.65rem;">
+        <span class="spinner-border spinner-border-sm me-2"></span>Loading immunization cards...
+      </div>
+    `;
+
+    const params = new URLSearchParams({
+      cards_summary: '1',
+      page: currentPage,
+      page_size: currentPageSize
+    });
+
+    if (currentSearch) {
+      params.set('search', currentSearch);
+    }
+
+    fetchJSON(api.immun + '?' + params.toString()).then(j => {
+      if (!j.success) {
+        throw new Error('Load failed');
+      }
+
+      const list = j.cards || [];
+      totalPages = j.total_pages || 0;
+      
+      // Update pagination visibility and info
+      if (totalPages > 1 || currentSearch) {
+        pagination.style.display = 'flex';
+        updatePaginationControls(j);
+      } else {
+        pagination.style.display = 'none';
+      }
+
+      if (!list.length) {
+        const emptyMsg = currentSearch 
+          ? `No children found matching "${escapeHtml(currentSearch)}"`
+          : 'No registered children yet.';
+        body.innerHTML = `<div class="imm-cards-empty">${emptyMsg}</div>`;
+        return;
+      }
+
+      const items = list.map(c => {
+        const pct = c.percent_complete || 0;
+        const id = c.child_id;
+        const comp = c.vaccines_completed + '/' + c.total_vaccines + ' vaccines';
+        return `
+          <div class="imm-card-item" data-child="${id}">
+            <div class="imm-card-actions">
+              <button class="btn-imm-export" data-export="${id}" title="Export PDF">
+                <i class="bi bi-download"></i> Export PDF
+              </button>
+            </div>
+            <div>
+              <p class="imm-card-title mb-0">${escapeHtml(c.full_name)}</p>
+              <p class="imm-card-sub mb-1">Date of Birth: ${c.birth_date ? formatShortDate(c.birth_date) : '—'}</p>
+            </div>
+            <div class="imm-card-sub" style="font-size:.58rem;margin-top:.2rem;">Immunization Progress</div>
+            <div class="imm-progress-bar-wrap">
+              <div class="imm-progress-fill" style="width:${pct}%;"></div>
+            </div>
+            <div class="imm-progress-meta">
+              <span>${pct}% complete</span>
+              <span>${comp}</span>
             </div>
           </div>
-        </div>`;
-      const dosesRequiredMap={};
-      scheduleRaw.forEach(r=>{
-        if(r.vaccine_id && r.doses_required){dosesRequiredMap[r.vaccine_id]=r.doses_required;}
-        else if(r.vaccine_id && !dosesRequiredMap[r.vaccine_id]){dosesRequiredMap[r.vaccine_id]=r.doses_required||0;}
+        `;
+      }).join('');
+      
+      body.innerHTML = `<div class="imm-card-list">${items}</div>`;
+
+      // Attach export handlers
+      body.querySelectorAll('[data-export]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const childId = btn.getAttribute('data-export');
+          exportChildCard(childId, btn);
+        });
       });
-      fetchJSON(api.immun+'?recent_vaccinations=1&limit=60').then(j=>{
-        const body=panel.querySelector('#immRecentTable tbody');
-        if(!j.success){body.innerHTML='<tr><td colspan="6" class="text-danger text-center py-4">Load failed.</td></tr>';return;}
-        const recs=j.recent_vaccinations||[];
-        if(!recs.length){body.innerHTML='<tr><td colspan="6" class="text-muted text-center py-4">No vaccination records yet.</td></tr>';return;}
-        body.innerHTML=recs.map(r=>{
-          const doseOrd=ordinal(r.dose_number)+' Dose';
-            const dosesReq=dosesRequiredMap[r.vaccine_id]||null;
-          const completed=dosesReq && r.dose_number>=dosesReq;
-          let nextHtml='—';
-          if(completed){nextHtml=`<span class="imm-pill-completed">Completed</span>`;}
-          else if(r.next_dose_due_date){nextHtml=`<span class="imm-pill-date">${formatShortDate(r.next_dose_due_date)}</span>`;}
-          return `<tr>
-            <td>${escapeHtml(r.child_name||'')}</td>
-            <td>${escapeHtml(r.vaccine_code||'')}</td>
-            <td>${doseOrd}</td>
-            <td>${r.vaccination_date?formatShortDate(r.vaccination_date):'—'}</td>
-            <td>${escapeHtml(r.batch_lot_number||'')}</td>
-            <td>${nextHtml}</td>
-          </tr>`;
-        }).join('');
-      }).catch(err=>{
-        const body=panel.querySelector('#immRecentTable tbody');
-        body.innerHTML=`<tr><td colspan="6" class="text-danger text-center py-4">Error: ${escapeHtml(err.message)}</td></tr>`;
-      });
-      function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
-      function formatShortDate(d){
-        const dt=new Date(d+'T00:00:00');if(isNaN(dt))return escapeHtml(d);
-        return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+    }).catch(err => {
+      body.innerHTML = `<div class="text-danger small py-3">Error: ${escapeHtml(err.message)}</div>`;
+      pagination.style.display = 'none';
+    });
+  }
+
+  function updatePaginationControls(data) {
+    const { current_page, total_pages, total_count, page_size } = data;
+    
+    prevBtn.disabled = current_page <= 1;
+    nextBtn.disabled = current_page >= total_pages;
+    
+    const startItem = total_count > 0 ? ((current_page - 1) * page_size) + 1 : 0;
+    const endItem = Math.min(current_page * page_size, total_count);
+    
+    pageInfo.textContent = `${startItem}-${endItem} of ${total_count}`;
+    pageSizeSelect.value = page_size;
+  }
+
+  function formatShortDate(d){
+    const dt=new Date(d+'T00:00:00'); if(isNaN(dt)) return escapeHtml(d);
+    return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+  }
+
+  // Initial load
+  loadCards();
+
+  function exportChildCard(childId, btn){
+    // Visual feedback
+    const old = btn.innerHTML;
+    btn.disabled=true;
+    btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Preparing';
+
+    fetchJSON(api.immun+'?card=1&child_id='+childId).then(j=>{
+      if(!j.success) throw new Error('Load card failed');
+      openPrintWindow(j);
+    }).catch(err=>{
+      alert('Export failed: '+err.message);
+    }).finally(()=>{
+      btn.disabled=false;
+      btn.innerHTML=old;
+    });
+  }
+
+  function openPrintWindow(data){
+    const child = data.child;
+    const vaccines = data.vaccines || [];
+    const win = window.open('', '_blank');
+    const rows = vaccines.map(v=>{
+      const dosesReq = v.doses_required;
+      const given = v.doses || [];
+      // Build dose cells
+      let cells='';
+      for(let i=1;i<=dosesReq;i++){
+        const dRec = given.find(g=>g.dose_number==i);
+        cells += `<td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">
+          ${dRec ? '<strong>'+formatShortDate(dRec.vaccination_date)+'</strong>' : '<span style="color:#999;">—</span>'}
+        </td>`;
       }
+      return `
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;font-weight:600;">${escapeHtml(v.vaccine_code)}</td>
+          <td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">${escapeHtml(v.vaccine_name)}</td>
+          ${cells}
+        </tr>
+      `;
+    }).join('');
+    const totalVac = vaccines.length;
+    const completed = vaccines.reduce((a,v)=>{
+      const have = (v.doses||[]).length;
+      return a + (have >= v.doses_required ? 1 : 0);
+    },0);
+    const pct = totalVac ? Math.round((completed/totalVac)*100) : 0;
+
+    win.document.write(`
+      <html>
+        <head>
+          <title>Immunization Card - ${escapeHtml(child.full_name)}</title>
+          <meta charset="utf-8">
+          <style>
+            body{font-family:Arial,Helvetica,sans-serif;margin:30px;color:#222;}
+            h1{font-size:20px;margin:0 0 4px;}
+            .sub{font-size:12px;color:#555;margin:0 0 18px;}
+            table{border-collapse:collapse;width:100%;margin-top:10px;}
+            th{background:#f1f4f6;padding:6px 8px;border:1px solid #ccc;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+            .meta{font-size:12px;margin-top:4px;}
+            .progress-bar{height:10px;background:#e3ebe8;border-radius:6px;overflow:hidden;margin:10px 0;width:260px;}
+            .progress-fill{height:100%;background:linear-gradient(90deg,#02784a,#00a866);width:${pct}%;}
+            @media print {
+              .no-print{display:none;}
+              body{margin:10mm;}
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="text-align:right;margin-bottom:10px;">
+            <button onclick="window.print();" style="padding:6px 12px;font-size:12px;">Print / Save PDF</button>
+          </div>
+          <h1>Immunization Card</h1>
+          <p class="sub">
+            <strong>Child:</strong> ${escapeHtml(child.full_name)}<br>
+            <strong>Sex:</strong> ${escapeHtml(child.sex)} &nbsp; | &nbsp;
+            <strong>DOB:</strong> ${child.birth_date ? formatShortDate(child.birth_date) : '—'}
+          </p>
+          <div class="meta">
+            <strong>Completion:</strong> ${completed}/${totalVac} vaccines (${pct}%)
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;"></div></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:70px;">Code</th>
+                <th>Vaccine Name</th>
+                <th colspan="10">Doses (Date Given)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+          <p style="font-size:10px;color:#777;margin-top:25px;">Generated on ${new Date().toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'full',timeStyle:'short'})}</p>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  }
+}
+
+// REPLACE the entire loadParentNotifPanel() function with this email-only version
+
+function loadParentNotifPanel(){
+  const panel = document.getElementById('immPanel');
+  panel.innerHTML = `
+    <div class="imm-card" id="pnWrap">
+      <h6 class="mb-2">Parent Notification System</h6>
+      <div class="imm-small-muted mb-3">Send reminders and alerts to parents/guardians (Email only)</div>
+      <form id="pnForm" class="mb-4" autocomplete="off">
+        <div class="row g-3">
+
+          <div class="col-md-4">
+            <label style="font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Notification Type</label>
+            <select name="notification_type" id="pnType" class="form-select form-select-sm">
+              <option value="vaccine_overdue">Overdue Vaccination Alert</option>
+              <option value="vaccine_due">Upcoming Vaccination Reminder</option>
+              <option value="general">Custom / General Notice</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label style="font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Recipients Scope</label>
+            <select name="notification_mode" id="pnMode" class="form-select form-select-sm">
+              <option value="overdue">All Overdue (auto)</option>
+              <option value="due_soon">All Due Soon (auto)</option>
+              <option value="selected">Select Children</option>
+              <option value="custom">Custom (manual children)</option>
+            </select>
+          </div>
+
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="w-100">
+              <div class="imm-small-muted">Delivery: Email (automatic)</div>
+              <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="pnPreviewBtn" style="font-size:.6rem;">
+                <i class="bi bi-eye me-1"></i>Preview
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12" id="pnSelectArea" style="display:none;">
+            <label style="font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Select Children (Ctrl+Click for multiple)</label>
+            <select multiple size="6" class="form-select" id="pnChildSelect"></select>
+            <div class="imm-small-muted mt-1">Filter:
+              <button type="button" class="btn btn-sm btn-outline-success" id="fltOver" style="font-size:.55rem;">Overdue</button>
+              <button type="button" class="btn btn-sm btn-outline-warning" id="fltSoon" style="font-size:.55rem;">Due Soon</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="fltAll" style="font-size:.55rem;">All</button>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label style="font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Message</label>
+            <textarea name="message_template" id="pnMessage" rows="4" class="form-control" style="font-size:.7rem;" required></textarea>
+            <div class="d-flex justify-content-between mt-1" style="font-size:.55rem;font-weight:600;">
+              <div>Tokens: [[CHILD]] [[VACCINE]] [[DOSE]] [[DUE_DATE]] [[ITEMS]]</div>
+              <div id="pnChar" class="text-muted">0 chars</div>
+            </div>
+          </div>
+
+          <div class="col-12 d-flex align-items-center gap-3">
+            <button class="btn btn-success btn-sm" id="pnSendBtn">
+              <i class="bi bi-bell me-1"></i> Send Notifications
+            </button>
+            <span id="pnStatus" style="font-size:.6rem;font-weight:600;"></span>
+          </div>
+        </div>
+        <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+        <input type="hidden" name="action" value="bulk_send">
+        <input type="hidden" name="method_email" value="1">
+      </form>
+
+      <div style="font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.5rem;">Recent Notifications</div>
+      <div id="pnRecent" class="imm-scroll" style="max-height:300px;">
+        <div class="text-muted" style="font-size:.62rem;">Loading recent batches...</div>
+      </div>
+
+      <hr class="my-4">
+      <div style="font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.5rem;">Raw Notification Log (Latest 120)</div>
+      <div class="imm-scroll" style="max-height:260px;">
+        <table class="imm-table" id="pnRawTable">
+          <thead>
+            <tr><th>Created</th><th>Parent</th><th>Child</th><th>Type</th><th>Title</th><th>Method</th><th>Status</th></tr>
+          </thead>
+          <tbody><tr><td colspan="7" class="text-center text-muted py-3">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const defaultTemplates = {
+    vaccine_overdue: "Reminder: [[CHILD]] has overdue vaccination(s).\n\n[[ITEMS]]\n\nPlease visit the barangay health center. - BHW",
+    vaccine_due: "Reminder: [[CHILD]] has upcoming vaccination(s).\n\n[[ITEMS]]\n\nPlease visit the barangay health center. - BHW",
+    general: "Barangay Health Advisory for [[CHILD]]:\n\n[[ITEMS]]\n\nPlease visit the health center. - BHW"
+  };
+  const msgEl = document.getElementById('pnMessage');
+  const typeEl = document.getElementById('pnType');
+  const modeEl = document.getElementById('pnMode');
+  const charEl = document.getElementById('pnChar');
+  const selectArea = document.getElementById('pnSelectArea');
+  const childSel = document.getElementById('pnChildSelect');
+  const statusEl = document.getElementById('pnStatus');
+  const sendBtn = document.getElementById('pnSendBtn');
+  const previewBtn = document.getElementById('pnPreviewBtn');
+
+  function applyTemplate(){
+    if(!msgEl.value.trim()){
+      msgEl.value = defaultTemplates[typeEl.value] || '';
+    }
+    updateChar();
+  }
+  function updateChar(){ charEl.textContent = msgEl.value.length + ' chars'; }
+
+  typeEl.addEventListener('change',applyTemplate);
+  msgEl.addEventListener('input',updateChar);
+  applyTemplate();
+
+  modeEl.addEventListener('change',()=>{ selectArea.style.display = (modeEl.value==='selected'||modeEl.value==='custom')?'block':'none'; });
+
+  Promise.allSettled([
+    fetchJSON(api.notif+'?candidates=1'),
+    fetchJSON(api.notif+'?recent_summary=1'),
+    fetchJSON(api.notif+'?list=1')
+  ]).then(([candRes,batchRes,listRes])=>{
+    const cand = candRes.value?.candidates || {overdue:[],dueSoon:[]};
+    const overdue = cand.overdue;
+    const dueSoon = cand.dueSoon;
+    buildChildSelect(overdue,dueSoon);
+
+    buildRecentBatches(batchRes.value?.batches || []);
+    buildRawTable(listRes.value?.notifications || []);
+  }).catch(()=>{});
+
+  function buildChildSelect(overList,soonList){
+    const all=[...overList.map(r=>({...r,_tag:'overdue'})), ...soonList.map(r=>({...r,_tag:'dueSoon'}))];
+    all.sort((a,b)=>a.child_name.localeCompare(b.child_name));
+    childSel.innerHTML = all.map(r=>{
+      const label = `${r.child_name} • ${r.vaccine_code||''} ${r.dose_number?('Dose '+r.dose_number):''} • ${r._tag==='overdue'?'Overdue':'DueSoon'}`;
+      return `<option value="${r.child_id}" data-tag="${r._tag}">${escapeHtml(label)}</option>`;
+    }).join('');
+    document.getElementById('fltOver').onclick=()=>filterChild('overdue');
+    document.getElementById('fltSoon').onclick=()=>filterChild('dueSoon');
+    document.getElementById('fltAll').onclick=()=>filterChild('all');
+    function filterChild(tag){
+      [...childSel.options].forEach(o=>{ o.classList.toggle('d-none', tag!=='all' && o.dataset.tag!==tag); });
+    }
+  }
+
+  function buildRecentBatches(batches){
+    const wrap=document.getElementById('pnRecent');
+    if(!batches.length){
+      wrap.innerHTML='<div class="text-muted" style="font-size:.62rem;">No recent notification batches.</div>';
+      return;
+    }
+    wrap.innerHTML = batches.map(b=>{
+      const span=(t,c)=>`<span style="background:${c};color:#fff;font-size:.48rem;font-weight:700;padding:3px 6px;border-radius:8px;margin-right:4px;">${t}</span>`;
+      return `<div style="border:1px solid #e1e7ea;padding:.55rem .7rem;border-radius:12px;margin-bottom:.55rem;font-size:.6rem;">
+        <div style="font-weight:700;">Batch ${escapeHtml(b.batch_key||'')}</div>
+        <div class="mt-1">
+          ${span('Total '+b.total_notifs, '#0d7c4e')}
+          ${b.overdue_count>0? span('Overdue '+b.overdue_count,'#c72d20'):''}
+          ${b.due_count>0? span('Due '+b.due_count,'#d48a06'):''}
+          ${b.email_count>0? span('Email '+b.email_count,'#124f9c'):''}
+        </div>
+        <div class="text-muted mt-1" style="font-size:.5rem;">${escapeHtml(b.started_at||'')} → ${escapeHtml(b.ended_at||'')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function buildRawTable(list){
+    const body=document.querySelector('#pnRawTable tbody');
+    if(!list.length){ body.innerHTML='<tr><td colspan="7" class="text-center text-muted py-3">No notifications.</td></tr>'; return; }
+    body.innerHTML = list.slice(0,120).map(n=>{
+      const stBadge = n.is_read
+        ? '<span class="imm-badge imm-badge-ok">Read</span>'
+        : '<span class="imm-badge imm-badge-duesoon">Unread</span>';
+      const methods = (n.method_email?'Email':'');
+      return `<tr>
+        <td>${escapeHtml(n.created_at||'')}</td>
+        <td>${escapeHtml(n.parent_username||'')}</td>
+        <td>${escapeHtml(n.child_name||'')}</td>
+        <td>${escapeHtml(n.notification_type||'')}</td>
+        <td>${escapeHtml(n.title||'')}</td>
+        <td>${escapeHtml(methods||'-')}</td>
+        <td>${stBadge}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function setBusy(on,label){
+    if(on){
+      sendBtn.disabled=true;
+      sendBtn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>'+ (label||'Sending');
+    } else {
+      sendBtn.disabled=false;
+      sendBtn.innerHTML='<i class="bi bi-bell me-1"></i> Send Notifications';
+    }
+  }
+  function setPreviewBusy(on){
+    if(on){
+      previewBtn.disabled=true;
+      previewBtn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Preview';
+    } else {
+      previewBtn.disabled=false;
+      previewBtn.innerHTML='<i class="bi bi-eye me-1"></i>Preview';
+    }
+  }
+
+  // Use parseJSONSafe here
+  previewBtn.addEventListener('click',()=>{
+    statusEl.textContent='';
+    const fd=new FormData(document.getElementById('pnForm'));
+    fd.set('method_email','1');
+    fd.set('preview','1');
+    adjustForm(fd);
+    setPreviewBusy(true);
+    fetch(api.notif,{method:'POST',body:fd})
+      .then(parseJSONSafe)
+      .then(j=>{
+        if(!j.success) throw new Error(j.error||'Preview failed');
+        const sample=(j.sample||[]).map(s=>`<div style="border:1px solid #e1e7ea;padding:.4rem .6rem;font-size:.6rem;border-radius:8px;margin-bottom:.4rem;"><strong>#${s.parent_user_id}</strong>: ${escapeHtml(s.message)}</div>`).join('');
+        statusEl.innerHTML = `<span class="text-success">Preview OK (${j.targets_count} targets)</span>${sample?'<div class="mt-2">'+sample+'</div>':''}`;
+      })
+      .catch(err=>{ statusEl.innerHTML='<span class="text-danger">'+escapeHtml(err.message)+'</span>'; })
+      .finally(()=>setPreviewBusy(false));
+  });
+
+  // Use parseJSONSafe here
+  document.getElementById('pnForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    statusEl.textContent='';
+    const fd=new FormData(e.target);
+    fd.set('method_email','1');
+    adjustForm(fd);
+    setBusy(true,'Sending');
+    fetch(api.notif,{method:'POST',body:fd})
+      .then(parseJSONSafe)
+      .then(j=>{
+        if(!j.success) throw new Error(j.error||'Send failed');
+        const sent = (j.emails_sent!=null) ? ` • Emails sent ${j.emails_sent}` : '';
+        statusEl.innerHTML = `<span class="text-success">Created ${j.created} (skipped ${j.skipped}) • Batch ${j.batch_key}${sent}</span>`;
+        return Promise.all([ fetchJSON(api.notif+'?recent_summary=1'), fetchJSON(api.notif+'?list=1') ]);
+      })
+      .then(([b,l])=>{
+        buildRecentBatches(b.batches||[]);
+        buildRawTable(l.notifications||[]);
+      })
+      .catch(err=>{
+        statusEl.innerHTML='<span class="text-danger">'+escapeHtml(err.message)+'</span>';
+      })
+      .finally(()=>setBusy(false));
+  });
+
+  function adjustForm(fd){
+    const mode=fd.get('notification_mode');
+    if(mode==='selected' || mode==='custom'){
+      const selected=[...childSel.options].filter(o=>o.selected && !o.classList.contains('d-none')).map(o=>o.value);
+      selected.forEach(cid=>fd.append('child_ids[]',cid));
+    }
+  }
+}
+
+// REPLACE the whole loadRecordsPanel() function inside renderVaccinationEntry with this version
+function loadRecordsPanel(){
+  const panel=document.getElementById('immPanel');
+  panel.innerHTML=`
+    <div class="imm-card">
+      <div class="imm-recent-wrap">
+        <h6>Recent Vaccination Records</h6>
+        <div class="imm-recent-sub">All administered vaccines (latest first)</div>
+        
+        <!-- Search and Controls -->
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
+          <div class="d-flex align-items-center gap-2">
+            <input type="text" id="recordsSearch" class="form-control form-control-sm" 
+                   placeholder="Search child, vaccine, batch..." style="width:220px;font-size:.7rem;">
+            <button type="button" id="recordsSearchBtn" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button type="button" id="recordsClearBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <select id="recordsPageSize" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
+              <option value="20">20 per page</option>
+              <option value="50">50 per page</option>
+              <option value="100">100 per page</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="imm-scroll" style="max-height:430px;">
+          <table class="imm-table" id="immRecentTable">
+            <thead>
+              <tr>
+                <th>Child Name</th>
+                <th>Vaccine</th>
+                <th>Dose</th>
+                <th>Date Given</th>
+                <th>Batch No.</th>
+                <th>Expiry</th>
+                <th>Next Dose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="7" class="text-muted py-4 text-center">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <div class="imm-small-muted" id="recordsInfo">Showing records...</div>
+          <nav>
+            <ul class="pagination pagination-sm mb-0" id="recordsPagination">
+              <!-- Pagination buttons will be inserted here -->
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>`;
+
+  const dosesRequiredMap={};
+  scheduleRaw.forEach(r=>{
+    if(r.vaccine_id && r.doses_required){dosesRequiredMap[r.vaccine_id]=r.doses_required;}
+    else if(r.vaccine_id && !dosesRequiredMap[r.vaccine_id]){dosesRequiredMap[r.vaccine_id]=r.doses_required||0;}
+  });
+
+  // Pagination state
+  let currentPage = 1;
+  let pageSize = 20;
+  let searchQuery = '';
+  let allRecords = [];
+  let filteredRecords = [];
+
+  // Load initial data
+  loadRecords();
+
+  // Event listeners
+  document.getElementById('recordsSearchBtn').addEventListener('click', performSearch);
+  document.getElementById('recordsClearBtn').addEventListener('click', clearSearch);
+  document.getElementById('recordsSearch').addEventListener('keypress', e => {
+    if (e.key === 'Enter') performSearch();
+  });
+  document.getElementById('recordsPageSize').addEventListener('change', e => {
+    pageSize = parseInt(e.target.value);
+    currentPage = 1;
+    renderTable();
+  });
+
+  function loadRecords() {
+    const body = panel.querySelector('#immRecentTable tbody');
+    body.innerHTML = '<tr><td colspan="7" class="text-muted py-4 text-center">Loading...</td></tr>';
+    
+    fetchJSON(api.immun+'?recent_vaccinations=1&limit=500').then(j=>{
+      if(!j.success){
+        body.innerHTML='<tr><td colspan="7" class="text-danger text-center py-4">Load failed.</td></tr>';
+        return;
+      }
+      allRecords = j.recent_vaccinations || [];
+      filteredRecords = [...allRecords];
+      currentPage = 1;
+      renderTable();
+      updateSearchSummary();
+    }).catch(err=>{
+      body.innerHTML=`<tr><td colspan="7" class="text-danger text-center py-4">Error: ${escapeHtml(err.message)}</td></tr>`;
+    });
+  }
+
+  function performSearch() {
+    searchQuery = document.getElementById('recordsSearch').value.trim().toLowerCase();
+    if (searchQuery === '') {
+      filteredRecords = [...allRecords];
+    } else {
+      filteredRecords = allRecords.filter(r => {
+        return (r.child_name || '').toLowerCase().includes(searchQuery) ||
+               (r.vaccine_code || '').toLowerCase().includes(searchQuery) ||
+               (r.vaccine_name || '').toLowerCase().includes(searchQuery) ||
+               (r.batch_lot_number || '').toLowerCase().includes(searchQuery);
+      });
+    }
+    currentPage = 1;
+    renderTable();
+    updateSearchSummary();
+  }
+
+  function clearSearch() {
+    document.getElementById('recordsSearch').value = '';
+    searchQuery = '';
+    filteredRecords = [...allRecords];
+    currentPage = 1;
+    renderTable();
+    updateSearchSummary();
+  }
+
+  function updateSearchSummary() {
+    const summaryEl = panel.querySelector('.imm-recent-sub');
+    if (searchQuery) {
+      const resultCount = filteredRecords.length;
+      summaryEl.innerHTML = `Found ${resultCount} record${resultCount !== 1 ? 's' : ''} matching "<strong>${escapeHtml(searchQuery)}</strong>"`;
+      summaryEl.className = 'imm-recent-sub text-info';
+    } else {
+      summaryEl.innerHTML = 'All administered vaccines (latest first)';
+      summaryEl.className = 'imm-recent-sub';
+    }
+  }
+
+  function renderTable() {
+    const body = panel.querySelector('#immRecentTable tbody');
+    const infoEl = document.getElementById('recordsInfo');
+    const paginationEl = document.getElementById('recordsPagination');
+
+    if (!filteredRecords.length) {
+      body.innerHTML = '<tr><td colspan="7" class="text-muted text-center py-4">No vaccination records found.</td></tr>';
+      infoEl.textContent = 'No records found';
+      paginationEl.innerHTML = '';
+      return;
+    }
+
+    // Calculate pagination
+    const totalRecords = filteredRecords.length;
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalRecords);
+    const pageRecords = filteredRecords.slice(startIndex, endIndex);
+
+    // Render table rows
+    body.innerHTML = pageRecords.map(r => {
+      const doseOrd = ordinal(r.dose_number) + ' Dose';
+      const dosesReq = dosesRequiredMap[r.vaccine_id] || null;
+      const completed = dosesReq && r.dose_number >= dosesReq;
+      let nextHtml = '—';
+      if (completed) {
+        nextHtml = `<span class="imm-pill-completed">Completed</span>`;
+      } else if (r.next_dose_due_date) {
+        nextHtml = `<span class="imm-pill-date">${formatShortDate(r.next_dose_due_date)}</span>`;
+      }
+
+      const expiryHtml = r.vaccine_expiry_date ? formatShortDate(r.vaccine_expiry_date) : '—';
+
+      return `<tr>
+        <td>${escapeHtml(r.child_name||'')}</td>
+        <td>${escapeHtml(r.vaccine_code||'')}</td>
+        <td>${doseOrd}</td>
+        <td>${r.vaccination_date?formatShortDate(r.vaccination_date):'—'}</td>
+        <td>${escapeHtml(r.batch_lot_number||'')}</td>
+        <td>${expiryHtml}</td>
+        <td>${nextHtml}</td>
+      </tr>`;
+    }).join('');
+
+    // Update info text
+    infoEl.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalRecords} records`;
+
+    // Render pagination
+    renderPagination(currentPage, totalPages, paginationEl);
+  }
+
+  function renderPagination(page, totalPages, container) {
+    if (totalPages <= 1) {
+      container.innerHTML = '';
+      return;
+    }
+
+    let html = '';
+    
+    // Previous button
+    html += `<li class="page-item ${page <= 1 ? 'disabled' : ''}">
+      <a class="page-link" href="#" data-page="${page - 1}" style="font-size:.65rem;">Previous</a>
+    </li>`;
+
+    // Page numbers (show max 5 pages around current)
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+
+    if (startPage > 1) {
+      html += `<li class="page-item"><a class="page-link" href="#" data-page="1" style="font-size:.65rem;">1</a></li>`;
+      if (startPage > 2) {
+        html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      html += `<li class="page-item ${i === page ? 'active' : ''}">
+        <a class="page-link" href="#" data-page="${i}" style="font-size:.65rem;">${i}</a>
+      </li>`;
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+      }
+      html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}" style="font-size:.65rem;">${totalPages}</a></li>`;
+    }
+
+    // Next button
+    html += `<li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+      <a class="page-link" href="#" data-page="${page + 1}" style="font-size:.65rem;">Next</a>
+    </li>`;
+
+    container.innerHTML = html;
+
+    // Add click listeners
+    container.querySelectorAll('a.page-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const newPage = parseInt(e.target.dataset.page);
+        if (newPage && newPage !== currentPage && newPage >= 1 && newPage <= totalPages) {
+          currentPage = newPage;
+          renderTable();
+        }
+      });
+    });
+  }
+
+  function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+  function formatShortDate(d){
+    const dt=new Date(d+'T00:00:00');if(isNaN(dt))return escapeHtml(d);
+    return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+  }
+}
+
+   // NEW: Registered Children panel
+    function loadChildrenPanel(){
+      const panel=document.getElementById('immPanel');
+      panel.innerHTML = `
+        <div class="imm-card">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 style="margin:0;font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Registered Children</h6>
+              <div class="imm-small-muted">All children enrolled in the immunization program</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div class="position-relative">
+                <i class="bi bi-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#6a7b82;font-size:.8rem;"></i>
+                <input type="text" id="childSearch" class="form-control form-control-sm" placeholder="Search child / parent / contact" style="padding-left:28px;min-width:240px;font-size:.7rem;">
+              </div>
+              <select id="childPageSize" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="imm-scroll mt-2" style="max-height:460px;">
+            <table class="imm-table" id="childTable">
+              <thead>
+                <tr>
+                  <th>Child Name</th>
+                  <th>Age</th>
+                  <th>Gender</th>
+                  <th>Parent/Guardian</th>
+                  <th>Contact Number</th>
+                  <th>Address</th>
+                  <th>Registered Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="imm-small-muted" id="childInfo">Loading...</div>
+            <nav><ul class="pagination pagination-sm mb-0" id="childPager"></ul></nav>
+          </div>
+        </div>
+      `;
+
+      const tbody = panel.querySelector('#childTable tbody');
+      const info  = panel.querySelector('#childInfo');
+      const pager = panel.querySelector('#childPager');
+      const searchEl = panel.querySelector('#childSearch');
+      const pageSizeSel = panel.querySelector('#childPageSize');
+
+      let all=[], filtered=[], page=1, pageSize=+pageSizeSel.value;
+
+      fetchJSON(api.immun+'?children=1').then(j=>{
+        if(!j.success){ throw new Error('Load failed'); }
+        all = (j.children||[]).map(r=>{
+          const addr = buildAddress(r);
+          const reg  = r.created_at || '';
+          return {...r, _address: addr, _created: reg};
+        });
+        filtered=[...all];
+        page=1;
+        render();
+      }).catch(err=>{
+        tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center py-4">${escapeHtml(err.message)}</td></tr>`;
+        pager.innerHTML='';
+        info.textContent='Error';
+      });
+
+      function buildAddress(r){
+        const parts=[];
+        if(r.purok_name) parts.push(r.purok_name);
+        if(r.barangay) parts.push('Brgy. '+r.barangay);
+        if(r.address_details) parts.push(r.address_details);
+        return parts.join(', ');
+      }
+      function fmtDate(d){
+        if(!d) return '—';
+        const dt = new Date((d.replace(' ','T'))+'Z'); // tolerate timestamp
+        // Fallback if invalid
+        if(isNaN(dt)) {
+          const dt2 = new Date(d+'T00:00:00');
+          if(isNaN(dt2)) return escapeHtml(d);
+          return dt2.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+        }
+        return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+      }
+      function fmtAge(m){
+        const n=parseInt(m,10); if(isNaN(n)) return '—';
+        return n+' month'+(n===1?'':'s');
+      }
+
+      function render(){
+        if(!filtered.length){
+          tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No registered children.</td></tr>`;
+          pager.innerHTML='';
+          info.textContent='0 results';
+          return;
+        }
+        const total = filtered.length;
+        const totalPages = Math.ceil(total / pageSize);
+        if(page>totalPages) page=totalPages;
+
+        const start = (page-1)*pageSize;
+        const end   = Math.min(start+pageSize, total);
+        const slice = filtered.slice(start, end);
+
+        tbody.innerHTML = slice.map(r=>`
+          <tr>
+            <td>${escapeHtml(r.full_name||'')}</td>
+            <td>${fmtAge(r.age_months)}</td>
+            <td>${escapeHtml((r.sex||'').charAt(0).toUpperCase()+ (r.sex||'').slice(1))}</td>
+            <td>${escapeHtml(r.mother_name||'')}</td>
+            <td>${escapeHtml(r.mother_contact||'')}</td>
+            <td>${escapeHtml(r._address||'')}</td>
+            <td>${fmtDate(r._created)}</td>
+          </tr>
+        `).join('');
+
+        info.textContent = `Showing ${start+1}-${end} of ${total}`;
+        renderPager(totalPages);
+      }
+
+      function renderPager(totalPages){
+        if(totalPages<=1){ pager.innerHTML=''; return; }
+        let html = `
+          <li class="page-item ${page<=1?'disabled':''}">
+            <a class="page-link" href="#" data-p="${page-1}" style="font-size:.65rem;">Previous</a>
+          </li>`;
+        const start = Math.max(1, page-2);
+        const end   = Math.min(totalPages, page+2);
+        if(start>1){
+          html += `<li class="page-item"><a class="page-link" href="#" data-p="1" style="font-size:.65rem;">1</a></li>`;
+          if(start>2) html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+        }
+        for(let i=start;i<=end;i++){
+          html += `<li class="page-item ${i===page?'active':''}">
+            <a class="page-link" href="#" data-p="${i}" style="font-size:.65rem;">${i}</a>
+          </li>`;
+        }
+        if(end<totalPages){
+          if(end<totalPages-1) html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+          html += `<li class="page-item"><a class="page-link" href="#" data-p="${totalPages}" style="font-size:.65rem;">${totalPages}</a></li>`;
+        }
+        html += `
+          <li class="page-item ${page>=totalPages?'disabled':''}">
+            <a class="page-link" href="#" data-p="${page+1}" style="font-size:.65rem;">Next</a>
+          </li>`;
+        pager.innerHTML = html;
+        pager.querySelectorAll('a.page-link').forEach(a=>{
+          a.addEventListener('click',e=>{
+            e.preventDefault();
+            const p = parseInt(a.dataset.p,10);
+            if(p && p!==page){ page=p; render(); }
+          });
+        });
+      }
+
+      // Search + page size
+      let timer=null;
+      searchEl.addEventListener('input', ()=>{
+        clearTimeout(timer);
+        timer = setTimeout(()=>{
+          const q = (searchEl.value||'').toLowerCase();
+          if(!q) filtered=[...all];
+          else {
+            filtered = all.filter(r=>{
+              const bag = [
+                r.full_name||'',
+                r.mother_name||'',
+                r.mother_contact||'',
+                r._address||'',
+              ].join(' ').toLowerCase();
+              return bag.includes(q);
+            });
+          }
+          page=1; render();
+        }, 200);
+      });
+      pageSizeSel.addEventListener('change', ()=>{
+        pageSize = parseInt(pageSizeSel.value,10)||20;
+        page=1; render();
+      });
     }
 
     function metricCard(label,value,sub,icon){
@@ -3266,6 +4761,2592 @@ function loadOverduePanel(){
 }
 
 
+/* ================== Parent Account Management Module (MODIFIED) ================== */
+function renderCreateParentAccounts(label){
+  showLoading(label);
+
+  Promise.allSettled([
+    fetchJSON(api.parent+'?list_parents=1'),
+    fetchJSON(api.parent+'?activity=1'),
+  ]).then(([parentsRes, activityRes])=>{
+    const parents = parentsRes.value?.parents || [];
+    const activity = activityRes.value?.activity || [];
+
+    const totalAccounts = parents.length;
+    const todayStr = new Date().toISOString().slice(0,10);
+    const activeToday = parents.filter(p=>{
+      const last = p.last_login_at || p.updated_at || p.created_at;
+      return last && last.startsWith(todayStr);
+    }).length;
+    const totalChildrenLinked = parents.reduce((a,p)=> a + (parseInt(p.children_count)||0), 0);
+    const ymNow = todayStr.slice(0,7);
+    const newThisMonth = parents.filter(p=> (p.created_at||'').startsWith(ymNow)).length;
+
+    moduleContent.innerHTML = `
+      <style>
+        .pa-form-section-title{font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#485b62;margin:1.15rem 0 .65rem;}
+        #modalParentCreate .modal-content{border-radius:26px;box-shadow:0 20px 55px -15px rgba(0,0,0,.35),0 8px 28px -10px rgba(0,0,0,.3);border:1px solid #e6ecef;}
+        #modalParentCreate .modal-header{border-bottom:1px solid #e2e9ed;background:linear-gradient(120deg,#f6faf9,#edf3f5);border-top-left-radius:inherit;border-top-right-radius:inherit;padding:1.25rem 1.55rem .95rem;}
+        #modalParentCreate .modal-title{font-size:1.02rem;font-weight:800;color:#11332c;}
+        .pa-create-sub{font-size:.68rem;font-weight:600;color:#5a6a70;margin:.3rem 0 0;}
+        #modalParentCreate .modal-body{padding:1.25rem 1.55rem 1.6rem;max-height:calc(100vh - 210px);overflow:auto;}
+        #modalParentCreate .modal-footer{border-top:1px solid #e2e9ed;padding:1rem 1.55rem;background:#f9fbfc;border-bottom-left-radius:inherit;border-bottom-right-radius:inherit;}
+        .pa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem 1.9rem;}
+        .pa-grid label{font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .4rem;color:#2d4e53;display:block;}
+        .pa-grid .form-control,.pa-grid .form-select{font-size:.72rem;padding:.55rem .7rem;border-radius:.65rem;}
+        .pa-children-box{border:1px solid #d9e4e8;background:#f8fbfc;border-radius:16px;padding:1rem 1.05rem;}
+        .pa-child-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem 1rem;border:1px solid #dbe4e8;background:#ffffff;padding:.8rem .85rem;border-radius:12px;position:relative;}
+        .pa-child-row + .pa-child-row{margin-top:.75rem;}
+        .pa-child-row.existing-child{border-color:#9ddcc0;box-shadow:0 0 0 2px #d9f5e8;}
+        .pa-remove-child{position:absolute;top:6px;right:6px;background:#f5e1df;border:1px solid #e3bbb6;color:#b62a1d;font-size:.55rem;font-weight:700;padding:2px 7px;border-radius:18px;cursor:pointer;}
+        .pa-remove-child:hover{background:#f1d2cf;}
+        .pa-add-child-btn{font-size:.62rem;font-weight:700;border-radius:22px;padding:.5rem 1rem;}
+        .pa-cred-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.1rem 2.1rem;margin-top:.5rem;}
+        .pa-cred-grid label{font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .4rem;color:#2d4d53;display:block;}
+        .pa-cred-actions{display:flex;gap:.45rem;margin-top:.45rem;}
+        .pa-gen-btn{font-size:.58rem;font-weight:700;padding:.42rem .75rem;border-radius:10px;}
+        .pa-small-hint{font-size:.52rem;font-weight:600;color:#66747a;margin-top:.3rem;}
+        .pa-msg{font-size:.6rem;font-weight:600;margin-top:.7rem;display:none;}
+        .pa-msg.ok{color:#0d7c4e;}
+        .pa-msg.err{color:#b62419;}
+        @media (max-width:600px){
+          #modalParentCreate .modal-dialog{margin:0;max-width:100%;height:100%;display:flex;}
+          #modalParentCreate .modal-content{border-radius:0;flex:1;}
+          #modalParentCreate .modal-body{max-height:calc(100vh - 170px);}
+        }
+      </style>
+
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div>
+          <h2 class="imm-title" style="margin:0 0 .4rem;">Parent Account Management</h2>
+          <p class="imm-sub" style="margin:0;">Create & manage parent/guardian access</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-success btn-sm" id="paShowCreate"><i class="bi bi-plus-lg me-1"></i> New Parent / Guardian</button>
+        </div>
+      </div>
+
+      <div class="pa-metrics">
+        ${metricCard('Total Accounts', totalAccounts, 'Active parent accounts','bi-people')}
+        ${metricCard('Active Today', activeToday, 'Logged in today','bi-activity')}
+        ${metricCard('Children Linked', totalChildrenLinked, 'Total children','bi-link-45deg')}
+        ${metricCard('New This Month', newThisMonth, 'Recently added','bi-plus-circle')}
+      </div>
+
+      <div class="pa-section-card">
+        <h6>Parent Accounts</h6>
+        <div class="pa-search-row">
+          <input type="text" id="paSearch" class="form-control" placeholder="Search parent / username / child ...">
+          <div class="pa-filter-badge active" data-filter="all">All</div>
+            <div class="pa-filter-badge" data-filter="active">Active</div>
+          <div class="pa-filter-badge" data-filter="inactive">Inactive</div>
+        </div>
+        <div class="pa-table-wrap">
+          <table class="pa-table" id="paTable">
+            <thead>
+              <tr>
+                <th>Parent Name</th>
+                <th>Contact</th>
+                <th>Children</th>
+                <th>Username</th>
+                <th>Status</th>
+                <th>Last Active</th>
+                <th style="min-width:140px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>${buildParentRows(parents)}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pa-section-card">
+        <h6 class="mb-1">Recent Account Activity</h6>
+        <div class="text-muted" style="font-size:.62rem;margin-top:-2px;margin-bottom:.85rem;font-weight:600;">
+          Login history and account actions
+        </div>
+        <div class="row g-4">
+          <div class="col-lg-5">
+            <div style="font-size:.62rem;font-weight:700;letter-spacing:.06em;margin-bottom:.55rem;">Account Activity Summary</div>
+            <div id="paActivitySummaryWrap">
+              <div class="text-muted" style="font-size:.6rem;">Loading summary...</div>
+            </div>
+          </div>
+          <div class="col-lg-7">
+            <div style="font-size:.62rem;font-weight:700;letter-spacing:.06em;margin-bottom:.55rem;">Detailed Log</div>
+            
+            <div class="pa-activity-controls" id="paActivityControls" style="display:none;">
+              <div style="font-size:.55rem;color:#6a7b82;font-weight:600;">Activity History</div>
+              <div class="pa-activity-pagination" id="paActivityPagination">
+                <button id="paActivityPrevBtn" title="Previous page">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <div class="pa-activity-page-info" id="paActivityPageInfo"></div>
+                <button id="paActivityNextBtn" title="Next page">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+                <select id="paActivityPageSize" class="pa-activity-page-size" title="Items per page">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+            </div>
+            
+            <div id="paActivityFeedWrap">
+              <div class="text-muted" style="font-size:.6rem;">Loading recent activity...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parent Create Modal -->
+      <div class="modal fade" id="modalParentCreate" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div>
+                <h5 class="modal-title"><i class="bi bi-person-plus me-1"></i> Create Parent/Guardian Account</h5>
+                <p class="pa-create-sub mb-0">Register a new parent account with access credentials</p>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="paFullCreateForm" autocomplete="off">
+              <!-- DATALIST FOR CHILD AUTOCOMPLETE (ADDED) -->
+              <datalist id="paChildrenDatalist"></datalist>
+              <div class="modal-body">
+                <div class="pa-form-section-title">Parent/Guardian Information</div>
+                <div class="pa-grid">
+                  <div>
+                    <label>First Name *</label>
+                    <input name="first_name" class="form-control" required>
+                  </div>
+                  <div>
+                    <label>Last Name *</label>
+                    <input name="last_name" class="form-control" required>
+                  </div>
+                  <div>
+                    <label>Relationship to Child *</label>
+                    <select name="relationship_type" class="form-select" required>
+                      <option value="">Select relationship</option>
+                      <option value="mother">Mother</option>
+                      <option value="father">Father</option>
+                      <option value="guardian">Guardian</option>
+                      <option value="caregiver">Caregiver</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Contact Number</label>
+                    <input name="contact_number" class="form-control" placeholder="09XX-XXX-XXXX">
+                  </div>
+                  <div>
+                    <label>Email Address (Optional)</label>
+                    <input type="email" name="email" class="form-control" placeholder="email@example.com">
+                  </div>
+                  <!-- REPLACED Address WITH Parent Birthday -->
+                  <div>
+                    <label>Parent Birthday *</label>
+                    <input type="date" name="parent_birth_date" class="form-control" required>
+                  </div>
+                </div>
+
+                <div class="pa-form-section-title">Link Child to Account</div>
+                <div class="pa-children-box">
+                  <div id="paChildRows"></div>
+                  <button type="button" class="btn btn-outline-success pa-add-child-btn mt-3" id="paAddChildBtn">
+                    <i class="bi bi-plus-lg me-1"></i> Add Another Child
+                  </button>
+                  <div class="pa-small-hint mt-2">Type existing child name to auto-fill DOB & Gender. Click (clear) to revert to manual entry.</div>
+                </div>
+
+                <div class="pa-form-section-title">Access Credentials</div>
+                <div class="pa-cred-grid">
+                  <div>
+                    <label>Username *</label>
+                    <input name="username" id="paUsername" class="form-control" placeholder="Auto-generated username" required>
+                    <div class="pa-cred-actions">
+                      <button type="button" class="btn btn-outline-secondary pa-gen-btn" id="paGenUser">Generate</button>
+                    </div>
+                    <div class="pa-small-hint" id="paUserHint">Format: firstword + first & last letter of surname (e.g. Maria Marvic → mariamc)</div>
+                  </div>
+                  <div>
+                    <label>Password</label>
+                    <div class="d-flex align-items-center gap-2">
+                      <input name="password" id="paPassword" class="form-control" type="password" placeholder="Auto-generated if blank">
+                      <button type="button" class="btn btn-outline-secondary pa-gen-btn" id="paGenPass">Generate</button>
+                      <button type="button" class="btn btn-outline-secondary pa-gen-btn" id="paShowPass"><i class="bi bi-eye"></i></button>
+                    </div>
+                    <div class="pa-small-hint" id="paPassHint">If blank: LastName + birth month (e.g. Marvic02) or secure random if birthday missing.</div>
+                  </div>
+                </div>
+
+                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+                <input type="hidden" name="create_parent" value="1">
+                <div class="pa-msg ok" id="paMsgOk"><i class="bi bi-check-circle me-1"></i>Saved!</div>
+                <div class="pa-msg err" id="paMsgErr"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-success btn-sm" id="paSaveBtn"><i class="bi bi-check-circle me-1"></i>Create Account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Render old summary (aggregate notifications/activity)
+    renderActivitySummary(activity);
+    function renderActivitySummary(list){
+      const wrap=document.getElementById('paActivitySummaryWrap');
+      if(!wrap) return;
+      if(!list.length){
+        wrap.innerHTML='<div class="text-muted" style="font-size:.6rem;">No activity summary.</div>';
+        return;
+      }
+      wrap.innerHTML='<ul class="pa-activity-summary">'+
+        list.slice(0,60).map(r=>{
+          const last=r.last_notification_date
+            ? fmtDateTime(r.last_notification_date)
+            : '—';
+          const unread=parseInt(r.unread_notifications)||0;
+          return `<li class="pa-activity-summary-item">
+            <strong>${escapeHtml(r.username)}</strong>
+            <div class="pa-activity-summary-meta">
+              ${r.children_count||0} child link(s)
+            </div>
+            <div class="pa-activity-summary-meta">
+              Notifs: ${r.total_notifications||0} (Unread ${unread})
+              • Last: ${escapeHtml(last)}
+            </div>
+          </li>`;
+        }).join('')+'</ul>';
+    }
+    function fmtDateTime(iso){
+      if(!iso) return '';
+      const d=new Date(iso.replace(' ','T'));
+      if(isNaN(d)) return escapeHtml(iso);
+      return d.toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+    }
+
+    // Activity pagination state
+    let activityCurrentPage = 1;
+    let activityPageSize = 10;
+    let activityTotalPages = 0;
+
+    // Event listeners for activity pagination
+    const activityControls = document.getElementById('paActivityControls');
+    const activityPrevBtn = document.getElementById('paActivityPrevBtn');
+    const activityNextBtn = document.getElementById('paActivityNextBtn');
+    const activityPageSizeSelect = document.getElementById('paActivityPageSize');
+    const activityPageInfo = document.getElementById('paActivityPageInfo');
+
+    if (activityPrevBtn) {
+      activityPrevBtn.addEventListener('click', () => {
+        if (activityCurrentPage > 1) {
+          activityCurrentPage--;
+          loadActivityFeed();
+        }
+      });
+    }
+
+    if (activityNextBtn) {
+      activityNextBtn.addEventListener('click', () => {
+        if (activityCurrentPage < activityTotalPages) {
+          activityCurrentPage++;
+          loadActivityFeed();
+        }
+      });
+    }
+
+    if (activityPageSizeSelect) {
+      activityPageSizeSelect.addEventListener('change', (e) => {
+        activityPageSize = parseInt(e.target.value);
+        activityCurrentPage = 1;
+        loadActivityFeed();
+      });
+    }
+
+    function loadActivityFeed() {
+      const wrap = document.getElementById('paActivityFeedWrap');
+      if (!wrap) return;
+      
+      wrap.innerHTML = '<div class="text-muted" style="font-size:.6rem;">Loading recent activity...</div>';
+
+      const params = new URLSearchParams({
+        recent_activity: '1',
+        page: activityCurrentPage,
+        page_size: activityPageSize
+      });
+
+      fetchJSON(api.parent + '?' + params.toString())
+        .then(j => {
+          if (!j.success) {
+            wrap.innerHTML = '<div class="text-danger" style="font-size:.6rem;">Failed to load activity.</div>';
+            if (activityControls) activityControls.style.display = 'none';
+            return;
+          }
+
+          const logs = j.recent_activity || [];
+          activityTotalPages = j.total_pages || 0;
+
+          // Update pagination visibility and controls
+          if (activityTotalPages > 1) {
+            if (activityControls) activityControls.style.display = 'flex';
+            updateActivityPaginationControls(j);
+          } else {
+            if (activityControls) activityControls.style.display = 'none';
+          }
+
+          if (!logs.length) {
+            wrap.innerHTML = '<div class="text-muted" style="font-size:.6rem;">No recent activity.</div>';
+            return;
+          }
+
+          wrap.innerHTML = '<ul class="pa-activity-feed">' +
+            logs.map(l => {
+              const fullname = escapeHtml((l.first_name || '') + ' ' + (l.last_name || ''));
+              const desc = escapeHtml(l.activity_description || '');
+              const child = l.child_name ? ' • ' + escapeHtml(l.child_name) : '';
+              const when = relativeTime(l.created_at);
+              const ip = l.ip_address ? 'IP: ' + escapeHtml(l.ip_address) : '';
+              const badge = actionBadge(l.action_code);
+              return `<li class="pa-activity-item2">
+                <div class="pa-activity-top">
+                  <div>
+                    <span class="pa-activity-name">${fullname}</span>
+                    ${badge}
+                  </div>
+                  <span class="pa-activity-time">${when}</span>
+                </div>
+                <div class="pa-activity-desc">${desc}${child}</div>
+                <div class="pa-activity-ip">${ip}</div>
+              </li>`;
+            }).join('') + '</ul>';
+        })
+        .catch(() => {
+          wrap.innerHTML = '<div class="text-danger" style="font-size:.6rem;">Error loading activity.</div>';
+          if (activityControls) activityControls.style.display = 'none';
+        });
+    }
+
+    function updateActivityPaginationControls(data) {
+      const { current_page, total_pages, total_count, page_size } = data;
+      
+      if (activityPrevBtn) activityPrevBtn.disabled = current_page <= 1;
+      if (activityNextBtn) activityNextBtn.disabled = current_page >= total_pages;
+      
+      const startItem = total_count > 0 ? ((current_page - 1) * page_size) + 1 : 0;
+      const endItem = Math.min(current_page * page_size, total_count);
+      
+      if (activityPageInfo) activityPageInfo.textContent = `${startItem}-${endItem} of ${total_count}`;
+      if (activityPageSizeSelect) activityPageSizeSelect.value = page_size;
+    }
+
+    // Initial load
+    loadActivityFeed();
+
+    function relativeTime(iso){
+      if(!iso) return '';
+      const d=new Date(iso.replace(' ','T'));
+      if(isNaN(d)) return escapeHtml(iso);
+      const now=new Date();
+      const sec=Math.floor((now-d)/1000);
+      if(sec<60) return sec+'s ago';
+      const m=Math.floor(sec/60);
+      if(m<60) return m+'m ago';
+      const h=Math.floor(m/60);
+      if(h<24) return h+'h ago';
+      const day=Math.floor(h/24);
+      if(day===1) return 'Kahapon'; // Yesterday in Filipino
+      if(day<7) return day+'d ago';
+      const wk=Math.floor(day/7);
+      if(wk<5) return wk+'w ago';
+      const mo=Math.floor(day/30);
+      if(mo<12) return mo+'mo ago';
+      const yr=Math.floor(day/365);
+      return yr+'y ago';
+    }
+    function actionBadge(code){
+      const map={
+        login:'LOGIN',
+        view_card:'VIEW',
+        download_card:'DOWNLOAD',
+        view_record:'VIEW',
+        update_profile:'UPDATE',
+        create_account:'NEW',
+        deactivate_account:'OFF',
+        activate_account:'ON',
+        reset_password:'RESET'
+      };
+      const lbl=map[code] || code.toUpperCase().replace(/[^A-Z0-9]/g,'');
+      return `<span class="pa-activity-badge">${lbl}</span>`;
+    }
+
+    document.getElementById('paShowCreate').addEventListener('click',()=>{
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('modalParentCreate')).show();
+      initCreateFormLogic();
+    });
+
+    function initCreateFormLogic(){
+      const form = document.getElementById('paFullCreateForm');
+      if(form.dataset.bound==='1') return;
+      form.dataset.bound='1';
+
+      const childRowsBox = document.getElementById('paChildRows');
+      const addBtn = document.getElementById('paAddChildBtn');
+      const genUserBtn = document.getElementById('paGenUser');
+      const genPassBtn = document.getElementById('paGenPass');
+      const showPassBtn = document.getElementById('paShowPass');
+      const passInput = document.getElementById('paPassword');
+      const userInput = document.getElementById('paUsername');
+      const msgOk = document.getElementById('paMsgOk');
+      const msgErr = document.getElementById('paMsgErr');
+      const saveBtn = document.getElementById('paSaveBtn');
+
+      /* ===== Child autocomplete (NEW) ===== */
+      let childrenCache = null;
+      const childrenMap = {};
+      function fetchChildrenList(){
+        if(childrenCache!==null) return Promise.resolve(childrenCache);
+        return fetchJSON(api.immun+'?children=1').then(j=>{
+          if(!j.success){childrenCache=[];return childrenCache;}
+          childrenCache = j.children||[];
+          const dl = document.getElementById('paChildrenDatalist');
+            dl.innerHTML = childrenCache.map(c=>{
+            childrenMap[c.full_name.toLowerCase()] = c;
+            return `<option value="${escapeHtml(c.full_name)}"></option>`;
+          }).join('');
+          return childrenCache;
+        }).catch(()=>{childrenCache=[];return childrenCache;});
+      }
+      function activateExistingChild(row, child){
+        const hidden=row.querySelector('[name=existing_child_id]');
+        hidden.value = child.child_id;
+        const nameEl=row.querySelector('.pa-child-name');
+        const dobEl=row.querySelector('.pa-child-dob');
+        const sexEl=row.querySelector('.pa-child-sex');
+        dobEl.value = child.birth_date||'';
+        sexEl.value = child.sex||'';
+        dobEl.readOnly = true;
+        sexEl.disabled = true;
+        nameEl.classList.add('is-valid');
+        row.classList.add('existing-child');
+        row.querySelector('[data-existing-note]').style.display='block';
+      }
+      function clearExistingChild(row){
+        const hidden=row.querySelector('[name=existing_child_id]');
+        hidden.value='';
+        const dobEl=row.querySelector('.pa-child-dob');
+        const sexEl=row.querySelector('.pa-child-sex');
+        dobEl.readOnly=false;
+        sexEl.disabled=false;
+        row.querySelector('.pa-child-name').classList.remove('is-valid');
+        row.classList.remove('existing-child');
+        row.querySelector('[data-existing-note]').style.display='none';
+      }
+
+      function addChildRow(pref={}){
+        const id='c'+Math.random().toString(36).slice(2,9);
+        const html=`
+          <div class="pa-child-row" data-row="${id}">
+            <button type="button" class="pa-remove-child d-none" data-remove="${id}" title="Remove">&times;</button>
+            <input type="hidden" name="existing_child_id" value="">
+            <div style="position:relative;">
+              <label>Child's Full Name *</label>
+              <input class="form-control pa-child-name" name="child_full_name" list="paChildrenDatalist" placeholder="Type to search existing..." required value="${pref.full_name||''}">
+              <div class="pa-small-hint" style="display:none;color:#0d6d42;font-size:.5rem;font-weight:700;" data-existing-note>
+                Existing child selected
+                <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-clear-child style="font-size:.55rem;">(clear)</button>
+              </div>
+            </div>
+            <div>
+              <label>Date of Birth *</label>
+              <input type="date" class="form-control pa-child-dob" name="child_birth_date" required value="${pref.birth_date||''}">
+            </div>
+            <div>
+              <label>Gender *</label>
+              <select class="form-select pa-child-sex" name="child_sex" required>
+                <option value="">Select</option>
+                <option value="male" ${pref.sex==='male'?'selected':''}>Male</option>
+                <option value="female" ${pref.sex==='female'?'selected':''}>Female</option>
+              </select>
+            </div>
+          </div>`;
+        childRowsBox.insertAdjacentHTML('beforeend',html);
+        refreshRemoveButtons();
+        fetchChildrenList();
+      }
+      function refreshRemoveButtons(){
+        const rows=[...childRowsBox.querySelectorAll('.pa-child-row')];
+        rows.forEach(r=>{
+          const btn=r.querySelector('.pa-remove-child');
+          if(rows.length>1) btn.classList.remove('d-none'); else btn.classList.add('d-none');
+        });
+      }
+      childRowsBox.addEventListener('click',e=>{
+        if(e.target.matches('[data-clear-child]')){
+          const row=e.target.closest('.pa-child-row');
+          clearExistingChild(row);
+        }
+        const b=e.target.closest('[data-remove]'); if(!b) return;
+        const id=b.dataset.remove;
+        const row=childRowsBox.querySelector(`.pa-child-row[data-row="${id}"]`);
+        if(row){row.remove();refreshRemoveButtons();}
+      });
+      childRowsBox.addEventListener('change',e=>{
+        if(!e.target.classList.contains('pa-child-name')) return;
+        const row=e.target.closest('.pa-child-row');
+        const val=e.target.value.trim().toLowerCase();
+        if(val && childrenMap[val]) activateExistingChild(row, childrenMap[val]);
+        else clearExistingChild(row);
+      });
+      addBtn.addEventListener('click',()=>addChildRow());
+      addChildRow(); // first row
+
+      /* ===== Username Generation (NEW RULE) ===== */
+      genUserBtn.addEventListener('click',()=>{
+        const fnRaw=(form.first_name.value||'').trim();
+        const lnRaw=(form.last_name.value||'').trim();
+        if(!fnRaw || !lnRaw){
+          userInput.value='parent_'+Math.random().toString(36).slice(2,6);
+          return;
+        }
+        const firstWord = fnRaw.split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9]/g,'');
+        const lastName  = lnRaw.replace(/\s+/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+        if(!lastName){
+          userInput.value = firstWord;
+          return;
+        }
+        const firstLetter = lastName.charAt(0);
+        const lastLetter = lastName.charAt(lastName.length-1);
+        userInput.value = firstWord + firstLetter + lastLetter; // e.g. mariamc
+      });
+
+      /* ===== Password Generation (NEW RULE) ===== */
+      function generatePasswordFromBirthday(){
+        const lnRaw=(form.last_name.value||'').trim();
+        const bday=form.parent_birth_date?.value || '';
+        if(!lnRaw || !/^(\d{4})-(\d{2})-(\d{2})$/.test(bday)) return null;
+        const month=bday.slice(5,7);
+        return lnRaw.replace(/\s+/g,'') + month;
+      }
+      function generateSecureFallback(){
+        const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+        let out=''; for(let i=0;i<12;i++) out+=chars[Math.floor(Math.random()*chars.length)];
+        return out;
+      }
+      function setPasswordAuto(){
+        const rulePwd=generatePasswordFromBirthday();
+        passInput.value= rulePwd || generateSecureFallback();
+      }
+      genPassBtn.addEventListener('click',()=>setPasswordAuto());
+      form.parent_birth_date.addEventListener('change',()=>{
+        if(passInput.value.trim()===''){
+          const rulePwd=generatePasswordFromBirthday();
+          if(rulePwd) passInput.value=rulePwd;
+        }
+      });
+      showPassBtn.addEventListener('click',()=>{
+        passInput.type = passInput.type==='password'?'text':'password';
+        showPassBtn.innerHTML = passInput.type==='password'
+          ? '<i class="bi bi-eye"></i>'
+          : '<i class="bi bi-eye-slash"></i>';
+      });
+
+      /* ===== Submit ===== */
+      form.addEventListener('submit',e=>{
+        e.preventDefault();
+        msgOk.style.display='none';
+        msgErr.style.display='none';
+
+        const rows=[...childRowsBox.querySelectorAll('.pa-child-row')];
+        if(!rows.length){
+          msgErr.textContent='Add at least one child.'; msgErr.style.display='block'; return;
+        }
+        const newChildren=[];
+        for(const r of rows){
+          const full=r.querySelector('[name=child_full_name]').value.trim();
+          const dob=r.querySelector('[name=child_birth_date]').value;
+          const sex=r.querySelector('[name=child_sex]').value;
+          const existingId=r.querySelector('[name=existing_child_id]').value.trim();
+          if(!full||!dob||!sex){
+            msgErr.textContent='Complete all child fields.'; msgErr.style.display='block'; return;
+          }
+          const entry={full_name:full,birth_date:dob,sex};
+          if(existingId) entry.child_id = existingId; // preserve link if existing
+          newChildren.push(entry);
+        }
+
+        const fd=new FormData();
+        fd.append('create_parent','1');
+        fd.append('csrf_token', window.__BHW_CSRF);
+        // updated field list (parent_birth_date instead of address_details)
+        ['first_name','last_name','relationship_type','email','contact_number','parent_birth_date','username','password']
+          .forEach(k=>{ if(form[k]) fd.append(k, form[k].value); });
+        if(!passInput.value.trim()){ // auto-generate if user left blank
+          const rulePwd=generatePasswordFromBirthday();
+          fd.set('password', rulePwd || generateSecureFallback());
+        }
+        fd.append('new_children', JSON.stringify(newChildren));
+
+        saveBtn.disabled=true;
+        saveBtn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Saving';
+
+        fetch(api.parent,{method:'POST',body:fd})
+          .then(r=>r.json())
+          .then(j=>{
+            if(!j.success) throw new Error(j.error||'Save failed');
+            // After JSON success: notify about email delivery status
+if (j.email_sent) {
+  alert('Account created. Credentials emailed to: ' + (form.email ? form.email.value : ''));
+} else if (form.email && form.email.value.trim() !== '') {
+  const errDetail = j.email_error ? ('\nReason: ' + j.email_error) : '';
+  alert('Account created BUT email sending failed.' + errDetail + '\nPlease give credentials manually.');
+}
+            msgOk.style.display='block';
+            setTimeout(()=>{
+              bootstrap.Modal.getInstance(document.getElementById('modalParentCreate')).hide();
+              renderCreateParentAccounts(label);
+            },650);
+          })
+          .catch(err=>{
+            msgErr.textContent=err.message;
+            msgErr.style.display='block';
+          })
+          .finally(()=>{
+            saveBtn.disabled=false;
+            saveBtn.innerHTML='<i class="bi bi-check-circle me-1"></i>Create Account';
+          });
+      });
+    }
+
+    /* Filters */
+    const searchEl=document.getElementById('paSearch');
+    const filterBadges=moduleContent.querySelectorAll('.pa-filter-badge');
+    const tableBody=moduleContent.querySelector('#paTable tbody');
+    function applyFilter(){
+      const q=(searchEl.value||'').toLowerCase();
+      const activeFilter = moduleContent.querySelector('.pa-filter-badge.active')?.dataset.filter || 'all';
+      [...tableBody.rows].forEach(row=>{
+        const txt=row.innerText.toLowerCase();
+        let show = txt.includes(q);
+        if(show && activeFilter!=='all'){
+          const st=row.getAttribute('data-status');
+          show = activeFilter==='active' ? st==='1' : st==='0';
+        }
+        row.classList.toggle('d-none',!show);
+      });
+    }
+    searchEl.addEventListener('input',applyFilter);
+    filterBadges.forEach(b=>{
+      b.addEventListener('click',()=>{
+        filterBadges.forEach(x=>x.classList.remove('active'));
+        b.addEventListener('blur',()=>{});
+        b.classList.add('active');
+        applyFilter();
+      });
+    });
+
+tableBody.querySelectorAll('[data-action]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const action=btn.dataset.action;
+    const tr = btn.closest('tr');
+    const pid = tr?.dataset.id;
+    if(!pid) return;
+
+    // Helper to fetch parent object from loaded list
+    const parentObj = (parents || []).find(p => String(p.user_id) === String(pid));
+
+    if(action==='toggle')      toggleActive(pid,btn);
+    else if(action==='reset')  resetPassword(pid,btn);           // kept for backward compatibility if present
+    else if(action==='view')   openParentViewModal(parentObj);
+    else if(action==='edit')   openParentEditModal(parentObj, btn);
+  });
+});
+
+function openParentViewModal(p){
+  if(!p){ alert('Parent not found.'); return; }
+  let modal = document.getElementById('paViewModal');
+  if(!modal){
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="modal fade" id="paViewModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content" style="border-radius:18px;">
+            <div class="modal-header">
+              <h5 class="modal-title" style="font-size:.9rem;font-weight:800;">Parent Details</h5>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="paViewBody" style="font-size:.78rem;"></div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+    modal = document.getElementById('paViewModal');
+  }
+  const body = document.getElementById('paViewBody');
+  const fullName = (p.first_name||'')+' '+(p.last_name||'');
+  const lastActive = (p.updated_at || p.created_at || '').replace('T',' ').slice(0,16) || '—';
+  body.innerHTML = `
+    <div class="mb-2"><strong>Name:</strong> ${escapeHtml(fullName.trim())}</div>
+    <div class="row g-2">
+      <div class="col-6"><strong>Username:</strong> ${escapeHtml(p.username||'')}</div>
+      <div class="col-6"><strong>Status:</strong> ${p.is_active? '<span class="pa-status-active">Active</span>' : '<span class="pa-status-inactive">Inactive</span>'}</div>
+      <div class="col-6"><strong>Email:</strong> ${escapeHtml(p.email||'—')}</div>
+      <div class="col-6"><strong>Contact:</strong> ${escapeHtml(p.contact_number||'—')}</div>
+      <div class="col-12"><strong>Children:</strong> ${escapeHtml(p.children_list||'—')}</div>
+      <div class="col-12"><strong>Last Active:</strong> ${escapeHtml(lastActive)}</div>
+    </div>
+  `;
+  bootstrap.Modal.getOrCreateInstance(modal).show();
+}
+
+// REPLACE the openParentEditModal() in dashboard_bhw.php with this version
+
+function openParentEditModal(p, triggerBtn){
+  if(!p){ alert('Parent not found.'); return; }
+
+  let modal = document.getElementById('paEditModal');
+  if(!modal){
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="modal fade" id="paEditModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content" style="border-radius:18px;">
+            <div class="modal-header">
+              <h5 class="modal-title" style="font-size:.9rem;font-weight:800;">Edit Parent</h5>
+              <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="paEditBody" style="font-size:.78rem;">
+              <div class="mb-2"><strong>Name:</strong> <span id="paEdName"></span></div>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">Username</label>
+                  <input class="form-control form-control-sm" id="paEdUser" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">Email</label>
+                  <input class="form-control form-control-sm" id="paEdEmail" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">Contact</label>
+                  <input class="form-control form-control-sm" id="paEdContact" readonly>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <button class="btn btn-outline-warning btn-sm" id="paEdResetBtn">
+                  <i class="bi bi-key me-1"></i> Reset Password
+                </button>
+                <div class="small text-muted mt-2">Note: Deactivate/Activate is available via the row toggle button.</div>
+              </div>
+
+              <hr class="my-3">
+
+              <!-- Linked Children Section -->
+              <div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="m-0" style="font-size:.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#24433f;">
+                    Linked Children
+                  </h6>
+                  <button class="btn btn-sm btn-outline-secondary" id="paReloadLinksBtn" style="font-size:.6rem;">
+                    <i class="bi bi-arrow-repeat me-1"></i>Refresh
+                  </button>
+                </div>
+                <div id="paLinkedChildren" class="mt-2">
+                  <div class="text-muted" style="font-size:.7rem;">Loading linked children...</div>
+                </div>
+
+                <div class="border rounded p-2 mt-3">
+                  <div class="row g-2 align-items-end">
+                    <div class="col-md-7">
+                      <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">Select Child to Link</label>
+                      <select class="form-select form-select-sm" id="paLinkChildSel">
+                        <option value="">Choose child</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">Relationship</label>
+                      <select class="form-select form-select-sm" id="paLinkRelSel">
+                        <option value="mother">Mother</option>
+                        <option value="father">Father</option>
+                        <option value="guardian" selected>Guardian</option>
+                        <option value="caregiver">Caregiver</option>
+                      </select>
+                    </div>
+                    <div class="col-md-2 text-end">
+                      <button class="btn btn-success btn-sm w-100" id="paLinkChildBtn">
+                        <i class="bi bi-link-45deg me-1"></i> Link
+                      </button>
+                    </div>
+                  </div>
+                  <div class="small text-muted mt-1">Tip: Use the list to link an existing child. Unlink to remove access.</div>
+                  <div class="small text-danger mt-1 d-none" id="paLinkErr"></div>
+                  <div class="small text-success mt-1 d-none" id="paLinkOk">Linked!</div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+    modal = document.getElementById('paEditModal');
+  }
+
+  // Prefill readonly fields
+  document.getElementById('paEdName').textContent = ((p.first_name||'')+' '+(p.last_name||'')).trim();
+  document.getElementById('paEdUser').value = p.username || '';
+  document.getElementById('paEdEmail').value = p.email || '';
+  document.getElementById('paEdContact').value = p.contact_number || '';
+
+  const resetBtn = document.getElementById('paEdResetBtn');
+  resetBtn.disabled = false;
+  resetBtn.textContent = 'Reset Password';
+  resetBtn.onclick = ()=>{
+    resetBtn.disabled=true;
+    resetBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Resetting';
+    resetPassword(p.user_id, resetBtn);
+    setTimeout(()=>{ resetBtn.disabled=false; resetBtn.textContent='Reset Password'; }, 1200);
+  };
+
+  // Elements
+  const childSel = document.getElementById('paLinkChildSel');
+  const relSel   = document.getElementById('paLinkRelSel');
+  const linkBtn  = document.getElementById('paLinkChildBtn');
+  const linkErr  = document.getElementById('paLinkErr');
+  const linkOk   = document.getElementById('paLinkOk');
+  const listBox  = document.getElementById('paLinkedChildren');
+
+  // Local caches
+  let allChildren = null;        // full children list (loaded once)
+  let linkedIdSet = new Set();   // currently linked (ACTIVE) child IDs for this parent
+
+  function setLinkBusy(on){
+    linkBtn.disabled = !!on;
+    linkBtn.innerHTML = on
+      ? '<span class="spinner-border spinner-border-sm me-1"></span>Linking'
+      : '<i class="bi bi-link-45deg me-1"></i> Link';
+  }
+  function showLinkMsg(ok,msg){
+    if(ok){
+      linkErr.classList.add('d-none');
+      linkOk.textContent = msg || 'Linked!';
+      linkOk.classList.remove('d-none');
+      setTimeout(()=>linkOk.classList.add('d-none'), 1400);
+    }else{
+      linkOk.classList.add('d-none');
+      linkErr.textContent = msg || 'Failed';
+      linkErr.classList.remove('d-none');
+    }
+  }
+  function fmtShort(d){
+    if(!d) return '—';
+    const dt = new Date(d+'T00:00:00');
+    if(isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+  }
+
+  // Build dropdown options from cache while excluding ACTIVE links only
+  function refreshChildOptions(){
+    if(!Array.isArray(allChildren)) return;
+    const options = ['<option value="">Choose child</option>']
+      .concat(
+        allChildren
+          .filter(c => !linkedIdSet.has(parseInt(c.child_id,10))) // hide already-linked (active) only
+          .map(c=>{
+            const age = (c.age_months!=null ? ` (${c.age_months}m)` : '');
+            const bd = c.birth_date ? ` — ${fmtShort(c.birth_date)}` : '';
+            return `<option value="${c.child_id}">${escapeHtml(c.full_name)}${age}${bd}</option>`;
+          })
+      ).join('');
+    childSel.innerHTML = options;
+  }
+
+  // Load and cache ALL children (once)
+  function preloadChildrenList(){
+    if(allChildren!==null){ refreshChildOptions(); return; }
+    fetchJSON(api.immun+'?children=1').then(j=>{
+      if(!j.success) throw new Error('Load children failed');
+      allChildren = j.children || [];
+      refreshChildOptions();
+    }).catch(()=>{ /* ignore */ });
+  }
+
+  function renderLinks(list){
+    if(!list.length){
+      listBox.innerHTML = '<div class="text-muted" style="font-size:.7rem;">No linked children yet.</div>';
+      return;
+    }
+    listBox.innerHTML = list.map(r=>{
+      const rel = r.relationship_type ? r.relationship_type.toUpperCase() : '—';
+      const age = (r.age_months!=null ? `${r.age_months}m` : '—');
+      const inactive = String(r.is_active)!=='1';
+      const badge = inactive ? ' • <span class="text-danger">Inactive</span>' : '';
+      const actionBtn = inactive
+        ? `<button class="btn btn-sm btn-outline-danger" data-remove="${r.child_id}" style="font-size:.6rem;">
+             <i class="bi bi-trash me-1"></i> Remove
+           </button>`
+        : `<button class="btn btn-sm btn-outline-danger" data-unlink="${r.child_id}" style="font-size:.6rem;">
+             <i class="bi bi-x-lg me-1"></i> Unlink
+           </button>`;
+      return `
+        <div class="d-flex align-items-center justify-content-between border rounded p-2">
+          <div class="d-flex flex-column">
+            <div><strong>${escapeHtml(r.full_name||'')}</strong> <span class="text-muted">(${age})</span></div>
+            <div class="text-muted" style="font-size:.65rem;">Relationship: ${escapeHtml(rel)}${badge}</div>
+          </div>
+          <div class="d-flex gap-2">
+            ${actionBtn}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Wire unlink (for ACTIVE links)
+    listBox.querySelectorAll('[data-unlink]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const cid = parseInt(btn.getAttribute('data-unlink'),10);
+        if(!cid) return;
+        if(!confirm('Unlink this child from the parent account?')) return;
+        btn.disabled = true;
+        const fd = new FormData();
+        fd.append('csrf_token', window.__BHW_CSRF);
+        fd.append('unlink_child', '1');
+        fd.append('parent_user_id', p.user_id);
+        fd.append('child_id', cid);
+        fetch(api.parent,{method:'POST',body:fd})
+          .then(r=>r.json())
+          .then(j=>{
+            if(!j.success) throw new Error(j.error||'Unlink failed');
+            loadLinks(); // refresh
+          })
+          .catch(err=>{ alert(err.message); })
+          .finally(()=>{ btn.disabled=false; });
+      });
+    });
+
+    // Wire remove (for INACTIVE links)
+    listBox.querySelectorAll('[data-remove]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const cid = parseInt(btn.getAttribute('data-remove'),10);
+        if(!cid) return;
+        if(!confirm('Remove this inactive link permanently?')) return;
+        btn.disabled = true;
+        const fd = new FormData();
+        fd.append('csrf_token', window.__BHW_CSRF);
+        fd.append('remove_child_link', '1');
+        fd.append('parent_user_id', p.user_id);
+        fd.append('child_id', cid);
+        fetch(api.parent,{method:'POST',body:fd})
+          .then(r=>r.json())
+          .then(j=>{
+            if(!j.success) throw new Error(j.error||'Remove failed');
+            loadLinks(); // refresh list and dropdown
+          })
+          .catch(err=>{ alert(err.message); })
+          .finally(()=>{ btn.disabled=false; });
+      });
+    });
+  }
+
+  function loadLinks(){
+    listBox.innerHTML = '<div class="text-muted" style="font-size:.7rem;">Loading linked children...</div>';
+    fetchJSON(api.parent+'?children_of_parent='+encodeURIComponent(p.user_id))
+      .then(j=>{
+        if(!j.success) throw new Error('Load failed');
+        const rows = j.children || [];
+        // Only ACTIVE links should be filtered out from the dropdown
+        linkedIdSet = new Set(rows.filter(r => String(r.is_active)==='1').map(r => parseInt(r.child_id,10)));
+        renderLinks(rows);
+        refreshChildOptions(); // rebuild dropdown
+      })
+      .catch(err=>{
+        listBox.innerHTML = '<div class="text-danger" style="font-size:.7rem;">Error: '+escapeHtml(err.message)+'</div>';
+      });
+  }
+
+  // Link button
+  linkBtn.addEventListener('click', ()=>{
+    linkErr.classList.add('d-none'); linkOk.classList.add('d-none');
+    const cid = parseInt(childSel.value||'0',10);
+    const rel = relSel.value||'guardian';
+    if(!cid){
+      showLinkMsg(false,'Please select a child.');
+      return;
+    }
+    setLinkBusy(true);
+    const fd = new FormData();
+    fd.append('csrf_token', window.__BHW_CSRF);
+    fd.append('link_child','1');
+    fd.append('parent_user_id', p.user_id);
+    fd.append('child_id', cid);
+    fd.append('relationship_type', rel);
+    fetch(api.parent,{method:'POST',body:fd})
+      .then(r=>r.json())
+      .then(j=>{
+        if(!j.success) throw new Error(j.error||'Link failed');
+        showLinkMsg(true,'Linked!');
+        childSel.value='';
+        loadLinks(); // refresh
+      })
+      .catch(err=>showLinkMsg(false, err.message))
+      .finally(()=>setLinkBusy(false));
+  });
+
+  // Manual reload
+  document.getElementById('paReloadLinksBtn').addEventListener('click', ()=>{
+    loadLinks();
+    preloadChildrenList();
+  });
+
+  // Init
+  preloadChildrenList();
+  loadLinks();
+
+  bootstrap.Modal.getOrCreateInstance(modal).show();
+}
+
+
+    function toggleActive(pid, btn){
+      const tr = btn.closest('tr');
+      const parentName = tr?.querySelector('td:first-child')?.innerText?.trim() || 'Parent';
+      const statusCell = tr?.children?.[4]; // 0:Name 1:Contact 2:Children 3:Username 4:Status 5:Last Active 6:Actions
+      const iconEl = btn.querySelector('i');
+
+      const fd = new FormData();
+      fd.append('toggle_active', pid);
+      fd.append('csrf_token', window.__BHW_CSRF);
+
+      btn.disabled = true;
+
+      fetch(api.parent, { method: 'POST', body: fd })
+        .then(parseJSONSafe)
+        .then(j => {
+          if (!j.success) throw new Error(j.error || 'Toggle failed');
+
+          const isActive = j.is_active === 1 || j.is_active === '1' || j.is_active === true;
+
+          // 1) Update Status badge kaagad
+          if (statusCell) {
+            statusCell.innerHTML = isActive
+              ? '<span class="pa-status-active">Active</span>'
+              : '<span class="pa-status-inactive">Inactive</span>';
+          }
+
+          // 2) I-update ang data-status ng row para sa filtering
+          if (tr) tr.setAttribute('data-status', isActive ? '1' : '0');
+
+          // 3) Palitan ang itsura ng toggle button (kulay, icon, title)
+          btn.classList.toggle('btn-outline-danger', isActive);
+          btn.classList.toggle('btn-outline-success', !isActive);
+          if (iconEl) {
+            iconEl.className = 'bi ' + (isActive ? 'bi-slash-circle' : 'bi-check-circle');
+          }
+          btn.title = isActive ? 'Deactivate' : 'Activate';
+
+          // 4) Kung naka-filter sa Active/Inactive, itago agad ang row kapag hindi na pasok
+          const activeFilter = moduleContent.querySelector('.pa-filter-badge.active')?.dataset.filter || 'all';
+          if (activeFilter === 'active' && !isActive && tr) tr.classList.add('d-none');
+          if (activeFilter === 'inactive' && isActive && tr) tr.classList.add('d-none');
+          if (activeFilter === 'all' && tr) tr.classList.remove('d-none');
+
+          // 5) Toast feedback
+          showToast(`${parentName} ${isActive ? 'activated' : 'deactivated'}`, isActive ? 'success' : 'warning');
+        })
+        .catch(err => {
+          showToast(err.message, 'danger');
+        })
+        .finally(() => {
+          btn.disabled = false;
+        });
+    }
+    function resetPassword(pid,btn){
+      if(!confirm('Reset password for this parent account?')) return;
+      const fd=new FormData();
+      fd.append('reset_password',pid);
+      fd.append('csrf_token',window.__BHW_CSRF);
+      btn.disabled=true;
+      fetch(api.parent,{method:'POST',body:fd})
+        .then(r=>r.json()).then(j=>{
+          if(!j.success) throw new Error(j.error||'Reset failed');
+          alert('New Password: '+j.new_password);
+        }).catch(err=>alert(err.message))
+        .finally(()=>btn.disabled=false);
+    }
+
+    function metricCard(label,value,sub,icon){
+      return `<div class="pa-metric-card">
+        <div class="pa-metric-label"><i class="bi ${icon} pa-metric-icon"></i>${escapeHtml(label)}</div>
+        <div class="pa-metric-value">${value}</div>
+        <div class="pa-metric-sub">${escapeHtml(sub)}</div>
+      </div>`;
+    }
+
+// REPLACE the buildParentRows() inside renderCreateParentAccounts() with this version:
+function buildParentRows(list){
+  if(!list.length) return `<tr><td colspan="7" class="text-center text-muted py-4">No parent accounts.</td></tr>`;
+  return list.map(p=>{
+    const status = p.is_active
+      ? '<span class="pa-status-active">Active</span>'
+      : '<span class="pa-status-inactive">Inactive</span>';
+    const childrenBadge = p.children_count
+      ? `<span class="pa-badge-child">${p.children_count} child${p.children_count>1?'ren':''}</span>`
+      : `<span class="text-muted" style="font-size:.55rem;">None</span>`;
+    const lastActive = (p.updated_at || p.created_at || '').replace('T',' ').slice(0,16) || '—';
+    const fullName = (p.first_name+' '+p.last_name).trim();
+
+    return `<tr data-id="${p.user_id}" data-status="${p.is_active?1:0}">
+      <td><strong>${escapeHtml(fullName)}</strong></td>
+      <td>${escapeHtml(p.email||'')}<br>${escapeHtml(p.contact_number||'')}</td>
+      <td>${childrenBadge}</td>
+      <td>${escapeHtml(p.username||'')}</td>
+      <td>${status}</td>
+      <td>${escapeHtml(lastActive)}</td>
+      <td class="pa-actions">
+        <div class="d-flex flex-wrap gap-1">
+          <button class="btn btn-outline-primary" data-action="view" title="View"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-outline-secondary" data-action="edit" title="Edit"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-outline-${p.is_active?'danger':'success'}" data-action="toggle" title="${p.is_active?'Deactivate':'Activate'}">
+            <i class="bi ${p.is_active?'bi-slash-circle':'bi-check-circle'}"></i>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+    function buildActivity(list){
+      if(!list.length) return '';
+      return list.slice(0,25).map(r=>{
+        const last = r.last_notification_date ? (r.last_notification_date.replace('T',' ').slice(0,16)) : '—';
+        const unread = parseInt(r.unread_notifications)||0;
+        return `<li class="pa-activity-item">
+          <strong>${escapeHtml(r.username)}</strong> • ${r.children_count||0} child link(s)
+          <span class="pa-activity-time">
+            Notifs: ${r.total_notifications||0} (Unread ${unread}) • Last: ${escapeHtml(last)}
+          </span>
+        </li>`;
+      }).join('');
+    }
+  }).catch(err=>{
+    moduleContent.innerHTML='<div class="alert alert-danger small">Error loading Parent Accounts: '+escapeHtml(err.message)+'</div>';
+  });
+}
+
+/* ================== Health Records Module (UPDATED: Removed New Entry) ================== */
+function renderHealthRecordsAll(label){
+  showLoading(label);
+
+  Promise.allSettled([
+    fetchJSON(api.health+'?all=1&limit=1000'),
+    fetchJSON(api.maternal+'?list=1')
+  ]).then(([allRes, mothersRes])=>{
+    const records = (allRes.value?.records)||[];
+    const mothers = (mothersRes.value?.mothers)||[];
+
+    const totalRecords = records.length;
+    const ymNow = new Date().toISOString().slice(0,7);
+    const thisMonth = records.filter(r=>(r.consultation_date||'').startsWith(ymNow)).length;
+    const uniquePatients = new Set(records.map(r=>r.mother_id)).size;
+
+    records.forEach(r=>{
+      r._risk_score =
+        (parseInt(r.vaginal_bleeding)||0)+(parseInt(r.urinary_infection)||0)+(parseInt(r.high_blood_pressure)||0)+
+        (parseInt(r.fever_38_celsius)||0)+(parseInt(r.pallor)||0)+(parseInt(r.abnormal_abdominal_size)||0)+
+        (parseInt(r.abnormal_presentation)||0)+(parseInt(r.absent_fetal_heartbeat)||0)+(parseInt(r.swelling)||0)+
+        (parseInt(r.vaginal_infection)||0);
+    });
+    records.sort((a,b)=> (b.consultation_date||'') > (a.consultation_date||'') ? 1 : -1);
+
+    moduleContent.innerHTML = `
+      <div class="fade-in hr-wrap">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <h2 class="imm-title" style="margin:0 0 .4rem;">Health Records</h2>
+            <p class="imm-sub" style="margin:0;">Patient health history and documentation</p>
+          </div>
+        </div>
+
+        <div class="imm-metrics hr-metrics-mini" style="margin-top:.3rem;">
+          ${hrMetricCard('Total Records', totalRecords,'All health records','bi-clipboard-data')}
+          ${hrMetricCard('This Month', thisMonth,'New consultations','bi-activity')}
+          ${hrMetricCard('Unique Patients', uniquePatients,'Active patients','bi-people')}
+        </div>
+
+        <div class="hr-filters card-like" style="background:#ffffff;border:1px solid var(--border);border-radius:18px;padding:1rem 1.15rem;margin:1.2rem 0 1.4rem;">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="hr-flbl">Search Records</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="hrSearch" class="form-control" placeholder="Search by name, date (YYYY-MM-DD)...">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="hr-flbl">Date From</label>
+              <input type="date" id="hrDateFrom" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+              <label class="hr-flbl">Date To</label>
+              <input type="date" id="hrDateTo" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+              <label class="hr-flbl">Risk Level</label>
+              <select id="hrRiskFilter" class="form-select form-select-sm">
+                <option value="">All</option>
+                <option value="high">High (>=2)</option>
+                <option value="monitor">Monitor (1)</option>
+                <option value="normal">Normal (0)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav hr-tabs mb-3" style="background:#f5f8fa;border-radius:999px;padding:.4rem .55rem;display:inline-flex;gap:.4rem;flex-wrap:wrap;">
+          <button class="nav-link active" data-hrtab="consults" style="font-size:.68rem;">Consultations</button>
+          <button class="nav-link" data-hrtab="history" style="font-size:.68rem;">Patient History</button>
+        </div>
+
+        <div id="hrPanel"></div>
+      </div>
+    `;
+
+    injectHRStyles();
+
+    const panel = document.getElementById('hrPanel');
+    renderConsultationsTable();
+
+    document.querySelectorAll('[data-hrtab]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('[data-hrtab]').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.getAttribute('data-hrtab');
+        if(tab==='consults') renderConsultationsTable();
+        else if(tab==='history') renderPatientHistoryView();
+      });
+    });
+
+    ['hrSearch','hrDateFrom','hrDateTo','hrRiskFilter'].forEach(id=>{
+      document.getElementById(id).addEventListener('input',()=> {
+        if(document.querySelector('[data-hrtab="consults"].active')) renderConsultationsTable();
+        if(document.querySelector('[data-hrtab="history"].active')) renderPatientHistoryView();
+      });
+    });
+
+    function renderConsultationsTable(){
+      const filtered = applyFilters(records);
+      panel.innerHTML = `
+        <div class="imm-card" style="padding:1.1rem 1.25rem;">
+          <h6 class="mb-2" style="font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Consultation Records</h6>
+          <div class="imm-small-muted mb-3">All general health assessment records</div>
+          <div class="table-responsive" style="max-height:560px;">
+            <table class="imm-table" id="hrConsultTable">
+              <thead>
+                <tr>
+                  <th style="min-width:95px;">Date</th>
+                  <th>Patient Name</th>
+                  <th>Preg Weeks</th>
+                  <th>BP</th>
+                  <th>Risk</th>
+                  <th>Flags</th>
+                  <th style="min-width:80px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>${filtered.length? filtered.map(rowHTML).join(''): `<tr><td colspan="7" class="text-center text-muted py-4">No records found.</td></tr>`}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      panel.querySelectorAll('[data-view]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const id=parseInt(btn.getAttribute('data-view'),10);
+          const rec=records.find(r=>r.health_record_id==id);
+            if(rec) openRecordModal(rec);
+        });
+      });
+    }
+
+    function rowHTML(r){
+      const riskInfo = computeRiskLevel(r._risk_score);
+      return `<tr>
+        <td>${escapeHtml(r.consultation_date||'')}</td>
+        <td>${escapeHtml(r.full_name||'')}</td>
+        <td>${r.pregnancy_age_weeks!=null? r.pregnancy_age_weeks+'w':'—'}</td>
+        <td>${(r.blood_pressure_systolic && r.blood_pressure_diastolic)? `${r.blood_pressure_systolic}/${r.blood_pressure_diastolic}`:'—'}</td>
+        <td><span class="consult-risk-badge ${riskInfo.cls}" style="font-size:.5rem;">${riskInfo.lbl}</span></td>
+        <td>${flagsIcons(r)||'<span class="text-muted" style="font-size:.5rem;">None</span>'}</td>
+        <td><button class="btn btn-outline-primary btn-sm" style="font-size:.55rem;padding:.25rem .55rem;" data-view="${r.health_record_id}"><i class="bi bi-eye"></i></button></td>
+      </tr>`;
+    }
+
+    function renderPatientHistoryView(){
+      const opts = mothers
+        .sort((a,b)=>a.full_name.localeCompare(b.full_name))
+        .map(m=>`<option value="${m.mother_id}">${escapeHtml(m.full_name)}</option>`).join('');
+      panel.innerHTML = `
+        <div class="imm-card" style="padding:1.15rem 1.25rem;">
+          <h6 class="mb-3" style="font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Patient History</h6>
+          <div class="row g-3 mb-3 align-items-end">
+            <div class="col-md-5">
+              <label class="hr-flbl">Select Patient</label>
+              <select id="hrPatientSel" class="form-select form-select-sm">
+                <option value="">-- Choose Patient --</option>
+                ${opts}
+              </select>
+            </div>
+            <div class="col-md-7 text-muted" style="font-size:.6rem;font-weight:600;">
+              View all consultations per patient. Filters (search & date range) still apply.
+            </div>
+          </div>
+          <div id="hrHistoryBox" class="text-muted" style="font-size:.65rem;">No patient selected.</div>
+        </div>
+      `;
+      document.getElementById('hrPatientSel').addEventListener('change',()=>{
+        const mid = parseInt(document.getElementById('hrPatientSel').value||0,10);
+        renderHistory(mid);
+      });
+    }
+
+    // Replace only the renderHistory(mother_id) function inside renderHealthRecordsAll with this version
+function renderHistory(mother_id){
+  const box = document.getElementById('hrHistoryBox');
+  if(!mother_id){ box.innerHTML='No patient selected.'; return; }
+
+  // keep existing global filters
+  const pats = applyFilters(records).filter(r=>r.mother_id==mother_id)
+    .sort((a,b)=> (b.consultation_date||'') > (a.consultation_date||'') ? 1 : -1);
+
+  if(!pats.length){
+    box.innerHTML='<div class="text-muted" style="font-size:.65rem;">No records for selected patient (with current filters).</div>';
+    return;
+  }
+
+  // helpers
+  function riskInfo(score){
+    if(score>=2) return {cls:'consult-risk-high',lbl:'High'};
+    if(score===1) return {cls:'consult-risk-monitor',lbl:'Monitor'};
+    return {cls:'consult-risk-normal',lbl:'Normal'};
+  }
+  function hgbBadge(val){
+    if(val==null || val==='') return '—';
+    const num = parseFloat(String(val).replace(/[^\d.]/g,'')); // tolerant parse
+    if(Number.isNaN(num)) return `<span class="imm-badge imm-badge-ok">${escapeHtml(val)}</span>`;
+    let cls = 'imm-badge imm-badge-ok', txt = num.toFixed(1);
+    if(num < 10) cls = 'imm-badge imm-badge-overdue';      // red
+    else if(num < 11) cls = 'imm-badge imm-badge-duesoon'; // yellow
+    return `<span class="${cls}" title="HGB">${txt}</span>`;
+  }
+  function bpCell(r){
+    const sys = r.blood_pressure_systolic, dia = r.blood_pressure_diastolic;
+    if(!(sys && dia)) return '—';
+    const high = (parseInt(sys)>=140 || parseInt(dia)>=90);
+    const style = high ? 'color:#b22218;font-weight:700;' : '';
+    return `<span style="${style}">${sys}/${dia}</span>`;
+  }
+
+  // Build rows with weight delta vs previous record (list is already DESC)
+  const rows = pats.map((r,i)=>{
+    const prev = pats[i+1]; // previous visit in time (because list is desc)
+    const w = (r.weight_kg!=null ? parseFloat(r.weight_kg) : null);
+    let wCell = '—';
+    if(w!=null){
+      let deltaHtml = '';
+      if(prev && prev.weight_kg!=null){
+        const d = +(w - parseFloat(prev.weight_kg)).toFixed(1);
+        if(d!==0){
+          const pos = d>0;
+          deltaHtml = `<br><small style="font-weight:700;${pos?'color:#0d7c4e;':'color:#b22218;'}">${pos?'+':''}${d}</small>`;
+        } else {
+          deltaHtml = `<br><small class="text-muted" style="font-weight:700;">0.0</small>`;
+        }
+      }
+      wCell = `${w}${deltaHtml}`;
+    }
+    const rk = riskInfo(r._risk_score||0);
+    const titleGA = [
+      r.last_menstruation_date?('LMP: '+r.last_menstruation_date):'',
+      r.expected_delivery_date?('EDD: '+r.expected_delivery_date):''
+    ].filter(Boolean).join(' • ');
+    return `<tr>
+      <td>${escapeHtml(r.consultation_date||'')}</td>
+      <td title="${escapeHtml(titleGA)}">${r.pregnancy_age_weeks!=null? r.pregnancy_age_weeks+'w':'—'}</td>
+      <td>${bpCell(r)}</td>
+      <td>${wCell}</td>
+      <td>${hgbBadge(r.hgb_result)}</td>
+      <td><span class="consult-risk-badge ${rk.cls}" style="font-size:.5rem;">${rk.lbl}</span></td>
+      <td>${flagsIcons(r)||''}</td>
+      <td><button class="btn btn-outline-primary btn-sm" style="font-size:.5rem;padding:.25rem .5rem;" data-view="${r.health_record_id}"><i class="bi bi-eye"></i></button></td>
+    </tr>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="table-responsive" style="max-height:560px;">
+      <table class="imm-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>GA</th>
+            <th>BP</th>
+            <th>Wt (Δ)</th>
+            <th>HGB</th>
+            <th>Risk</th>
+            <th>Flags</th>
+            <th>View</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  // wire up view buttons
+  box.querySelectorAll('[data-view]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const rec=records.find(r=>r.health_record_id==btn.getAttribute('data-view'));
+      if(rec) openRecordModal(rec);
+    });
+  });
+}
+
+    function applyFilters(list){
+      const q=(document.getElementById('hrSearch').value||'').toLowerCase();
+      const df=document.getElementById('hrDateFrom').value;
+      const dt=document.getElementById('hrDateTo').value;
+      const rf=document.getElementById('hrRiskFilter').value;
+      return list.filter(r=>{
+        if(q){
+          const txt=(r.full_name||'')+' '+(r.consultation_date||'');
+          if(!txt.toLowerCase().includes(q)) return false;
+        }
+        if(df && (r.consultation_date||'') < df) return false;
+        if(dt && (r.consultation_date||'') > dt) return false;
+        if(rf){
+          const lvl = riskLevel(r._risk_score);
+          if(rf==='high' && lvl!=='high') return false;
+          if(rf==='monitor' && lvl!=='monitor') return false;
+          if(rf==='normal' && lvl!=='normal') return false;
+        }
+        return true;
+      });
+    }
+
+    function flagsIcons(r){
+      const map = {
+        vaginal_bleeding:'VB', urinary_infection:'UTI', high_blood_pressure:'BP', fever_38_celsius:'FEV',
+        pallor:'PAL', abnormal_abdominal_size:'ABD', abnormal_presentation:'PRES', absent_fetal_heartbeat:'FHT',
+        swelling:'SWL', vaginal_infection:'VAG'
+      };
+      const outs=[];
+      Object.keys(map).forEach(k=>{
+        if(parseInt(r[k])===1){
+          outs.push(`<span style="display:inline-block;background:#e7efe9;color:#134a3d;font-size:.48rem;font-weight:700;padding:3px 6px;border-radius:8px;margin:1px;">${map[k]}</span>`);
+        }
+      });
+      return outs.join('');
+    }
+    function riskLevel(score){
+      if(score>=2) return 'high';
+      if(score===1) return 'monitor';
+      return 'normal';
+    }
+    function computeRiskLevel(score){
+      const lvl=riskLevel(score);
+      if(lvl==='high') return {cls:'consult-risk-high',lbl:'High'};
+      if(lvl==='monitor') return {cls:'consult-risk-monitor',lbl:'Monitor'};
+      return {cls:'consult-risk-normal',lbl:'Normal'};
+    }
+
+    function openRecordModal(r){
+      let modal=document.getElementById('hrViewModal');
+      if(!modal){
+        document.body.insertAdjacentHTML('beforeend',`
+          <div class="modal fade" id="hrViewModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content" style="border-radius:18px;">
+                <div class="modal-header">
+                  <h5 class="modal-title" style="font-size:.9rem;font-weight:700;">Consultation Detail</h5>
+                  <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="hrViewBody" style="font-size:.7rem;"></div>
+                <div class="modal-footer">
+                  <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>`);
+        modal=document.getElementById('hrViewModal');
+      }
+      const riskInfo=computeRiskLevel(r._risk_score);
+      document.getElementById('hrViewBody').innerHTML=`
+        <div class="mb-2"><strong>Patient:</strong> ${escapeHtml(r.full_name||'')}</div>
+        <div class="row g-2">
+          <div class="col-6"><strong>Date:</strong> ${escapeHtml(r.consultation_date||'')}</div>
+          <div class="col-6"><strong>GA:</strong> ${r.pregnancy_age_weeks!=null? r.pregnancy_age_weeks+' wks':'—'}</div>
+          <div class="col-6"><strong>BP:</strong> ${(r.blood_pressure_systolic&&r.blood_pressure_diastolic)? `${r.blood_pressure_systolic}/${r.blood_pressure_diastolic}`:'—'}</div>
+          <div class="col-6"><strong>Weight:</strong> ${r.weight_kg!=null? r.weight_kg+' kg':'—'}</div>
+          <div class="col-6"><strong>Height:</strong> ${r.height_cm!=null? r.height_cm+' cm':'—'}</div>
+          <div class="col-6"><strong>Risk:</strong> <span class="consult-risk-badge ${riskInfo.cls}" style="font-size:.55rem;">${riskInfo.lbl}</span></div>
+        </div>
+        <div class="mt-3"><strong>Flags:</strong><br>${flagsIcons(r)||'<span class="text-muted">None</span>'}</div>
+      `;
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+    }
+
+    function hrMetricCard(label,value,sub,icon){
+      return `<div class="imm-metric">
+        <div class="imm-metric-label"><i class="bi ${icon}"></i>${escapeHtml(label)}</div>
+        <div class="imm-metric-value">${escapeHtml(value)}</div>
+        <div class="imm-metric-sub">${escapeHtml(sub)}</div>
+      </div>`;
+    }
+
+    function injectHRStyles(){
+      if(document.getElementById('hrStyles')) return;
+      const css = `
+        .hr-flbl{font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.3rem;color:#2d4d53;}
+        .hr-wrap .imm-metric-value{font-size:1.7rem;}
+        .hr-tabs .nav-link{border-radius:30px;font-size:.68rem;font-weight:600;padding:.5rem .95rem;color:#355155;}
+        .hr-tabs .nav-link.active{background:#ffffff;border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,.06);color:#0a5c3d;font-weight:700;}
+        .hr-tabs .nav-link:hover{background:#e9f4ef;color:#0a5c3d;}
+        .hr-metrics-mini .imm-metric-value{font-size:1.6rem;}
+        @media (max-width:700px){
+          .hr-wrap .imm-metric-value{font-size:1.35rem;}
+        }
+      `;
+      const style=document.createElement('style');
+      style.id='hrStyles';
+      style.textContent=css;
+      document.head.appendChild(style);
+    }
+
+  }).catch(err=>{
+    moduleContent.innerHTML = `<div class="alert alert-danger small">Error loading Health Records: ${escapeHtml(err.message)}</div>`;
+  });
+}
+
+/* ================== Event Scheduling (UPDATED: add Target Participants, no attendees list) ================== */
+
+function renderEventScheduling(label){
+  showLoading(label);
+
+  // inject styles (adds form layout + uses existing event styles)
+  (function injectEvtCSS(){
+    if(document.getElementById('evtStyles')) return;
+    const css=`
+      .evt-wrap .metric-grid{gap:1rem;}
+      .evt-badge{display:inline-block;font-size:.56rem;font-weight:800;padding:.28rem .6rem;border-radius:999px;letter-spacing:.04em;}
+      .evt-badge.vaccination{background:#ddf5ea;color:#0b6f46;}
+      .evt-badge.health{background:#e1edff;color:#134f9c;}
+      .evt-badge.nutrition{background:#fff2cc;color:#8b6400;}
+      .evt-badge.feeding{background:#f6eafe;color:#6f2dbd;}
+      .evt-badge.weighing{background:#e7f7fb;color:#0b6b88;}
+      .evt-badge.general,.evt-badge.other{background:#eef1f4;color:#44525a;}
+      .evt-card{border:1px solid var(--border);background:#fff;border-radius:16px;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.35rem;}
+      .evt-title{font-weight:700;color:#123b34;margin:0;font-size:.9rem;}
+      .evt-meta{font-size:.68rem;font-weight:600;color:#5a6b71;}
+      .evt-actions .btn{font-size:.62rem;font-weight:700;border-radius:14px;padding:.42rem .75rem;}
+      .evt-cal{border:1px solid var(--border);background:#fff;border-radius:16px;padding:.9rem;}
+      .evt-cal header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.45rem;}
+      .evt-cal header .ttl{font-weight:800;color:#123b34;}
+      .evt-cal table{width:100%;border-collapse:collapse;table-layout:fixed;}
+      .evt-cal th{font-size:.6rem;color:#6a7a81;padding:.35rem 0;font-weight:800;text-transform:uppercase;}
+      .evt-cal td{height:38px;padding:.15rem;vertical-align:top;}
+      .evt-day{display:flex;align-items:flex-start;justify-content:flex-start;gap:.3rem;border:1px solid transparent;border-radius:10px;cursor:pointer;padding:.3rem .35rem;height:100%;}
+      .evt-day:hover{background:#f3faf6;border-color:#d8e7df;}
+      .evt-day.is-today{box-shadow:inset 0 0 0 2px #0d7c4e33;}
+      .evt-day .num{font-size:.7rem;font-weight:800;color:#1d3436;line-height:1;}
+      .evt-dot{height:6px;width:6px;border-radius:50%;background:#0d7c4e;margin-top:.25rem;}
+      .evt-day.disabled .num{color:#a7b2b7;}
+      .evt-empty{padding:1rem .5rem;text-align:center;font-size:.68rem;color:#6c7a83;border:1px dashed #cfd8dd;border-radius:12px;background:#f8fbfd;}
+      .evt-small-muted{font-size:.62rem;font-weight:600;color:#6a7a81;}
+      .evt-btn-add{display:inline-flex;align-items:center;gap:.45rem;font-weight:700;border-radius:.9rem;background:#047a4c;border:1px solid #047242;color:#fff;padding:.55rem .95rem;font-size:.74rem;}
+      .evt-btn-add:hover{background:#059a61;border-color:#059a61;color:#fff;}
+      .evt-form-card{border:1px solid var(--border);background:#fff;border-radius:18px;padding:1.25rem 1.35rem;box-shadow:var(--shadow-sm);}
+      .evt-form-title{font-size:.82rem;font-weight:800;letter-spacing:.06em;color:#153036;text-transform:uppercase;margin:0 0 .25rem;}
+      .evt-form-sub{font-size:.7rem;color:#65767d;margin-bottom:1rem;font-weight:600;}
+      .evt-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem 2.4rem;}
+      @media (max-width:900px){ .evt-form-grid{grid-template-columns:1fr;} }
+      .evt-form-card label{font-size:.65rem;font-weight:700;letter-spacing:.05em;color:#355156;text-transform:uppercase;margin-bottom:.28rem;}
+      .evt-form-card .form-control,.evt-form-card .form-select{font-size:.82rem;border-radius:.7rem;padding:.6rem .75rem;}
+      .evt-form-actions{display:flex;gap:.6rem;justify-content:flex-end;border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem;}
+      .evt-success{font-size:.7rem;font-weight:700;color:#0d7c4e;display:none;}
+      .evt-error{font-size:.7rem;font-weight:700;color:#b22218;display:none;}
+      .evt-tabs .nav-link{border-radius:30px;font-size:.7rem;font-weight:600;padding:.5rem .95rem;color:#355155;}
+      .evt-tabs .nav-link.active{background:#ffffff;border:1px solid var(--border);box-shadow:0 2px 4px rgba(0,0,0,.06);color:#0a5c3d;font-weight:700;}
+      .evt-badge-completed{background:#e1edff;color:#134f9c;font-size:.55rem;font-weight:800;padding:.25rem .5rem;border-radius:999px;letter-spacing:.04em;margin-right:.35rem;}
+    `;
+    const style=document.createElement('style');
+    style.id='evtStyles'; style.textContent=css; document.head.appendChild(style);
+  })();
+
+  // Safe local date helpers (avoid UTC shift)
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function ymdLocal(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+  const fmtMonthKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}`;
+  const fmtDate      = (d) => ymdLocal(d);
+
+  // state
+  const today = new Date(); today.setHours(0,0,0,0);
+  let viewMonth = new Date(today); viewMonth.setDate(1);
+  let selectedDate = new Date(today);
+
+  // cache month events
+  const monthCache = new Map(); // key 'YYYY-MM' -> array of events
+
+  // helpers
+  function parseISO(s){ const dt=new Date(s+'T00:00:00'); return isNaN(dt)? null: dt; }
+  function timeLabel(t){
+    if(!t) return 'All day';
+    if(/\d{2}:\d{2}(:\d{2})?$/.test(t)){
+      const [hh,mm]=t.split(':'); let h=+hh, m=+mm; const ampm=h>=12?'PM':'AM'; h=h%12||12;
+      return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+    }
+    return t;
+  }
+  function badge(type){
+    const map = {vaccination:'vaccination',health:'health',nutrition:'nutrition',feeding:'feeding',weighing:'weighing',general:'general',other:'other'};
+    const cls = map[type] || 'general';
+    const lbl = type==='vaccination'?'Vaccination'
+              : type==='health'?'Maternal Health'
+              : type==='nutrition'?'Nutrition'
+              : type==='feeding'?'Feeding'
+              : type==='weighing'?'Weighing'
+              : type==='general'?'General':'Other';
+    return `<span class="evt-badge ${cls}">${lbl}</span>`;
+  }
+  function isCompleted(ev){
+    if(!ev) return false;
+    const st = (ev.status||'').toString().toLowerCase();
+    return ev.is_completed==1 || st==='completed' || (ev.completed_at && ev.completed_at!=='0000-00-00 00:00:00') ||
+           (ev.event_description && /^\[COMPLETED\]/.test(ev.event_description));
+  }
+
+  // fetch events for month
+  function loadMonth(monthKey){
+    if(monthCache.has(monthKey)) return Promise.resolve(monthCache.get(monthKey));
+    return fetchJSON(api.events+'?month='+monthKey).then(j=>{
+      if(!j.success) throw new Error('Load failed');
+      monthCache.set(monthKey, j.events||[]);
+      return monthCache.get(monthKey);
+    });
+  }
+
+  // load current and next month (for metrics)
+  Promise.allSettled([
+    loadMonth(fmtMonthKey(viewMonth)),
+    (function(){const n=new Date(viewMonth); n.setMonth(n.getMonth()+1); return loadMonth(fmtMonthKey(n));})()
+  ]).then(()=>{
+
+    moduleContent.innerHTML = `
+      <div class="evt-wrap fade-in">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <h2 class="imm-title" style="margin:0 0 .3rem;">Health Event Scheduling</h2>
+            <div class="imm-sub">Create a new health campaign, visit, or education session</div>
+          </div>
+          <div>
+            <button class="evt-btn-add" id="evtAddBtn" aria-expanded="false"><i class="bi bi-plus-lg"></i> Schedule New Event</button>
+          </div>
+        </div>
+
+        <!-- Inline form (same as before) -->
+        <div class="evt-form-card mb-3" id="evtFormCard" style="display:none;">
+          <div class="evt-form-title">Schedule Health Event</div>
+          <div class="evt-form-sub">Create a new health campaign, visit, or education session</div>
+          <form id="evtForm" autocomplete="off">
+            <div class="evt-form-grid">
+              <div>
+                <div class="mb-3">
+                  <label>Event Type *</label>
+                  <select name="event_type" class="form-select" required>
+                    <option value="">Select event type</option>
+                    <option value="vaccination">Vaccination Campaign</option>
+                    <option value="health">Maternal Health Visit</option>
+                    <option value="general">Health Education Session</option>
+                    <option value="general">General Consultation Day</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label>Event Date *</label>
+                  <input type="date" name="event_date" class="form-control" required value="${fmtDate(selectedDate)}" placeholder="mm/dd/yyyy">
+                </div>
+                <div class="mb-3">
+                  <label>Location</label>
+                  <input name="location" class="form-control" placeholder="e.g., Barangay Health Center">
+                </div>
+                <div class="mb-1">
+                  <label>Description</label>
+                  <textarea name="event_description" rows="2" class="form-control" placeholder="Event details, requirements, and instructions"></textarea>
+                </div>
+              </div>
+              <div>
+                <div class="mb-3">
+                  <label>Event Title *</label>
+                  <input name="event_title" class="form-control" required placeholder="e.g., Measles Vaccination Campaign">
+                </div>
+                <div class="mb-3">
+                  <label>Time</label>
+                  <input type="time" name="event_time" class="form-control" step="60" placeholder="--:-- --">
+                </div>
+              </div>
+            </div>
+            <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+            <input type="hidden" name="create_event" value="1">
+            <div class="evt-form-actions">
+              <div class="me-auto">
+                <span class="evt-success" id="evtOk"><i class="bi bi-check-circle me-1"></i>Saved!</span>
+                <span class="evt-error" id="evtErr"></span>
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="evtCancelBtn">Cancel</button>
+              <button class="btn btn-success btn-sm" id="evtSaveBtn"><i class="bi bi-check2-circle me-1"></i>Schedule Event</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Metrics row -->
+        <div class="metric-grid mb-3" id="evtMetrics"></div>
+
+        <!-- Tabs -->
+        <div class="evt-tabs nav mb-2">
+          <button class="nav-link active" data-tab="calendar">Calendar View</button>
+          <button class="nav-link" data-tab="upcoming">Upcoming Events</button>
+          <button class="nav-link" data-tab="vaccination">Vaccination Campaigns</button>
+          <button class="nav-link" data-tab="maternal">Maternal Visits</button>
+        </div>
+        <div id="evtPanel"></div>
+      </div>
+    `;
+
+    updateMetrics();
+    renderCalendarTab();
+
+    // tabs wiring
+    moduleContent.querySelectorAll('.evt-tabs .nav-link').forEach(b=>{
+      b.addEventListener('click',()=>{
+        moduleContent.querySelectorAll('.evt-tabs .nav-link').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        const t=b.dataset.tab;
+        if(t==='calendar') renderCalendarTab();
+        if(t==='upcoming') renderUpcomingTab();
+        if(t==='maternal') renderFilteredTab('health','Maternal Visits');
+        if(t==='vaccination') renderFilteredTab('vaccination','Vaccination Campaigns');
+      });
+    });
+
+    // Toggle form
+    const formCard = document.getElementById('evtFormCard');
+    const addBtn = document.getElementById('evtAddBtn');
+    addBtn.addEventListener('click',()=>{
+      const hidden = formCard.style.display==='none';
+      formCard.style.display = hidden ? 'block' : 'none';
+      addBtn.setAttribute('aria-expanded', hidden?'true':'false');
+      if(hidden){
+        const dateEl = document.querySelector('#evtForm [name=event_date]');
+        if(dateEl) dateEl.value = fmtDate(selectedDate);
+        formCard.scrollIntoView({behavior:'smooth',block:'start'});
+        setTimeout(()=>document.querySelector('#evtForm [name=event_title]')?.focus(), 220);
+      }
+    });
+
+    // Form submit
+    const form = document.getElementById('evtForm');
+    const err  = document.getElementById('evtErr');
+    const ok   = document.getElementById('evtOk');
+
+    document.getElementById('evtCancelBtn').addEventListener('click',()=>{
+      form.reset(); err.style.display='none'; ok.style.display='none';
+      formCard.style.display='none';
+      addBtn.setAttribute('aria-expanded','false');
+    });
+
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      err.style.display='none'; ok.style.display='none';
+      const fd=new FormData(form);
+      fetch(api.events,{method:'POST',body:fd})
+        .then(parseJSONSafe)
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Save failed');
+          ok.style.display='inline';
+          const evDate = fd.get('event_date'); const key = evDate? String(evDate).slice(0,7): fmtMonthKey(viewMonth);
+          monthCache.delete(key);
+          loadMonth(key).then(()=>{ updateMetrics(); rerenderActiveTab(); });
+          const keepType = form.event_type.value;
+          const keepDate = form.event_date.value;
+          form.reset();
+          form.event_type.value = keepType;
+          form.event_date.value = keepDate || fmtDate(new Date());
+          formCard.style.display='none';
+          addBtn.setAttribute('aria-expanded','false');
+        })
+        .catch(ex=>{ err.textContent=ex.message; err.style.display='inline'; });
+    });
+
+  }).catch(err=>{
+    moduleContent.innerHTML = `<div class="alert alert-danger small">Error loading events: ${escapeHtml(err.message)}</div>`;
+  });
+
+  // utilities
+  function gatherAllLoadedEvents(){
+    const keys=[fmtMonthKey(viewMonth), (d=>{const n=new Date(viewMonth); n.setMonth(n.getMonth()+1); return fmtMonthKey(n);})()];
+    const list=[]; keys.forEach(k=>{ (monthCache.get(k)||[]).forEach(e=>list.push(e)); });
+    return list;
+  }
+  function updateMetrics(){
+    const list = gatherAllLoadedEvents();
+    const start30 = new Date(today); const end30 = new Date(today); end30.setDate(end30.getDate()+30);
+    const thisWeekStart = (function(){ const d=new Date(today); const day = d.getDay(); const diff = (day+6)%7; d.setDate(d.getDate()-diff); return d; })(); // Monday
+    const thisWeekEnd = new Date(thisWeekStart); thisWeekEnd.setDate(thisWeekStart.getDate()+6);
+    const thisMonthKey = today.toISOString().slice(0,7);
+
+    let next30=0, weekCnt=0, completedThisMonth=0;
+    list.forEach(ev=>{
+      const dt=parseISO(ev.event_date); if(!dt) return;
+      if(dt>=start30 && dt<=end30) next30++;
+      if(dt>=thisWeekStart && dt<=thisWeekEnd) weekCnt++;
+      const k=ev.event_date.slice(0,7);
+      if(k===thisMonthKey && isCompleted(ev)) completedThisMonth++;
+    });
+    const attendance='—';
+
+    const box=document.getElementById('evtMetrics');
+    if(!box) return;
+    box.innerHTML = [
+      metricCard('Upcoming Events', next30, 'Next 30 days','bi-calendar3'),
+      metricCard('This Week', weekCnt, 'Scheduled events','bi-pencil'),
+      metricCard('Total Attendance', attendance, 'This month','bi-people'),
+      metricCard('Completed', completedThisMonth, 'This month','bi-check2-circle')
+    ].join('');
+  }
+  function metricCard(title,value,sub,icon){
+    return `<div class="metric-card">
+      <div>
+        <div class="metric-title"><i class="bi ${icon}"></i>${escapeHtml(title)}</div>
+        <div class="metric-value">${escapeHtml(String(value))}</div>
+        <div class="metric-diff" style="color:#607078;font-weight:700;">${escapeHtml(sub)}</div>
+      </div>
+    </div>`;
+  }
+
+  function rerenderActiveTab(){
+    const active = moduleContent.querySelector('.evt-tabs .nav-link.active')?.dataset.tab || 'calendar';
+    if(active==='calendar') renderCalendarTab();
+    else if(active==='upcoming') renderUpcomingTab();
+    else if(active==='maternal') renderFilteredTab('health','Maternal Visits');
+    else if(active==='vaccination') renderFilteredTab('vaccination','Vaccination Campaigns');
+  }
+
+  // Views
+  function renderCalendarTab(){
+    const panel=document.getElementById('evtPanel');
+    panel.innerHTML = `
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="evt-cal">
+            <header>
+              <button class="btn btn-sm btn-outline-secondary" id="calPrev"><i class="bi bi-chevron-left"></i></button>
+              <div class="ttl">${viewMonth.toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'long',year:'numeric'})}</div>
+              <button class="btn btn-sm btn-outline-secondary" id="calNext"><i class="bi bi-chevron-right"></i></button>
+            </header>
+            <div class="evt-small-muted mb-2">Select a date to view events</div>
+            <div id="evtCalGrid" class="mb-2"></div>
+          </div>
+        </div>
+        <div class="col-lg-7">
+          <div class="evt-card">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="evt-title">Events on ${selectedDate.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',day:'2-digit',month:'2-digit',year:'numeric'})}</div>
+            </div>
+            <div class="evt-small-muted mb-2">Scheduled health activities for this date</div>
+            <div id="evtDayList"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    buildCalendarGrid();
+    document.getElementById('calPrev').addEventListener('click',()=>{
+      viewMonth.setMonth(viewMonth.getMonth()-1);
+      const key=fmtMonthKey(viewMonth);
+      loadMonth(key).then(()=>{ buildCalendarGrid(); updateMetrics(); });
+    });
+    document.getElementById('calNext').addEventListener('click',()=>{
+      viewMonth.setMonth(viewMonth.getMonth()+1);
+      const key=fmtMonthKey(viewMonth);
+      loadMonth(key).then(()=>{ buildCalendarGrid(); updateMetrics(); });
+    });
+    renderDayList(selectedDate);
+  }
+
+  function buildCalendarGrid(){
+    const key=fmtMonthKey(viewMonth);
+    const events = monthCache.get(key)||[];
+
+    const map=new Map();
+    events.forEach(e=>{
+      const d=e.event_date; map.set(d,(map.get(d)||0)+1);
+    });
+
+    const year=viewMonth.getFullYear(), month=viewMonth.getMonth();
+    const first=new Date(year,month,1);
+    const startIdx=(first.getDay()+6)%7; // Monday first
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    const totalCells = Math.ceil((startIdx+daysInMonth)/7)*7;
+
+    const head=['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=>`<th>${d}</th>`).join('');
+    let cells='';
+    for(let i=0;i<totalCells;i++){
+      const dayNum = i - startIdx + 1;
+      const dateObj = new Date(year, month, dayNum);
+      const inMonth = dayNum>=1 && dayNum<=daysInMonth;
+      let cls='evt-day';
+      if(!inMonth) cls+=' disabled';
+      const isToday = inMonth && fmtDate(dateObj)===fmtDate(today);
+      if(isToday) cls+=' is-today';
+      const dateStr = fmtDate(dateObj);
+      const has = (map.get(dateStr)||0)>0;
+      const dot = has? '<span class="evt-dot"></span>':'';
+      const num = inMonth? dayNum : (dayNum<1? (new Date(year,month,0).getDate()+dayNum) : (dayNum-daysInMonth));
+      cells += `<td><div class="${cls}" data-date="${dateStr}"><span class="num">${num}</span>${dot}</div></td>`;
+    }
+    const tds = cells.match(/<td>[\s\S]*?<\/td>/g) || [];
+    const rowHtml=[];
+    for(let r=0;r<tds.length;r+=7){ rowHtml.push('<tr>'+tds.slice(r,r+7).join('')+'</tr>'); }
+
+    document.getElementById('evtCalGrid').innerHTML = `
+      <table>
+        <thead><tr>${head}</tr></thead>
+        <tbody>${rowHtml.join('')}</tbody>
+      </table>
+    `;
+    document.querySelectorAll('.evt-day').forEach(d=>{
+      if(d.classList.contains('disabled')) return;
+      d.addEventListener('click',()=>{
+        selectedDate = parseISO(d.dataset.date);
+        document.querySelectorAll('.evt-day').forEach(x=>x.classList.remove('is-selected'));
+        d.classList.add('is-selected');
+        renderDayList(selectedDate);
+        const dateEl = document.querySelector('#evtForm [name=event_date]');
+        if(dateEl){ dateEl.value = d.dataset.date; }
+      });
+    });
+  }
+
+  function renderDayList(dateObj){
+    const key=fmtMonthKey(dateObj);
+    const all = monthCache.get(key)||[];
+    const target = fmtDate(dateObj);
+    const list = all.filter(e=>e.event_date===target).sort((a,b)=> (a.event_time||'') < (b.event_time||'') ? -1 : 1);
+    const box=document.getElementById('evtDayList');
+    if(!box) return;
+    if(!list.length){ box.innerHTML = `<div class="evt-empty">No events on this date.</div>`; return; }
+    box.innerHTML = list.map(cardHTML).join('');
+    wireCardActions(box);
+  }
+
+  function renderUpcomingTab(){
+    const panel=document.getElementById('evtPanel');
+    const all=gatherAllLoadedEvents();
+    const start=today; const end=new Date(today); end.setDate(end.getDate()+30);
+    const list = all.filter(e=>{ const dt=parseISO(e.event_date); return dt && dt>=start && dt<=end; })
+      .sort((a,b)=> (a.event_date||'') < (b.event_date||'') ? -1 : (a.event_time||'') < (b.event_time||'') ? -1 : 1);
+    panel.innerHTML = `
+      <div class="imm-card">
+        <h6 style="font-size:.72rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Upcoming Events (Next 30 Days)</h6>
+        <div class="imm-small-muted mb-2">Scheduled health activities</div>
+        <div id="evtUpList">${list.length? list.map(cardHTML).join('') : `<div class="evt-empty">No upcoming events.</div>`}</div>
+      </div>
+    `;
+    wireCardActions(panel);
+  }
+
+  function renderFilteredTab(type,labelText){
+    const panel=document.getElementById('evtPanel');
+    const all=gatherAllLoadedEvents();
+    const list = all.filter(e=> (e.event_type||'')===type)
+      .sort((a,b)=> (a.event_date||'') < (b.event_date||'') ? -1 : (a.event_time||'') < (b.event_time||'') ? -1 : 1);
+    panel.innerHTML = `
+      <div class="imm-card">
+        <h6 style="font-size:.72rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">${escapeHtml(labelText)}</h6>
+        <div class="imm-small-muted mb-2">All scheduled ${escapeHtml(labelText.toLowerCase())}</div>
+        <div id="evtFList">${list.length? list.map(cardHTML).join('') : `<div class="evt-empty">No events.</div>`}</div>
+      </div>
+    `;
+    wireCardActions(panel);
+  }
+
+  function cardHTML(e){
+    const t=timeLabel(e.event_time);
+    const dateLbl = (parseISO(e.event_date)||new Date()).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+    const completed = isCompleted(e);
+    const compBadge = completed ? `<span class="evt-badge-completed">Completed</span>` : '';
+    return `
+      <div class="evt-card mb-2" data-id="${e.event_id}" data-date="${escapeHtml(e.event_date||'')}" data-time="${escapeHtml(e.event_time||'')}">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-calendar2-event" style="color:#0a7b50;"></i>
+              <p class="evt-title mb-0">${escapeHtml(e.event_title||'Untitled')}</p>
+            </div>
+            <div class="evt-meta">${escapeHtml(t)} • ${escapeHtml(e.location||'TBD')}</div>
+            <div class="evt-small-muted">Date: ${escapeHtml(dateLbl)}</div>
+          </div>
+          <div>${compBadge}${badge(e.event_type||'general')}</div>
+        </div>
+        <div class="evt-actions mt-2 d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-primary btn-sm" data-act="view"><i class="bi bi-eye me-1"></i>View Details</button>
+          <button class="btn btn-outline-secondary btn-sm" data-act="resched"><i class="bi bi-calendar-event me-1"></i>Reschedule</button>
+          ${completed ? '' : `<button class="btn btn-outline-success btn-sm" data-act="complete"><i class="bi bi-check2-circle me-1"></i>Mark as Complete</button>`}
+        </div>
+      </div>
+    `;
+  }
+
+  function wireCardActions(scope){
+    scope.querySelectorAll('[data-act="view"]').forEach(b=>{
+      b.addEventListener('click',()=>{
+        const card=b.closest('.evt-card'); const id=card?.dataset.id;
+        const all=[...gatherAllLoadedEvents()];
+        const e=all.find(x=>String(x.event_id)===String(id));
+        openEventView(e);
+      });
+    });
+    // Reschedule
+    scope.querySelectorAll('[data-act="resched"]').forEach(b=>{
+      b.addEventListener('click',()=>{
+        const card=b.closest('.evt-card');
+        const id=card?.dataset.id;
+        const curDate=card?.dataset.date || '';
+        const curTime=card?.dataset.time || '';
+        openRescheduleModal(id, curDate, curTime);
+      });
+    });
+    // Complete
+    scope.querySelectorAll('[data-act="complete"]').forEach(b=>{
+      b.addEventListener('click',()=>{
+        const card=b.closest('.evt-card'); const id=card?.dataset.id;
+        if(!id) return;
+        const fd=new FormData();
+        fd.append('csrf_token', window.__BHW_CSRF);
+        fd.append('complete_event', id);
+        fetch(api.events,{method:'POST',body:fd})
+          .then(parseJSONSafe)
+          .then(j=>{
+            if(!j.success) throw new Error(j.error||'Failed to mark complete');
+            showToast('Event marked as completed','success');
+            // refresh month cache for this event’s month
+            const date = card?.dataset.date || '';
+            const mk = date? date.slice(0,7) : fmtMonthKey(viewMonth);
+            monthCache.delete(mk);
+            loadMonth(mk).then(()=>{ updateMetrics(); rerenderActiveTab(); });
+          })
+          .catch(err=> showToast(err.message,'danger'));
+      });
+    });
+  }
+
+  function openEventView(e){
+    const modalId='evtViewModal';
+    let modal=document.getElementById(modalId);
+    if(!modal){
+      document.body.insertAdjacentHTML('beforeend',`
+        <div class="modal fade" id="${modalId}" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:18px;">
+              <div class="modal-header">
+                <h5 class="modal-title" style="font-size:.92rem;font-weight:800;">Event Details</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body" id="evtViewBody" style="font-size:.78rem;"></div>
+              <div class="modal-footer">
+                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>`);
+      modal=document.getElementById(modalId);
+    }
+    const body=document.getElementById('evtViewBody');
+    if(!e){ body.innerHTML='<div class="text-muted small">Event not found.</div>'; }
+    else{
+      const dtLbl=(parseISO(e.event_date)||new Date()).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'long',day:'numeric',year:'numeric'});
+      const comp = isCompleted(e) ? '<span class="evt-badge-completed">Completed</span>' : '';
+      body.innerHTML=`
+        <div class="mb-2"><strong>Title:</strong> ${escapeHtml(e.event_title||'')}</div>
+        <div class="row g-2">
+          <div class="col-6"><strong>Date:</strong> ${escapeHtml(dtLbl)}</div>
+          <div class="col-6"><strong>Time:</strong> ${escapeHtml(timeLabel(e.event_time)||'—')}</div>
+          <div class="col-6"><strong>Type:</strong> ${badge(e.event_type||'general')}</div>
+          <div class="col-6"><strong>Status:</strong> ${comp||'<span class="text-muted">Scheduled</span>'}</div>
+          <div class="col-12"><strong>Location:</strong> ${escapeHtml(e.location||'—')}</div>
+          ${e.event_description ? `<div class="col-12"><strong>Description:</strong> ${escapeHtml(e.event_description)}</div>`:''}
+        </div>
+      `;
+    }
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  }
+
+  // Simple reschedule modal
+  function openRescheduleModal(eventId, currentDate, currentTime){
+    const mid='evtReschedModal';
+    let modal=document.getElementById(mid);
+    if(!modal){
+      document.body.insertAdjacentHTML('beforeend',`
+        <div class="modal fade" id="${mid}" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:18px;">
+              <div class="modal-header">
+                <h5 class="modal-title" style="font-size:.9rem;font-weight:800;">Reschedule Event</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <form id="evtReschedForm" class="row g-2">
+                  <div class="col-7">
+                    <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">New Date</label>
+                    <input type="date" class="form-control form-control-sm" name="event_date" required>
+                  </div>
+                  <div class="col-5">
+                    <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">New Time</label>
+                    <input type="time" class="form-control form-control-sm" name="event_time">
+                  </div>
+                  <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success btn-sm" id="evtReschedSave"><i class="bi bi-check2-circle me-1"></i>Save</button>
+                  </div>
+                  <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+                  <input type="hidden" name="reschedule_event" value="">
+                </form>
+                <div class="small text-danger mt-2 d-none" id="evtReschedErr"></div>
+              </div>
+            </div>
+          </div>
+        </div>`);
+      modal=document.getElementById(mid);
+    }
+    const form = modal.querySelector('#evtReschedForm');
+    form.event_date.value = currentDate || fmtDate(new Date());
+    form.event_time.value = currentTime || '';
+    form.reschedule_event.value = eventId || '';
+    const err = modal.querySelector('#evtReschedErr');
+    err.classList.add('d-none'); err.textContent='';
+
+    form.onsubmit = (e)=>{
+      e.preventDefault();
+      const fd=new FormData(form);
+      fetch(api.events,{method:'POST',body:fd})
+        .then(parseJSONSafe)
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Reschedule failed');
+          bootstrap.Modal.getInstance(modal).hide();
+          showToast('Event rescheduled','success');
+          const mk = (fd.get('event_date')||'').toString().slice(0,7) || fmtMonthKey(viewMonth);
+          monthCache.delete(mk);
+          loadMonth(mk).then(()=>{ updateMetrics(); rerenderActiveTab(); });
+        })
+        .catch(ex=>{ err.textContent=ex.message; err.classList.remove('d-none'); });
+    };
+
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  }
+}
+
+
+// ================== Health Reports (New) ==================
+function renderHealthReports(label){
+  showLoading(label);
+
+  const today = new Date();
+  const monthKey = today.toISOString().slice(0,7); // YYYY-MM
+
+  Promise.allSettled([
+    fetchJSON(api.reports+'?vaccination_coverage=1'),
+    fetchJSON(api.reports+'?maternal_stats=1'),
+    fetchJSON(api.reports+'?health_risks=1'),
+    fetchJSON(api.immun+'?recent_vaccinations=1&limit=400'),
+    fetchJSON(api.events+'?month='+monthKey)
+  ]).then(([covRes, matRes, riskRes, recentRes, evRes])=>{
+    const cov = covRes.value||{};
+    const mat = matRes.value||{};
+    const risk = riskRes.value||{};
+    const recent = recentRes.value||{};
+    const ev = evRes.value||{};
+
+    if(!cov.success || !mat.success || !risk.success){
+      moduleContent.innerHTML = '<div class="alert alert-danger small">Failed to load reports.</div>';
+      return;
+    }
+
+    // Campaign reach (sum target_participants kung meron)
+    let campaignReach = 0;
+    if (Array.isArray(ev.events)) {
+      ev.events.forEach(e=>{
+        const n = parseInt(e.target_participants ?? 0, 10);
+        if(!isNaN(n)) campaignReach += n;
+      });
+    }
+
+    const totalChildren   = cov.total_children ?? 0;
+    const overallCoverage = cov.overall_dose_coverage_pct ?? 0;
+    const prenatalVisits  = mat.total_consultations ?? 0; // simpleng bilang
+    const safeDeliveries  = (risk.aggregate ? 0 : 0); // walang direct metric; gagamit tayo ng Postnatal proxy sa hinaharap
+    // Build immunization trend (huling 6 na buwan)
+    const trend = buildMonthlyTrend(recent.recent_vaccinations||[], 6);
+
+    // Top shell
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <h2 class="imm-title" style="margin:0 0 .3rem;">Health Reports & Analytics</h2>
+            <div class="imm-sub">Comprehensive health statistics and insights</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm" id="btnExportAll"><i class="bi bi-download me-1"></i> Export All Reports</button>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          ${repMetricCard('Vaccination Coverage', (overallCoverage||0)+'%', 'bi-graph-up')}
+          ${repMetricCard('Prenatal Visits', prenatalVisits, 'bi-activity')}
+          ${repMetricCard('Safe Deliveries', safeDeliveries, 'bi-heart')} 
+          ${repMetricCard('Campaign Reach', campaignReach, 'bi-broadcast')}
+        </div>
+
+        <div class="nav imm-tabs mb-3" id="repTabs">
+          <button class="nav-link active" data-tab="vacc">Vaccination Coverage</button>
+          <button class="nav-link" data-tab="maternal">Maternal Health</button>
+          <button class="nav-link" data-tab="risks">Health Risks</button>
+          <button class="nav-link" data-tab="campaign">Campaign Attendance</button>
+        </div>
+
+        <div id="repPanel"></div>
+      </div>
+    `;
+
+    // Default tab
+    loadVaccTab();
+
+    document.getElementById('btnExportAll').addEventListener('click',()=>exportAll());
+
+    document.getElementById('repTabs').addEventListener('click',e=>{
+      const b=e.target.closest('.nav-link'); if(!b) return;
+      document.querySelectorAll('#repTabs .nav-link').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      const t=b.dataset.tab;
+      if(t==='vacc') loadVaccTab();
+      if(t==='maternal') loadMaternalTab();
+      if(t==='risks') loadRisksTab();
+      if(t==='campaign') loadCampaignTab();
+    });
+
+    // ========== Tabs ==========
+    function loadVaccTab(){
+      const panel=document.getElementById('repPanel');
+      const per = cov.per_vaccine||[];
+      const bars = per.map(p=>{
+        return {
+          label: (p.vaccine_code||'').toUpperCase(),
+          values: [
+            {name:'Completed', value: p.children_completed ?? 0, color:'#0d7c4e'},
+            {name:'Any Dose',  value: p.children_with_any_dose ?? 0, color:'#9fd6bf'}
+          ]
+        };
+      });
+      const maxVal = Math.max(1, ...bars.flatMap(b=>b.values.map(v=>v.value)));
+
+      panel.innerHTML = `
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <div class="imm-card">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6>Vaccination Completion Rates</h6>
+                <button class="btn btn-sm btn-outline-secondary" id="expVacc"><i class="bi bi-download me-1"></i>Export Report</button>
+              </div>
+              <div class="imm-small-muted mb-2">Coverage by vaccine type</div>
+              <div>${barChartSVG(bars, maxVal)}</div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="imm-card">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6>Immunization Trends</h6>
+                <button class="btn btn-sm btn-outline-secondary" id="expTrend"><i class="bi bi-download me-1"></i>Export Report</button>
+              </div>
+              <div class="imm-small-muted mb-2">Monthly vaccination administration</div>
+              <div>${lineChartSVG(trend.labels, trend.values, '#0a63c9')}</div>
+              <div class="imm-small-muted mt-1">Vaccinations Given</div>
+            </div>
+          </div>
+        </div>
+        <div class="imm-card mt-3">
+          <h6>Detailed Vaccination Statistics</h6>
+          <div class="table-responsive" style="max-height:360px;">
+            <table class="imm-table">
+              <thead>
+                <tr>
+                  <th>Vaccine</th>
+                  <th>Doses Required</th>
+                  <th>Children with Any Dose</th>
+                  <th>Completed</th>
+                  <th>% Any Coverage</th>
+                  <th>% Full Coverage</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${per.map(p=>`
+                  <tr>
+                    <td>${escapeHtml(p.vaccine_code||'')} — ${escapeHtml(p.vaccine_name||'')}</td>
+                    <td>${p.doses_required??'—'}</td>
+                    <td>${p.children_with_any_dose??0}</td>
+                    <td>${p.children_completed??0}</td>
+                    <td>${fmtPct(p.any_coverage_pct)}</td>
+                    <td>${fmtPct(p.full_coverage_pct)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      document.getElementById('expVacc').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
+      document.getElementById('expTrend').addEventListener('click',()=>exportSection(panel.querySelectorAll('.imm-card')[1]));
+    }
+
+    function loadMaternalTab(){
+      const panel=document.getElementById('repPanel');
+      const totalMothers = mat.total_mothers ?? 0;
+      const totalConsult = mat.total_consultations ?? 0;
+      const risky = mat.mothers_with_risks ?? 0;
+
+      panel.innerHTML = `
+        <div class="imm-card">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6>Maternal Health Summary</h6>
+            <button class="btn btn-sm btn-outline-secondary" id="expMat"><i class="bi bi-download me-1"></i>Export Report</button>
+          </div>
+          <div class="imm-metrics" style="margin-top:.5rem;">
+            ${metricMini('Total Mothers', totalMothers,'bi-people')}
+            ${metricMini('Consultations', totalConsult,'bi-clipboard2-pulse')}
+            ${metricMini('With Risk Flags', risky,'bi-exclamation-triangle')}
+          </div>
+          <div class="imm-small-muted mt-1">Note: Risk is based on latest consultation per mother.</div>
+        </div>
+      `;
+      document.getElementById('expMat').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
+    }
+
+    function loadRisksTab(){
+      const panel=document.getElementById('repPanel');
+      const agg = risk.aggregate || {};
+      const rows = [
+        ['Vaginal Bleeding', agg.vb||0],
+        ['Urinary Infection', agg.ui||0],
+        ['High BP', agg.hbp||0],
+        ['Fever ≥38°C', agg.fev||0],
+        ['Pallor', agg.pal||0],
+        ['Abnormal Abd Size', agg.abd||0],
+        ['Abnormal Presentation', agg.pres||0],
+        ['Absent Fetal Heartbeat', agg.fht||0],
+        ['Swelling', agg.swl||0],
+        ['Vaginal Infection', agg.vag||0],
+      ];
+      const max = Math.max(1, ...rows.map(r=>r[1]));
+      const bars = rows.map(([label,val])=>({label, values:[{name:'Cases', value:val, color:'#c72d20'}]}));
+
+      panel.innerHTML = `
+        <div class="imm-card">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6>Health Risk Distribution</h6>
+            <button class="btn btn-sm btn-outline-secondary" id="expRisk"><i class="bi bi-download me-1"></i>Export Report</button>
+          </div>
+          <div class="imm-small-muted mb-2">Latest-record risks (one row per mother)</div>
+          <div>${barChartSVG(bars, max)}</div>
+        </div>
+      `;
+      document.getElementById('expRisk').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
+    }
+
+    function loadCampaignTab(){
+      const panel=document.getElementById('repPanel');
+      const events = Array.isArray(ev.events)? ev.events.slice().sort((a,b)=>
+        (a.event_date||'') < (b.event_date||'') ? -1 : (a.event_time||'') < (b.event_time||'') ? -1 : 1
+      ) : [];
+      panel.innerHTML = `
+        <div class="imm-card">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6>Campaign Attendance (This Month)</h6>
+            <button class="btn btn-sm btn-outline-secondary" id="expCamp"><i class="bi bi-download me-1"></i>Export Report</button>
+          </div>
+          <div class="imm-small-muted mb-2">Sum of target participants when available</div>
+          <div class="table-responsive" style="max-height:420px;">
+            <table class="imm-table">
+              <thead>
+                <tr><th>Date</th><th>Title</th><th>Type</th><th>Location</th><th>Target Participants</th></tr>
+              </thead>
+              <tbody>
+                ${events.length? events.map(e=>`
+                  <tr>
+                    <td>${escapeHtml(e.event_date||'')}</td>
+                    <td>${escapeHtml(e.event_title||'')}</td>
+                    <td>${escapeHtml((e.event_type||'').toUpperCase())}</td>
+                    <td>${escapeHtml(e.location||'')}</td>
+                    <td>${e.target_participants!=null? escapeHtml(e.target_participants): '—'}</td>
+                  </tr>
+                `).join('') : `<tr><td colspan="5" class="text-center text-muted py-4">No events this month.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      document.getElementById('expCamp').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
+    }
+
+    // ========== Helpers ==========
+
+    function repMetricCard(title,value,icon){
+      return `<div class="imm-metric">
+        <div class="imm-metric-label"><i class="bi ${icon}"></i>${escapeHtml(title)}</div>
+        <div class="imm-metric-value">${escapeHtml(String(value))}</div>
+        <div class="imm-metric-sub"></div>
+      </div>`;
+    }
+    function metricMini(label,val,icon){
+      return `<div class="imm-metric">
+        <div class="imm-metric-label"><i class="bi ${icon}"></i>${escapeHtml(label)}</div>
+        <div class="imm-metric-value">${escapeHtml(String(val))}</div>
+      </div>`;
+    }
+    function fmtPct(v){ if(v==null) return '0%'; const n=+v; return (isNaN(n)?0:n).toFixed(0)+'%'; }
+
+    function buildMonthlyTrend(records, monthsBack){
+      // Aggregate by YYYY-MM
+      const map = new Map();
+      (records||[]).forEach(r=>{
+        const k = String(r.vaccination_date||'').slice(0,7);
+        if(k.length===7) map.set(k, (map.get(k)||0)+1);
+      });
+      // last N months ending this month
+      const labels=[], values=[];
+      const d=new Date(today);
+      for(let i=monthsBack-1;i>=0;i--){
+        const dt=new Date(d.getFullYear(), d.getMonth()-i, 1);
+        const k=dt.toISOString().slice(0,7);
+        labels.push(dt.toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short'}));
+        values.push(map.get(k)||0);
+      }
+      return {labels, values};
+    }
+
+    // Simple inline SVG bar chart (grouped or single series)
+    function barChartSVG(series, maxVal){
+      const W=520, H=240, pad=30, barW=26, gap=18;
+      const groupW = (barW * Math.max(1, series[0]?.values.length || 1)) + 8;
+      const totalW = series.length * (groupW + gap);
+      const viewW = Math.max(W, totalW + pad*2);
+      const scale = (v)=> v<=0? 0 : Math.round(((H - pad*2) * v) / maxVal);
+      let x=pad, paths=[];
+      series.forEach(s=>{
+        let bx=x;
+        s.values.forEach(v=>{
+          const h=scale(v.value);
+          const y=H - pad - h;
+          paths.push(`<rect x="${bx}" y="${y}" width="${barW}" height="${h}" fill="${v.color}" rx="4"></rect>`);
+          bx += barW + 6;
+        });
+        // label
+        paths.push(`<text x="${x + (barW*s.values.length+6*(s.values.length-1))/2}" y="${H-pad+14}" text-anchor="middle" font-size="10" fill="#445">${escapeHtml(s.label||'')}</text>`);
+        x += groupW + gap;
+      });
+      // y axis lines
+      const grid=[];
+      for(let i=0;i<=4;i++){
+        const y=pad + i*((H-pad*2)/4);
+        grid.push(`<line x1="${pad}" y1="${y}" x2="${viewW-pad}" y2="${y}" stroke="#e9eef2" stroke-width="1"/>`);
+      }
+      return `<svg viewBox="0 0 ${viewW} ${H}" preserveAspectRatio="xMinYMin meet" style="width:100%;height:auto;display:block;">
+        ${grid.join('')}
+        ${paths.join('')}
+      </svg>`;
+    }
+
+    // Simple inline SVG line chart
+    function lineChartSVG(labels, values, color){
+      const W=520, H=240, pad=30;
+      const maxVal=Math.max(1, ...values);
+      const step = (W - pad*2) / Math.max(1, values.length-1);
+      const points = values.map((v,i)=>{
+        const x=pad + i*step;
+        const y=H - pad - ((H - pad*2) * (v/maxVal));
+        return [x,y];
+      });
+      let d='';
+      points.forEach((p,i)=>{ d += (i===0?'M':'L')+p[0]+' '+p[1]+' '; });
+      const dots = points.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}"></circle>`).join('');
+      // x labels
+      const xl = labels.map((lb,i)=>`<text x="${pad + i*step}" y="${H-pad+14}" text-anchor="middle" font-size="10" fill="#445">${escapeHtml(lb)}</text>`).join('');
+      // grid
+      const grid=[];
+      for(let i=0;i<=4;i++){
+        const y=pad + i*((H-pad*2)/4);
+        grid.push(`<line x1="${pad}" y1="${y}" x2="${W-pad}" y2="${y}" stroke="#e9eef2" stroke-width="1"/>`);
+      }
+      return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMin meet" style="width:100%;height:auto;display:block;">
+        ${grid.join('')}
+        <path d="${d.trim()}" fill="none" stroke="${color}" stroke-width="2"></path>
+        ${dots}
+        ${xl}
+      </svg>`;
+    }
+
+    // Export helpers
+    function exportSection(node){
+      const win = window.open('', '_blank');
+      win.document.write(`<!doctype html><title>Report</title>
+        <style>
+          body{font-family:Arial,Helvetica,sans-serif;margin:20px;color:#222;}
+          h1{font-size:18px;margin:0 0 8px;}
+          .meta{font-size:12px;color:#666;margin-bottom:10px;}
+          .card{border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;}
+        </style>
+        <h1>Health Report</h1>
+        <div class="meta">Generated ${new Date().toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})}</div>
+        <div class="card">${node.outerHTML}</div>
+        <script>window.print();<\/script>
+      `);
+      win.document.close();
+    }
+    function exportAll(){
+      const win = window.open('', '_blank');
+      win.document.write(`<!doctype html><title>Health Reports</title>
+        <style>
+          body{font-family:Arial,Helvetica,sans-serif;margin:20px;color:#222;}
+          h1{font-size:20px;margin:0 0 6px;}
+          .meta{font-size:12px;color:#666;margin-bottom:14px;}
+          .grid{display:grid;grid-template-columns:1fr;gap:14px;}
+          .card{border:1px solid #ddd;border-radius:8px;padding:12px;}
+          @media print {.no-print{display:none;}}
+        </style>
+        <div class="no-print" style="text-align:right;margin-bottom:10px;">
+          <button onclick="window.print()">Print / Save PDF</button>
+        </div>
+        <h1>Health Reports & Analytics</h1>
+        <div class="meta">Generated ${new Date().toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})}</div>
+        <div class="grid" id="repPrint"></div>
+        <script>
+          const src = ${JSON.stringify(moduleContent.innerHTML)};
+          document.getElementById('repPrint').innerHTML = src;
+        <\/script>
+      `);
+      win.document.close();
+    }
+  }).catch(err=>{
+    moduleContent.innerHTML = '<div class="alert alert-danger small">Error: '+escapeHtml(err.message)+'</div>';
+  });
+}
+
+
  /* ===== Replace stubs below with your real full module implementations ===== */
  function renderRecentActivities(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Recent Activities code here.</div>';}
  function renderAlertSystem(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Alert System code here.</div>';}
@@ -3274,7 +7355,6 @@ function loadOverduePanel(){
  function renderVaccineSchedule(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Vaccine Schedule - insert original code.</div>';}
  function renderOverdueAlerts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Overdue Alerts - insert original code.</div>';}
  function renderParentNotifications(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Notifications - insert original code.</div>';}
- function renderCreateParentAccounts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Accounts - insert original code.</div>';}
 /* ========================================================================== */
 
 const moduleHandlers={
@@ -3285,6 +7365,10 @@ const moduleHandlers={
    maternal_health:renderMaternalHealth,
    vaccination_entry:renderVaccinationEntry,
    immunization_card:renderImmunizationCard,
+   create_parent_accounts: renderCreateParentAccounts,
+   health_records_all: renderHealthRecordsAll, 
+   health_calendar: renderEventScheduling,    
+   report_vaccination_coverage: renderHealthReports, 
 };
 
 function loadModule(mod,label){

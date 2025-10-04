@@ -27,6 +27,150 @@ $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), arra
      - Removed zoom controls / modes
      - Removed sidebar scrollbar (hidden) -->
 <style>
+/* Nutrition Data Entry Form Styles */
+.form-section {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.form-section-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  border-radius: 6px;
+}
+
+.form-section-icon.address {
+  background: #ffe4e4;
+  color: #b02020;
+}
+
+.form-section-icon.mother {
+  background: #ffecc7;
+  color: #8d5b00;
+}
+
+.form-section-icon.child {
+  background: #ffebc9;
+  color: #845900;
+}
+
+.form-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+.form-control, .form-select {
+  font-size: 0.72rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: border-color 0.15s ease;
+}
+
+.form-control:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--green-accent);
+  box-shadow: 0 0 0 2px rgba(7, 122, 68, 0.1);
+}
+
+.form-control::placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.date-input {
+  position: relative;
+}
+
+.date-input input[type="date"] {
+  padding-right: 2.5rem;
+}
+
+.date-input::after {
+  content: '\f4c3';
+  font-family: 'Bootstrap Icons';
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  font-size: 0.8rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.page-header-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+.page-header-text h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.page-header-text p {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+  font-weight: 500;
+}
 :root{
   --base-font-size:16px; /* align with BHW scale */
   --bg:#f5f8f6;
@@ -587,6 +731,134 @@ h1.page-title{
 
 /* Responsive adjustments */
 @media (max-width:1250px){ .stat-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));} }
+/* Calendar Widget Styles */
+.calendar-widget {
+  font-size: 0.7rem;
+}
+
+.calendar-days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0.3rem;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-day {
+  text-align: center;
+  padding: 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.calendar-day:hover {
+  background: var(--surface-soft);
+}
+
+.calendar-day.prev-month,
+.calendar-day.next-month {
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.calendar-day.current-day {
+  background: var(--green);
+  color: white;
+  font-weight: 700;
+}
+
+/* Event List Styles */
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-item {
+  padding: 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--surface);
+  transition: box-shadow 0.15s ease;
+}
+
+.event-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.event-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.event-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 0.3rem 0;
+}
+
+.event-details {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.event-details span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.event-badge {
+  font-size: 0.55rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.event-badge.opt-plus {
+  background: #e8f5ea;
+  color: #077a44;
+}
+
+.event-badge.weighing {
+  background: #e1f1ff;
+  color: #1c79d0;
+}
+
+.event-badge.education {
+  background: #f3e8ff;
+  color: #a259c6;
+}
+
+.event-badge.feeding {
+  background: #ffecc7;
+  color: #f4a400;
+}
 </style>
 </head>
 <body>
@@ -699,39 +971,53 @@ function showLoading(label){moduleContent.innerHTML=`<div class="loading-state">
 
 function renderDashboardHome(label){
   showLoading(label);
+  
   Promise.all([
-    fetchJSON(api.children+'?list=1'),
-    fetchJSON(api.nutrition+'?classification_summary=1'),
-    fetchJSON(api.nutrition+'?recent=1')
-  ]).then(([childRes,classRes,recentRes])=>{
-    const children = childRes.children||[];
-    const classification = classRes.summary||[];
-    const recent = recentRes.records||[];
+    fetchJSON(api.children+'?action=list').catch(err => {
+      console.error('Children API error:', err);
+      return { children: [] };
+    }),
+    fetchJSON(api.nutrition+'?classification_summary=1').catch(err => {
+      console.error('Nutrition API error:', err);
+      return { summary: [] };
+    }),
+    fetchJSON(api.nutrition+'?recent=1').catch(err => {
+      console.error('Recent API error:', err);
+      return { records: [] };
+    })
+  ]).then(([childRes, classRes, recentRes]) => {
+    const children = childRes.children || [];
+    const classification = classRes.summary || [];
+    const recent = recentRes.records || [];
     const total = children.length;
-    const malCodes=new Set(['SAM','MAM','UW']);
-    let normal=0,mal=0,mam=0,sam=0;
-    classification.forEach(c=>{
-      const cnt=parseInt(c.child_count||0,10);
-      if(c.status_code==='NOR') normal+=cnt;
-      if(malCodes.has(c.status_code)) mal+=cnt;
-      if(c.status_code==='MAM') mam=cnt;
-      if(c.status_code==='SAM') sam=cnt;
+    const malCodes = new Set(['SAM','MAM','UW']);
+    let normal = 0, mal = 0, mam = 0, sam = 0;
+    
+    classification.forEach(c => {
+      const cnt = parseInt(c.child_count || 0, 10);
+      if(c.status_code === 'NOR') normal += cnt;
+      if(malCodes.has(c.status_code)) mal += cnt;
+      if(c.status_code === 'MAM') mam = cnt;
+      if(c.status_code === 'SAM') sam = cnt;
     });
-    document.getElementById('qsChildren').textContent=total;
-    document.getElementById('qsMal').textContent=mal;
-    document.getElementById('qsNormal').textContent=normal;
+    
+    // Update sidebar stats
+    document.getElementById('qsChildren').textContent = total;
+    document.getElementById('qsMal').textContent = mal;
+    document.getElementById('qsNormal').textContent = normal;
 
-    const priority=[];
-    const seen=new Set();
-    recent.forEach(r=>{
+    const priority = [];
+    const seen = new Set();
+    recent.forEach(r => {
       if(malCodes.has(r.status_code) && !seen.has(r.child_name)){
-        priority.push(r);seen.add(r.child_name);
+        priority.push(r);
+        seen.add(r.child_name);
       }
     });
 
-    const trendSvg=buildTrend(recent);
+    const trendSvg = buildTrend(recent);
 
-    moduleContent.innerHTML=`
+    moduleContent.innerHTML = `
       <div class="fade-in">
         <div class="stat-grid">
           ${statCard('Children Monitored', total,'Active in monitoring program','green', true)}
@@ -774,17 +1060,25 @@ function renderDashboardHome(label){
             <div>
               ${
                 classification.map(c=>distRow(c.status_code||'UNSET',c.child_count)).join('') ||
-                '<div class="text-muted" style="font-size:.55rem;">No data.</div>'
+                '<div class="text-muted" style="font-size:.55rem;">No data available.</div>'
               }
             </div>
           </div>
         </div>
       </div>
     `;
-  }).catch(err=>{
-    moduleContent.innerHTML='<div class="alert alert-danger small">Error: '+escapeHtml(err.message)+'</div>';
+  }).catch(err => {
+    console.error('Dashboard error:', err);
+    moduleContent.innerHTML = `
+      <div class="alert alert-danger" style="font-size:.7rem;">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Error loading dashboard:</strong> ${escapeHtml(err.message)}
+        <br><small>Please check your network connection and try refreshing the page.</small>
+      </div>
+    `;
   });
 
+  // Helper functions (keep these the same)
   function statCard(t,val,desc,color,progress=false,extras=''){
     return `<div class="stat-card ${color}">
       <div class="stat-title"><i class="bi ${iconFor(t)}"></i>${escapeHtml(t)}</div>
@@ -794,6 +1088,7 @@ function renderDashboardHome(label){
       ${extras?'<div class="stat-pills">'+extras+'</div>':''}
     </div>`;
   }
+  
   function iconFor(t){
     if(/Children/i.test(t)) return 'bi-people-fill';
     if(/Supplements/i.test(t)) return 'bi-capsule-pill';
@@ -801,6 +1096,7 @@ function renderDashboardHome(label){
     if(/Growth Trend/i.test(t)) return 'bi-graph-up';
     return 'bi-circle';
   }
+  
   function priorityItem(r){
     return `<div class="case-item">
       <div class="case-left">
@@ -816,55 +1112,3043 @@ function renderDashboardHome(label){
       </div>
     </div>`;
   }
+  
   function badge(s){
     if(!s) return `<span class="badge-status">—</span>`;
     return `<span class="badge-status badge-${escapeHtml(s)}">${escapeHtml(s)}</span>`;
   }
+  
   function distRow(code,count){
     return `<div class="dist-row">
       <div class="dist-left">${badge(code)}<span>${escapeHtml(code)}</span></div>
       <span style="font-size:.52rem;font-weight:700;">${count}</span>
     </div>`;
   }
+  
   function buildTrend(recent){
-    const map={};
-    recent.forEach(r=>{
+    const map = {};
+    recent.forEach(r => {
       if(!r.weighing_date) return;
-      const ym=r.weighing_date.slice(0,7);
-      if(!map[ym]) map[ym]={NOR:0};
-      if(r.status_code==='NOR') map[ym].NOR++;
+      const ym = r.weighing_date.slice(0,7);
+      if(!map[ym]) map[ym] = {NOR:0};
+      if(r.status_code === 'NOR') map[ym].NOR++;
     });
-    const arr=Object.entries(map).sort((a,b)=>a[0]>b[0]?1:-1).slice(-6)
-      .map(([ym,o])=>({label:ym.slice(5),value:o.NOR}));
-    if(!arr.length) return `<div class="chart-placeholder">No trend</div>`;
-    const max=Math.max(...arr.map(d=>d.value))||1;
-    const pts=arr.map((d,i)=>{
-      const x=(i/(arr.length-1))*100;
-      const y=100 - (d.value/max)*85 - 7;
-      return {x,y,label:d.label};
+    
+    const arr = Object.entries(map).sort((a,b) => a[0] > b[0] ? 1 : -1).slice(-6)
+      .map(([ym,o]) => ({label:ym.slice(5), value:o.NOR}));
+    
+    if(!arr.length) return `<div class="chart-placeholder">No trend data available</div>`;
+    
+    const max = Math.max(...arr.map(d => d.value)) || 1;
+    const pts = arr.map((d,i) => {
+      const x = (i/(arr.length-1)) * 100;
+      const y = 100 - (d.value/max) * 85 - 7;
+      return {x, y, label: d.label};
     });
-    const poly=pts.map(p=>`${p.x},${p.y}`).join(' ');
-    const circles=pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
+    
+    const poly = pts.map(p => `${p.x},${p.y}`).join(' ');
+    const circles = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
+    
     return `<div style="width:100%;position:relative;">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:140px;">
         <polyline fill="none" stroke="#0b7a43" stroke-width="1.4" points="${poly}" />
         ${circles}
       </svg>
       <div class="d-flex justify-content-between" style="margin-top:-10px;">
-        ${pts.map(p=>`<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
+        ${pts.map(p => `<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
       </div>
     </div>`;
   }
 }
 
 /* Placeholder modules (replace with real content later) */
-function renderChildrenModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Children Module</h5><p class="small-note">Insert children management UI here.</p></div>'; }
-function renderWeighingModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Weighing Module</h5><p class="small-note">Placeholder.</p></div>'; }
+function renderChildrenModule(label) {
+  showLoading(label);
+  
+  // Fetch real data from API
+  fetchJSON(api.children + '?action=list')
+    .then(response => {
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch children data');
+      }
+      
+      const children = response.children || [];
+      
+      moduleContent.innerHTML = `
+    <div class="fade-in">
+      <!-- Page Header -->
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
+            👶 Children Management
+          </h1>
+          <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Manage child records and profiles</p>
+        </div>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#registerChildModal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.05rem;border-radius:11px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+          <i class="bi bi-plus-lg me-1"></i> Register New Child
+        </button>
+      </div>
+
+      <!-- Tab Navigation - Removed Mother-Child Linking Tab -->
+      <div class="mb-3">
+        <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
+          <li class="nav-item">
+            <a class="nav-link active children-tab" href="#" data-tab="database" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
+              Child Database
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link children-tab" href="#" data-tab="profiles" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+              Profile Management
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Search & Filter Section -->
+      <div class="tile mb-4">
+        <div class="tile-header mb-3">
+          <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">SEARCH & FILTER</h5>
+        </div>
+        
+        <div class="row g-3 align-items-end">
+          <!-- Search Input -->
+          <div class="col-md-3">
+            <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Search</label>
+            <div class="position-relative">
+              <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
+              <input type="text" class="form-control" id="childSearchInput" placeholder="Name, mother..." style="font-size:.7rem;padding:.6rem .8rem .6rem 2.2rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+            </div>
+          </div>
+
+          <!-- Nutrition Status Dropdown -->
+          <div class="col-md-3">
+            <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Nutrition Status</label>
+            <select class="form-select" id="nutritionStatusFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+              <option value="">All Status</option>
+              <option value="NOR">Normal (NOR)</option>
+              <option value="UW">Underweight (UW)</option>
+              <option value="MAM">Moderate Acute Malnutrition (MAM)</option>
+              <option value="SAM">Severe Acute Malnutrition (SAM)</option>
+              <option value="OW">Overweight (OW)</option>
+              <option value="OB">Obese (OB)</option>
+            </select>
+          </div>
+
+          <!-- Purok Dropdown -->
+          <div class="col-md-3">
+            <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Purok</label>
+            <select class="form-select" id="purokFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+              <option value="">All Purok</option>
+              <option value="Purok 1">Purok 1</option>
+              <option value="Purok 2">Purok 2</option>
+              <option value="Purok 3">Purok 3</option>
+              <option value="Purok 4">Purok 4</option>
+              <option value="Purok 5">Purok 5</option>
+            </select>
+          </div>
+
+          <!-- Export Button -->
+          <div class="col-md-3 d-flex justify-content-end">
+            <button class="btn btn-outline-success" onclick="exportChildrenData()" style="font-size:.65rem;font-weight:600;padding:.6rem 1rem;border-radius:8px;border:1px solid var(--green);color:var(--green);">
+              <i class="bi bi-download me-1"></i> Export CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content - DEFAULT TO CHILD DATABASE -->
+      <div id="children-tab-content">
+        ${renderChildrenTable(children)}
+      </div>
+    </div>
+  `;
+
+      // Add search and filter functionality
+      setupChildrenFilters(children);
+      
+      // Add tab switching functionality (updated to handle only 2 tabs)
+      setupChildrenTabsUpdated();
+    })
+    .catch(error => {
+      console.error('Error fetching children data:', error);
+      moduleContent.innerHTML = `
+        <div class="alert alert-danger" style="font-size:.7rem;">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Error loading children data: ${escapeHtml(error.message)}
+        </div>
+      `;
+    });
+}
+
+// Updated tab switching function (removed Mother-Child Linking functionality)
+function setupChildrenTabsUpdated() {
+  document.querySelectorAll('.children-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Update active tab
+      document.querySelectorAll('.children-tab').forEach(t => {
+        t.classList.remove('active');
+        t.style.color = 'var(--muted)';
+        t.style.borderBottom = 'none';
+      });
+      tab.classList.add('active');
+      tab.style.color = 'var(--green)';
+      tab.style.borderBottom = '2px solid var(--green)';
+      
+      // Update content based on tab
+      const tabType = tab.dataset.tab;
+      const contentArea = document.getElementById('children-tab-content');
+      
+      switch(tabType) {
+        case 'profiles':
+          contentArea.innerHTML = `
+            <div class="tile">
+              <div class="d-flex align-items-center justify-content-center flex-column py-5">
+                <i class="bi bi-person-vcard text-muted" style="font-size:3rem;opacity:0.3;"></i>
+                <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#18432b;">Profile Management</h6>
+                <p class="text-muted small mb-0" style="font-size:.65rem;">Manage individual child profiles and detailed information</p>
+              </div>
+            </div>
+          `;
+          break;
+        default: // database
+          // Re-fetch and display current data
+          fetchJSON(api.children + '?action=list')
+            .then(response => {
+              if (response.success) {
+                contentArea.innerHTML = renderChildrenTable(response.children || []);
+                setupChildrenFilters(response.children || []);
+              }
+            })
+            .catch(error => {
+              console.error('Error refreshing children data:', error);
+            });
+          break;
+      }
+    });
+  });
+}
+
+function renderChildrenTable(children) {
+  const totalChildren = children.length;
+  
+  if (totalChildren === 0) {
+    return `
+      <div class="tile">
+        <div class="text-center py-5">
+          <i class="bi bi-people text-muted" style="font-size:3rem;opacity:0.3;"></i>
+          <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Children Found</h6>
+          <p class="text-muted small mb-3" style="font-size:.65rem;">No children have been registered yet.</p>
+          <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#registerChildModal">
+            <i class="bi bi-plus-lg me-1"></i> Register First Child
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  return `
+    <!-- Child Registry Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Child Registry</h6>
+        <p class="text-muted mb-0" style="font-size:.65rem;">${totalChildren} children found</p>
+      </div>
+      <div class="text-muted" style="font-size:.65rem;font-weight:600;">
+        ${totalChildren} Total
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="tile" style="padding:0;overflow:hidden;">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:.7rem;">
+          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+            <tr>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Sex</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Birth Date</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Purok</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Mother/Caregiver</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Nutrition Status</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Last Weighing</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${children.map(child => renderChildRow(child)).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderChildRow(child) {
+  const statusBadge = getNutritionStatusBadge(child.nutrition_status);
+  const sexIcon = child.sex === 'male' ? 'bi-gender-male' : 'bi-gender-female';
+  const sexColor = child.sex === 'male' ? '#1c79d0' : '#e91e63';
+  
+  return `
+    <tr style="border-bottom:1px solid #f0f4f1;" data-child-id="${child.child_id}">
+      <td style="padding:.8rem;border:none;">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+            <i class="bi ${sexIcon}" style="font-size:.7rem;color:${sexColor};"></i>
+          </div>
+          <span style="font-weight:600;color:#1e3e27;">${escapeHtml(child.full_name)}</span>
+        </div>
+      </td>
+      <td style="padding:.8rem;border:none;color:#586c5d;">${escapeHtml(child.sex)}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;">${child.birth_date_formatted}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;">${escapeHtml(child.purok_name || 'Not Set')}</td>
+      <td style="padding:.8rem;border:none;">
+        <div>
+          <div style="font-size:.7rem;font-weight:600;color:#1e3e27;">${escapeHtml(child.mother_name)}</div>
+          <div style="font-size:.6rem;color:#586c5d;">${escapeHtml(child.mother_contact || 'No contact')}</div>
+        </div>
+      </td>
+      <td style="padding:.8rem;border:none;">
+        ${statusBadge}
+      </td>
+      <td style="padding:.8rem;border:none;color:#586c5d;">${child.last_weighing_formatted}</td>
+      <td style="padding:.8rem;border:none;">
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-primary" onclick="viewChild(${child.child_id})" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;" title="View">
+            <i class="bi bi-eye" style="font-size:.7rem;"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="editChild(${child.child_id})" style="padding:.3rem .6rem;border:1px solid #6c757d;background:#fff;border-radius:6px;font-size:.6rem;color:#6c757d;" title="Edit">
+            <i class="bi bi-pencil" style="font-size:.7rem;"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function getNutritionStatusBadge(status) {
+  const statusMap = {
+    'NOR': { class: 'badge-NOR', text: 'Normal' },
+    'MAM': { class: 'badge-MAM', text: 'MAM' },
+    'SAM': { class: 'badge-SAM', text: 'SAM' },
+    'UW': { class: 'badge-UW', text: 'Underweight' },
+    'OW': { class: 'badge-OW', text: 'Overweight' },
+    'OB': { class: 'badge-OB', text: 'Obese' },
+    'Not Available': { class: 'badge-status', text: 'Not Available' }
+  };
+  
+  const statusInfo = statusMap[status] || { class: 'badge-status', text: status };
+  return `<span class="badge-status ${statusInfo.class}">${statusInfo.text}</span>`;
+}
+
+function setupChildrenFilters(allChildren) {
+  const searchInput = document.getElementById('childSearchInput');
+  const statusFilter = document.getElementById('nutritionStatusFilter');
+  const purokFilter = document.getElementById('purokFilter');
+  
+  function filterChildren() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const statusValue = statusFilter.value;
+    const purokValue = purokFilter.value;
+    
+    const filteredChildren = allChildren.filter(child => {
+      const matchesSearch = !searchTerm || 
+        child.full_name.toLowerCase().includes(searchTerm) ||
+        child.mother_name.toLowerCase().includes(searchTerm);
+      
+      const matchesStatus = !statusValue || child.nutrition_status === statusValue;
+      const matchesPurok = !purokValue || child.purok_name === purokValue;
+      
+      return matchesSearch && matchesStatus && matchesPurok;
+    });
+    
+    const contentArea = document.getElementById('children-tab-content');
+    contentArea.innerHTML = renderChildrenTable(filteredChildren);
+  }
+  
+  searchInput.addEventListener('input', filterChildren);
+  statusFilter.addEventListener('change', filterChildren);
+  purokFilter.addEventListener('change', filterChildren);
+}
+
+function setupChildrenTabs() {
+  document.querySelectorAll('.children-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Update active tab
+      document.querySelectorAll('.children-tab').forEach(t => {
+        t.classList.remove('active');
+        t.style.color = 'var(--muted)';
+        t.style.borderBottom = 'none';
+      });
+      tab.classList.add('active');
+      tab.style.color = 'var(--green)';
+      tab.style.borderBottom = '2px solid var(--green)';
+      
+      // Update content based on tab
+      const tabType = tab.dataset.tab;
+      const contentArea = document.getElementById('children-tab-content');
+      
+      switch(tabType) {
+        case 'profiles':
+          contentArea.innerHTML = `
+            <div class="tile">
+              <div class="text-center py-4">
+                <i class="bi bi-person-vcard text-muted" style="font-size:2rem;"></i>
+                <h6 class="mt-2 mb-1" style="font-size:.75rem;font-weight:600;">Profile Management</h6>
+                <p class="text-muted small mb-0" style="font-size:.65rem;">Manage individual child profiles and details</p>
+              </div>
+            </div>
+          `;
+          break;
+        case 'linking':
+          contentArea.innerHTML = `
+            <div class="tile">
+              <div class="text-center py-4">
+                <i class="bi bi-diagram-3 text-muted" style="font-size:2rem;"></i>
+                <h6 class="mt-2 mb-1" style="font-size:.75rem;font-weight:600;">Mother-Child Linking</h6>
+                <p class="text-muted small mb-0" style="font-size:.65rem;">Link children to their mothers/caregivers</p>
+              </div>
+            </div>
+          `;
+          break;
+        default: // database
+          // Re-fetch and display current data
+          renderChildrenModule('Children Management');
+          break;
+      }
+    });
+  });
+}
+
+// Helper functions for child actions
+function viewChild(childId) {
+  console.log('View child:', childId);
+  // Implement view functionality
+}
+
+function editChild(childId) {
+  console.log('Edit child:', childId);
+  // Implement edit functionality
+}
+
+function exportChildrenData() {
+  console.log('Export children data');
+  // Implement export functionality
+}
+
+function renderWeighingModule(label) {
+  showLoading(label);
+  setTimeout(() => {
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-icon">
+            <i class="bi bi-clipboard2-data"></i>
+          </div>
+          <div class="page-header-text">
+            <h1>Nutrition Data Entry</h1>
+            <p>Record comprehensive nutrition and growth measurements</p>
+          </div>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+          <!-- Child Information Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon child">
+                <i class="bi bi-person-plus"></i>
+              </div>
+              <h3 class="form-section-title">Child Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Select Child</label>
+                <select class="form-select" id="childSelect" required>
+                  <option value="">Select a child</option>
+                  <!-- Children options will be populated dynamically -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="childFullName" placeholder="Child's complete name" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sex</label>
+                <input type="text" class="form-control" id="childSex" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Birth Date</label>
+                <input type="date" class="form-control" id="childBirthDate" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Current Age (months)</label>
+                <input type="text" class="form-control" id="childAge" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mother/Caregiver</label>
+                <input type="text" class="form-control" id="motherName" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Weighing Sessions Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-clipboard-data"></i>
+              </div>
+              <h3 class="form-section-title">📊 New Weighing Record</h3>
+            </div>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Record new measurement data for the selected child</p>
+            
+            <!-- Weighing Form -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Date of Weighing *</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" id="weighingDate" required style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Weight (kg) *</label>
+                <input type="number" step="0.1" class="form-control" id="childWeight" placeholder="0.0" required style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Height/Length (cm) *</label>
+                <input type="number" step="0.1" class="form-control" id="childHeight" placeholder="0.0" required style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">WFL/H Assessment</label>
+                <select class="form-select" id="nutritionStatus" style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
+                  <option value="">Auto-calculate</option>
+                  <option value="1">Normal (NOR)</option>
+                  <option value="2">Moderate Acute Malnutrition (MAM)</option>
+                  <option value="3">Severe Acute Malnutrition (SAM)</option>
+                  <option value="4">Overweight (OW)</option>
+                  <option value="5">Obese (OB)</option>
+                  <option value="6">Stunted (ST)</option>
+                  <option value="7">Underweight (UW)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Remarks</label>
+                <textarea class="form-control" id="remarks" placeholder="Additional notes or observations" rows="2" style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;"></textarea>
+              </div>
+            </div>
+
+            <!-- Add Record Button -->
+            <div class="d-flex justify-content-end mt-3">
+              <button class="btn btn-success" id="saveNutritionRecord" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+                <i class="bi bi-plus-lg me-1"></i> Add Weighing Record
+              </button>
+            </div>
+          </div>
+
+          <!-- Previous Records Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;">
+                <i class="bi bi-clipboard-data"></i>
+              </div>
+              <h3 class="form-section-title">📋 Previous Weighing Records</h3>
+            </div>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Historical measurement data for the selected child</p>
+            
+            <!-- Previous Records Table -->
+            <div class="table-responsive" id="previousRecordsContainer">
+              <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+                Select a child to view their weighing history
+              </div>
+            </div>
+          </div>
+
+          <!-- Nutrition Classification Guide -->
+          <div class="form-section" style="background:#f0f8f1;border:1px solid #d3e8d9;">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-info-circle"></i>
+              </div>
+              <h3 class="form-section-title">Nutrition Classification Guide</h3>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-NOR" style="min-width:70px;text-align:center;">Normal</span>
+                <span style="font-size:.65rem;color:#15692d;font-weight:600;">Healthy weight for age and height</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-MAM" style="min-width:70px;text-align:center;">MAM</span>
+                <span style="font-size:.65rem;color:#845900;font-weight:600;">Moderate Acute Malnutrition - requires monitoring</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-SAM" style="min-width:70px;text-align:center;">SAM</span>
+                <span style="font-size:.65rem;color:#b02020;font-weight:600;">Severe Acute Malnutrition - requires urgent intervention</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-UW" style="min-width:70px;text-align:center;">Underweight</span>
+                <span style="font-size:.65rem;color:#7c5100;font-weight:600;">Below normal weight for age</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status" style="background:#ff6b6b;color:#fff;min-width:70px;text-align:center;">Stunted</span>
+                <span style="font-size:.65rem;color:#b02020;font-weight:600;">Below normal height for age</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-OW" style="background:#a259c6;color:#fff;min-width:70px;text-align:center;">Overweight/Obese</span>
+                <span style="font-size:.65rem;color:#105694;font-weight:600;">Above normal weight for height</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Initialize the module functionality
+    initializeNutritionDataEntry();
+  }, 100);
+}
+
+// Initialize nutrition data entry functionality
+function initializeNutritionDataEntry() {
+  // Load children for selection
+  loadChildrenForSelection();
+  
+  // Set today's date as default
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+  document.getElementById('weighingDate').value = today;
+  
+  // Setup child selection handler
+  setupChildSelectionHandler();
+  
+  // Setup save record handler
+  setupSaveRecordHandler();
+}
+
+// Load children for the dropdown
+// Load children for the dropdown - Updated to show only child names
+function loadChildrenForSelection() {
+  fetchJSON(api.children + '?action=list')
+    .then(response => {
+      if (response.success) {
+        const childSelect = document.getElementById('childSelect');
+        const children = response.children || [];
+        
+        childSelect.innerHTML = '<option value="">Select a child</option>';
+        children.forEach(child => {
+          const option = document.createElement('option');
+          option.value = child.child_id;
+          // Show only child name, not mother's name
+          option.textContent = child.full_name;
+          option.dataset.childData = JSON.stringify(child);
+          childSelect.appendChild(option);
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error loading children:', error);
+    });
+}
+
+// Calculate age in months from birth date
+// Fixed age calculation function
+function calculateAgeInMonths(birthDate) {
+  if (!birthDate) return 0;
+  
+  // Use Philippine timezone for accurate calculation
+  const today = new Date();
+  const birth = new Date(birthDate);
+  
+  // Calculate the difference in months
+  let months = (today.getFullYear() - birth.getFullYear()) * 12;
+  months -= birth.getMonth();
+  months += today.getMonth();
+  
+  // Adjust if the day hasn't occurred yet this month
+  if (today.getDate() < birth.getDate()) {
+    months--;
+  }
+  
+  return Math.max(0, months);
+}
+
+// Updated populate child information function with better error handling
+function populateChildInfo(childData) {
+  console.log('Child data received:', childData); // Debug log
+  
+  document.getElementById('childFullName').value = childData.full_name || '';
+  document.getElementById('childSex').value = childData.sex || '';
+  
+  // Format birth date for display
+  const birthDate = childData.birth_date;
+  if (birthDate) {
+    // Convert to proper date format for display
+    const formattedDate = new Date(birthDate).toLocaleDateString('en-PH');
+    document.getElementById('childBirthDate').value = formattedDate;
+    
+    // Calculate and display current age in months
+    const ageInMonths = calculateAgeInMonths(birthDate);
+    document.getElementById('childAge').value = ageInMonths.toString();
+  } else {
+    document.getElementById('childBirthDate').value = '';
+    document.getElementById('childAge').value = '';
+  }
+  
+  document.getElementById('motherName').value = childData.mother_name || '';
+}
+
+// Updated child selection handler with better data handling
+function setupChildSelectionHandler() {
+  const childSelect = document.getElementById('childSelect');
+  
+  childSelect.addEventListener('change', function() {
+    const selectedValue = this.value;
+    
+    if (selectedValue) {
+      const selectedOption = this.options[this.selectedIndex];
+      
+      try {
+        const childData = JSON.parse(selectedOption.dataset.childData);
+        console.log('Selected child data:', childData); // Debug log
+        
+        populateChildInfo(childData);
+        loadPreviousRecords(childData.child_id);
+      } catch (error) {
+        console.error('Error parsing child data:', error);
+        clearChildInfo();
+        clearPreviousRecords();
+      }
+    } else {
+      clearChildInfo();
+      clearPreviousRecords();
+    }
+  });
+}
+
+// Updated load children function to ensure data is properly stored
+function loadChildrenForSelection() {
+  fetchJSON(api.children + '?action=list')
+    .then(response => {
+      console.log('Children API response:', response); // Debug log
+      
+      if (response.success) {
+        const childSelect = document.getElementById('childSelect');
+        const children = response.children || [];
+        
+        console.log('Children data:', children); // Debug log
+        
+        childSelect.innerHTML = '<option value="">Select a child</option>';
+        children.forEach(child => {
+          const option = document.createElement('option');
+          option.value = child.child_id;
+          option.textContent = child.full_name;
+          
+          // Ensure all necessary data is included
+          const childDataForStorage = {
+            child_id: child.child_id,
+            full_name: child.full_name,
+            sex: child.sex,
+            birth_date: child.birth_date,
+            mother_name: child.mother_name,
+            current_age_months: child.current_age_months
+          };
+          
+          option.dataset.childData = JSON.stringify(childDataForStorage);
+          childSelect.appendChild(option);
+        });
+      } else {
+        console.error('Failed to load children:', response.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error loading children:', error);
+    });
+}
+
+// Updated form section with consistent styling
+function renderChildInformationSection() {
+  return `
+    <!-- Child Information Section -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <div class="form-section-icon child">
+          <i class="bi bi-person-plus"></i>
+        </div>
+        <h3 class="form-section-title">Child Information</h3>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Select Child</label>
+          <select class="form-select" id="childSelect" required>
+            <option value="">Select a child</option>
+            <!-- Children options will be populated dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-control" id="childFullName" placeholder="Child's complete name" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sex</label>
+          <input type="text" class="form-control" id="childSex" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Birth Date</label>
+          <input type="text" class="form-control" id="childBirthDate" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Age (months)</label>
+          <input type="text" class="form-control" id="childAge" readonly placeholder="Age will be calculated automatically">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mother/Caregiver</label>
+          <input type="text" class="form-control" id="motherName" readonly>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Alternative approach: Use the age from the API response directly
+function populateChildInfoFromAPI(childData) {
+  document.getElementById('childFullName').value = childData.full_name || '';
+  document.getElementById('childSex').value = childData.sex || '';
+  
+  // Format birth date for display
+  if (childData.birth_date) {
+    const formattedDate = new Date(childData.birth_date).toLocaleDateString('en-PH');
+    document.getElementById('childBirthDate').value = formattedDate;
+  } else {
+    document.getElementById('childBirthDate').value = '';
+  }
+  
+  // Use the age from API if available, otherwise calculate it
+  let ageInMonths = '';
+  if (childData.current_age_months !== undefined && childData.current_age_months !== null) {
+    ageInMonths = childData.current_age_months.toString();
+  } else if (childData.birth_date) {
+    ageInMonths = calculateAgeInMonths(childData.birth_date).toString();
+  }
+  
+  document.getElementById('childAge').value = ageInMonths;
+  document.getElementById('motherName').value = childData.mother_name || '';
+}
+
+// Updated populate child information function
+function populateChildInfo(childData) {
+  document.getElementById('childFullName').value = childData.full_name || '';
+  document.getElementById('childSex').value = childData.sex || '';
+  document.getElementById('childBirthDate').value = childData.birth_date || '';
+  
+  // Calculate and display current age in months
+  const ageInMonths = calculateAgeInMonths(childData.birth_date);
+  document.getElementById('childAge').value = ageInMonths ? `${ageInMonths} months` : '';
+  
+  document.getElementById('motherName').value = childData.mother_name || '';
+}
+
+// Updated renderWeighingModule function with consistent UI
+function renderWeighingModule(label) {
+  showLoading(label);
+  setTimeout(() => {
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-icon">
+            <i class="bi bi-clipboard2-data"></i>
+          </div>
+          <div class="page-header-text">
+            <h1>Nutrition Data Entry</h1>
+            <p>Record comprehensive nutrition and growth measurements</p>
+          </div>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+          <!-- Child Information Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon child">
+                <i class="bi bi-person-plus"></i>
+              </div>
+              <h3 class="form-section-title">Child Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Select Child</label>
+                <select class="form-select" id="childSelect" required style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                  <option value="">Select a child</option>
+                  <!-- Children options will be populated dynamically -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="childFullName" placeholder="Child's complete name" readonly style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;background:#f8f9fa;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sex</label>
+                <input type="text" class="form-control" id="childSex" readonly style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;background:#f8f9fa;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Birth Date</label>
+                <input type="text" class="form-control" id="childBirthDate" readonly style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;background:#f8f9fa;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Current Age (months)</label>
+                <input type="text" class="form-control" id="childAge" readonly style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;background:#f8f9fa;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mother/Caregiver</label>
+                <input type="text" class="form-control" id="motherName" readonly style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;background:#f8f9fa;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Weighing Sessions Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-clipboard-data"></i>
+              </div>
+              <h3 class="form-section-title">📊 New Weighing Record</h3>
+            </div>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Record new measurement data for the selected child</p>
+            
+            <!-- Weighing Form -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Date of Weighing *</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" id="weighingDate" required style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Weight (kg) *</label>
+                <input type="number" step="0.1" class="form-control" id="childWeight" placeholder="Enter weight in kg" required style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Height/Length (cm) *</label>
+                <input type="number" step="0.1" class="form-control" id="childHeight" placeholder="Enter height in cm" required style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">WFL/H Assessment</label>
+                <select class="form-select" id="nutritionStatus" style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;">
+                  <option value="">Auto-calculate based on measurements</option>
+                  <option value="1">Normal (NOR)</option>
+                  <option value="2">Moderate Acute Malnutrition (MAM)</option>
+                  <option value="3">Severe Acute Malnutrition (SAM)</option>
+                  <option value="4">Overweight (OW)</option>
+                  <option value="5">Obese (OB)</option>
+                  <option value="6">Stunted (ST)</option>
+                  <option value="7">Underweight (UW)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Remarks</label>
+                <textarea class="form-control" id="remarks" placeholder="Additional notes or observations" rows="3" style="font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);border-radius:8px;"></textarea>
+              </div>
+            </div>
+
+            <!-- Add Record Button -->
+            <div class="d-flex justify-content-end mt-3">
+              <button class="btn btn-success" id="saveNutritionRecord" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+                <i class="bi bi-plus-lg me-1"></i> Add Weighing Record
+              </button>
+            </div>
+          </div>
+
+          <!-- Previous Records Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;">
+                <i class="bi bi-clipboard-data"></i>
+              </div>
+              <h3 class="form-section-title">📋 Previous Weighing Records</h3>
+            </div>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Historical measurement data for the selected child</p>
+            
+            <!-- Previous Records Table -->
+            <div class="table-responsive" id="previousRecordsContainer">
+              <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+                <i class="bi bi-person-check" style="font-size:2rem;opacity:0.3;"></i>
+                <p style="margin:.5rem 0 0;">Select a child to view their weighing history</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nutrition Classification Guide -->
+          <div class="form-section" style="background:#f0f8f1;border:1px solid #d3e8d9;">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-info-circle"></i>
+              </div>
+              <h3 class="form-section-title">Nutrition Classification Guide</h3>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-NOR" style="min-width:70px;text-align:center;">Normal</span>
+                <span style="font-size:.65rem;color:#15692d;font-weight:600;">Healthy weight for age and height</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-MAM" style="min-width:70px;text-align:center;">MAM</span>
+                <span style="font-size:.65rem;color:#845900;font-weight:600;">Moderate Acute Malnutrition - requires monitoring</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-SAM" style="min-width:70px;text-align:center;">SAM</span>
+                <span style="font-size:.65rem;color:#b02020;font-weight:600;">Severe Acute Malnutrition - requires urgent intervention</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-UW" style="min-width:70px;text-align:center;">Underweight</span>
+                <span style="font-size:.65rem;color:#7c5100;font-weight:600;">Below normal weight for age</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status" style="background:#ff6b6b;color:#fff;min-width:70px;text-align:center;">Stunted</span>
+                <span style="font-size:.65rem;color:#b02020;font-weight:600;">Below normal height for age</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-OW" style="background:#a259c6;color:#fff;min-width:70px;text-align:center;">Overweight/Obese</span>
+                <span style="font-size:.65rem;color:#105694;font-weight:600;">Above normal weight for height</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Initialize the module functionality
+    initializeNutritionDataEntry();
+  }, 100);
+}
+
+// Load previous records for selected child - Updated to show real data
+function loadPreviousRecords(childId) {
+  const container = document.getElementById('previousRecordsContainer');
+  container.innerHTML = `
+    <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+      Loading previous records...
+    </div>
+  `;
+  
+  // Fetch actual nutrition records for this child
+  fetch(`${api.nutrition}?child_id=${childId}`, {
+    headers: {
+      'X-CSRF-Token': window.__BNS_CSRF
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success && data.records && data.records.length > 0) {
+      const records = data.records;
+      container.innerHTML = `
+        <table class="table table-hover mb-0" style="font-size:.7rem;">
+          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+            <tr>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Weight (kg)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Height (cm)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map(record => `
+              <tr style="border-bottom:1px solid #f0f4f1;">
+                <td style="padding:.8rem;border:none;">${new Date(record.weighing_date).toLocaleDateString('en-PH')}</td>
+                <td style="padding:.8rem;border:none;">${record.age_in_months}</td>
+                <td style="padding:.8rem;border:none;">${record.weight_kg || 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${record.length_height_cm || 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${record.status_code ? `<span class="badge-status badge-${record.status_code}">${record.status_code}</span>` : 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${record.remarks || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+          <i class="bi bi-clipboard-x" style="font-size:2rem;opacity:0.3;"></i>
+          <p style="margin:.5rem 0 0;">No previous records found for this child</p>
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('Error loading previous records:', error);
+    container.innerHTML = `
+      <div class="text-center py-4" style="color:var(--red);font-size:.65rem;">
+        <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:0.5;"></i>
+        <p style="margin:.5rem 0 0;">Error loading previous records</p>
+      </div>
+    `;
+  });
+}
+
+// Clear child information fields
+function clearChildInfo() {
+  document.getElementById('childFullName').value = '';
+  document.getElementById('childSex').value = '';
+  document.getElementById('childBirthDate').value = '';
+  document.getElementById('childAge').value = '';
+  document.getElementById('motherName').value = '';
+}
+
+// Clear previous records display
+function clearPreviousRecords() {
+  const container = document.getElementById('previousRecordsContainer');
+  container.innerHTML = `
+    <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+      <i class="bi bi-person-check" style="font-size:2rem;opacity:0.3;"></i>
+      <p style="margin:.5rem 0 0;">Select a child to view their weighing history</p>
+    </div>
+  `;
+}
+
+// Setup child selection handler
+function setupChildSelectionHandler() {
+  const childSelect = document.getElementById('childSelect');
+  
+  childSelect.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    
+    if (selectedOption.value) {
+      const childData = JSON.parse(selectedOption.dataset.childData);
+      populateChildInfo(childData);
+      loadPreviousRecords(childData.child_id);
+    } else {
+      clearChildInfo();
+      clearPreviousRecords();
+    }
+  });
+}
+
+// Populate child information fields
+function populateChildInfo(childData) {
+  document.getElementById('childFullName').value = childData.full_name || '';
+  document.getElementById('childSex').value = childData.sex || '';
+  document.getElementById('childBirthDate').value = childData.birth_date || '';
+  document.getElementById('childAge').value = childData.current_age_months || '';
+  document.getElementById('motherName').value = childData.mother_name || '';
+}
+
+// Clear child information fields
+function clearChildInfo() {
+  document.getElementById('childFullName').value = '';
+  document.getElementById('childSex').value = '';
+  document.getElementById('childBirthDate').value = '';
+  document.getElementById('childAge').value = '';
+  document.getElementById('motherName').value = '';
+}
+
+// Load previous records for selected child
+function loadPreviousRecords(childId) {
+  // This would fetch nutrition records for the specific child
+  const container = document.getElementById('previousRecordsContainer');
+  container.innerHTML = `
+    <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+      Loading previous records...
+    </div>
+  `;
+  
+  // Simulate loading previous records - replace with actual API call
+  setTimeout(() => {
+    container.innerHTML = `
+      <table class="table table-hover mb-0" style="font-size:.7rem;">
+        <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+          <tr>
+            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date</th>
+            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
+            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Weight (kg)</th>
+            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Height (cm)</th>
+            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="6" style="padding:2rem;text-align:center;color:var(--muted);font-size:.65rem;">
+              No previous records found for this child
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  }, 1000);
+}
+
+// Clear previous records display
+function clearPreviousRecords() {
+  const container = document.getElementById('previousRecordsContainer');
+  container.innerHTML = `
+    <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+      Select a child to view their weighing history
+    </div>
+  `;
+}
+
+// Setup save record handler
+function setupSaveRecordHandler() {
+  const saveBtn = document.getElementById('saveNutritionRecord');
+  
+  saveBtn.addEventListener('click', function() {
+    const childId = document.getElementById('childSelect').value;
+    const weighingDate = document.getElementById('weighingDate').value;
+    const weight = document.getElementById('childWeight').value;
+    const height = document.getElementById('childHeight').value;
+    const status = document.getElementById('nutritionStatus').value;
+    const remarks = document.getElementById('remarks').value;
+    
+    // Validation
+    if (!childId) {
+      alert('Please select a child');
+      return;
+    }
+    if (!weighingDate || !weight || !height) {
+      alert('Please fill in all required fields (Date, Weight, Height)');
+      return;
+    }
+    
+    // Show loading state
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    
+    // Prepare data for submission
+    const formData = new FormData();
+    formData.append('csrf_token', window.__BNS_CSRF);
+    formData.append('child_id', childId);
+    formData.append('weighing_date', weighingDate);
+    formData.append('weight_kg', weight);
+    formData.append('length_height_cm', height);
+    if (status) formData.append('wfl_ht_status_id', status);
+    formData.append('remarks', remarks);
+    
+    // Submit to nutrition API
+    fetch(api.nutrition, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': window.__BNS_CSRF
+      },
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('✅ Nutrition record saved successfully!');
+        
+        // Clear form
+        document.getElementById('childWeight').value = '';
+        document.getElementById('childHeight').value = '';
+        document.getElementById('nutritionStatus').value = '';
+        document.getElementById('remarks').value = '';
+        
+        // Reload previous records
+        const childId = document.getElementById('childSelect').value;
+        if (childId) {
+          loadPreviousRecords(childId);
+        }
+      } else {
+        alert('❌ Error saving record: ' + (data.error || 'Unknown error'));
+      }
+    })
+    .catch(error => {
+      console.error('Error saving nutrition record:', error);
+      alert('❌ Error saving record: ' + error.message);
+    })
+    .finally(() => {
+      // Reset button
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Weighing Record';
+    });
+  });
+}
 function renderNutritionClassificationModule(label){ showLoading(label); fetchJSON(api.nutrition+'?classification_summary=1').then(j=>{ moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">'+escapeHtml(label)+'</h5><pre style="font-size:.55rem;">'+escapeHtml(JSON.stringify(j.summary,null,2))+'</pre></div>'; }).catch(e=> moduleContent.innerHTML='<div class="alert alert-danger small">'+escapeHtml(e.message)+'</div>'); }
-function renderFeedingProgramsModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Supplementation</h5><p class="small-note">Placeholder.</p></div>'; }
-function renderNutritionCalendarModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Calendar</h5><p class="small-note">Placeholder.</p></div>'; }
+function renderFeedingProgramsModule(label) {
+  showLoading(label);
+  setTimeout(() => {
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
+              💊 Supplementation Management
+            </h1>
+            <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Track vitamin A, iron, and deworming programs</p>
+          </div>
+        </div>
+
+        <!-- Supplementation Cards Grid -->
+        <div class="row g-3 mb-4">
+          <!-- Vitamin A Card -->
+          <div class="col-md-3">
+            <div class="tile" style="background:linear-gradient(135deg,#fff8e7,#ffffff);border-left:4px solid #f4a400;padding:1.2rem;min-height:180px;position:relative;">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <h5 style="font-size:.75rem;font-weight:700;color:#8d5b00;margin:0;">Vitamin A</h5>
+                <div style="width:28px;height:28px;background:#ffecc7;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                  <i class="bi bi-capsule" style="font-size:.9rem;color:#f4a400;"></i>
+                </div>
+              </div>
+              
+              <div style="margin-bottom:1rem;">
+                <div style="font-size:2rem;font-weight:700;color:#8d5b00;line-height:1;">2</div>
+                <div style="font-size:.65rem;color:#8d5b00;font-weight:600;margin-top:.2rem;">Distributions recorded</div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div style="background:#f0e6d2;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
+                <div style="background:#f4a400;height:100%;width:65%;"></div>
+              </div>
+
+              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
+                <button class="btn btn-outline-warning btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#f4a400;color:#8d5b00;">
+                  View All
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Iron Supplements Card -->
+          <div class="col-md-3">
+            <div class="tile" style="background:linear-gradient(135deg,#ffe4e4,#ffffff);border-left:4px solid #d23d3d;padding:1.2rem;min-height:180px;position:relative;">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <h5 style="font-size:.75rem;font-weight:700;color:#b02020;margin:0;">Iron Supplements</h5>
+                <div style="width:28px;height:28px;background:#ffdcdc;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                  <i class="bi bi-heart-pulse" style="font-size:.9rem;color:#d23d3d;"></i>
+                </div>
+              </div>
+              
+              <div style="margin-bottom:1rem;">
+                <div style="font-size:2rem;font-weight:700;color:#b02020;line-height:1;">1</div>
+                <div style="font-size:.65rem;color:#b02020;font-weight:600;margin-top:.2rem;">Anemia prevention tracking</div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div style="background:#f0d2d2;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
+                <div style="background:#d23d3d;height:100%;width:30%;"></div>
+              </div>
+
+              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
+                <button class="btn btn-outline-danger btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#d23d3d;color:#b02020;">
+                  View All
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deworming Card -->
+          <div class="col-md-3">
+            <div class="tile" style="background:linear-gradient(135deg,#f0f8f1,#ffffff);border-left:4px solid #077a44;padding:1.2rem;min-height:180px;position:relative;">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <h5 style="font-size:.75rem;font-weight:700;color:#0b532d;margin:0;">Deworming</h5>
+                <div style="width:28px;height:28px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                  <i class="bi bi-shield-check" style="font-size:.9rem;color:#077a44;"></i>
+                </div>
+              </div>
+              
+              <div style="margin-bottom:1rem;">
+                <div style="font-size:2rem;font-weight:700;color:#0b532d;line-height:1;">1</div>
+                <div style="font-size:.65rem;color:#0b532d;font-weight:600;margin-top:.2rem;">Compliance recorded</div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div style="background:#d4e6d5;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
+                <div style="background:#077a44;height:100%;width:45%;"></div>
+              </div>
+
+              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
+                <button class="btn btn-outline-success btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#077a44;color:#0b532d;">
+                  View All
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Overdue Card -->
+          <div class="col-md-3">
+            <div class="tile" style="background:linear-gradient(135deg,#fff0f0,#ffffff);border-left:4px solid #dc3545;padding:1.2rem;min-height:180px;position:relative;">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <h5 style="font-size:.75rem;font-weight:700;color:#a82929;margin:0;">Overdue</h5>
+                <div style="width:28px;height:28px;background:#ffe4e4;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                  <i class="bi bi-exclamation-triangle" style="font-size:.9rem;color:#dc3545;"></i>
+                </div>
+              </div>
+              
+              <div style="margin-bottom:1rem;">
+                <div style="font-size:2rem;font-weight:700;color:#a82929;line-height:1;">1</div>
+                <div style="font-size:.65rem;color:#a82929;font-weight:600;margin-top:.2rem;">Requires follow-up</div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div style="background:#f0d2d2;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
+                <div style="background:#dc3545;height:100%;width:20%;"></div>
+              </div>
+
+              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
+                <button class="btn btn-outline-danger btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#dc3545;color:#a82929;">
+                  View All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="mb-3">
+          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
+            <li class="nav-item">
+              <a class="nav-link active supplement-tab" href="#" data-tab="all" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
+                All Records
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link supplement-tab" href="#" data-tab="vitamin-a" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                Vitamin A
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link supplement-tab" href="#" data-tab="iron" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                Iron
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link supplement-tab" href="#" data-tab="deworming" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                Deworming
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link supplement-tab" href="#" data-tab="schedule" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                Schedule
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Search & Filter Section -->
+        <div class="tile mb-4">
+          <div class="tile-header mb-3">
+            <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">Search & Filter</h5>
+          </div>
+          
+          <div class="row g-3 align-items-end">
+            <!-- Search Child -->
+            <div class="col-md-3">
+              <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Search Child</label>
+              <div class="position-relative">
+                <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
+                <input type="text" class="form-control" placeholder="Child name..." style="font-size:.7rem;padding:.6rem .8rem .6rem 2.2rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+              </div>
+            </div>
+
+            <!-- Supplement Type Dropdown -->
+            <div class="col-md-3">
+              <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Supplement Type</label>
+              <select class="form-select" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                <option selected>All Types</option>
+                <option>Vitamin A</option>
+                <option>Iron</option>
+                <option>Deworming</option>
+              </select>
+            </div>
+
+            <!-- Status Dropdown -->
+            <div class="col-md-3">
+              <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Status</label>
+              <select class="form-select" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                <option selected>All Status</option>
+                <option>Completed</option>
+                <option>Overdue</option>
+                <option>Scheduled</option>
+              </select>
+            </div>
+
+            <!-- Add Record Button -->
+            <div class="col-md-3 d-flex justify-content-end">
+              <button class="btn btn-success" style="font-size:.65rem;font-weight:600;padding:.6rem 1rem;border-radius:8px;">
+                <i class="bi bi-plus-lg me-1"></i> Add Record
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Distribution Records Section -->
+        <div id="supplement-tab-content">
+          <!-- Child Registry Header -->
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Distribution Records</h6>
+              <p class="text-muted mb-0" style="font-size:.65rem;">4 records found</p>
+            </div>
+            <div class="text-muted" style="font-size:.65rem;font-weight:600;">
+              <i class="bi bi-download me-1"></i>
+            </div>
+          </div>
+
+          <!-- Data Table -->
+          <div class="tile" style="padding:0;overflow:hidden;">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0" style="font-size:.7rem;">
+                <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+                  <tr>
+                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
+                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Supplement Type</th>
+                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date Given</th>
+                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Next Due Date</th>
+                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Days Until Due</th>
+                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid #f0f4f1;">
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                        </div>
+                        <span style="font-weight:600;color:#1e3e27;">Maria Santos</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
+                        <span style="color:#586c5d;">Vitamin A</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">8/1/2025</td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">2/1/2026</td>
+                    <td style="padding:.8rem;border:none;">
+                      <span style="color:#0b7a43;font-weight:600;">121 days</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <span class="badge-status badge-NOR">Completed</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                        Update
+                      </button>
+                    </td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #f0f4f1;">
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                        </div>
+                        <span style="font-weight:600;color:#1e3e27;">Juan Dela Cruz</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-heart-pulse" style="color:#d23d3d;font-size:.8rem;"></i>
+                        <span style="color:#586c5d;">Iron</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">9/15/2025</td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">12/15/2025</td>
+                    <td style="padding:.8rem;border:none;">
+                      <span style="color:#0b7a43;font-weight:600;">73 days</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <span class="badge-status badge-NOR">Completed</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                        Update
+                      </button>
+                    </td>
+                  </tr>
+                  <tr style="border-bottom:1px solid #f0f4f1;">
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                        </div>
+                        <span style="font-weight:600;color:#1e3e27;">Ana Reyes</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-check" style="color:#077a44;font-size:.8rem;"></i>
+                        <span style="color:#586c5d;">Deworming</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">7/10/2025</td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">10/10/2025</td>
+                    <td style="padding:.8rem;border:none;">
+                      <span style="color:#dc3545;font-weight:600;">7 days</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <span class="badge-status" style="background:#ffe4e4;color:#b02020;">Overdue</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                        Update
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                        </div>
+                        <span style="font-weight:600;color:#1e3e27;">Sofia Martinez</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
+                        <span style="color:#586c5d;">Vitamin A</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">9/1/2025</td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">3/1/2026</td>
+                    <td style="padding:.8rem;border:none;">
+                      <span style="color:#0b7a43;font-weight:600;">149 days</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <span class="badge-status badge-NOR">Completed</span>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                        Update
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add tab switching functionality
+    document.querySelectorAll('.supplement-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Update active tab
+        document.querySelectorAll('.supplement-tab').forEach(t => {
+          t.classList.remove('active');
+          t.style.color = 'var(--muted)';
+          t.style.borderBottom = 'none';
+        });
+        
+        tab.classList.add('active');
+        tab.style.color = 'var(--green)';
+        tab.style.borderBottom = '2px solid var(--green)';
+        
+        // Update content based on tab
+        const tabType = tab.dataset.tab;
+        const contentArea = document.getElementById('supplement-tab-content');
+        
+        let content = '';
+        switch(tabType) {
+          case 'vitamin-a':
+            content = `
+              <!-- Page Header for Vitamin A -->
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 style="font-size:.8rem;font-weight:700;color:#f4a400;margin:0;display:flex;align-items:center;gap:.5rem;">
+                    <i class="bi bi-capsule"></i> Vitamin A Distribution
+                  </h6>
+                  <p class="text-muted mb-0" style="font-size:.65rem;">Track vitamin A supplementation for vision and immunity</p>
+                </div>
+              </div>
+
+              <!-- Dosage Guidelines -->
+              <div class="tile mb-4" style="background:#fff8e7;border:1px solid #f0e6d2;">
+                <div class="tile-header mb-3">
+                  <h5 style="font-size:.72rem;font-weight:800;color:#8d5b00;margin:0;">Dosage Guidelines</h5>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#8d5b00;font-weight:600;">• 6-11 months:</span>
+                    <span style="color:#586c5d;">100,000 IU</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#8d5b00;font-weight:600;">• 12-59 months:</span>
+                    <span style="color:#586c5d;">200,000 IU</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#8d5b00;font-weight:600;">• Given every</span>
+                    <span style="color:#586c5d;">6 months</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Placeholder for records -->
+              <div class="tile">
+                <div class="text-center py-5">
+                  <i class="bi bi-capsule text-muted" style="font-size:3rem;color:#f4a400;opacity:0.5;"></i>
+                  <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#8d5b00;">Vitamin A Distribution Records</h6>
+                  <p class="text-muted small mb-0" style="font-size:.65rem;">Vitamin A distribution records will appear here</p>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'iron':
+            content = `
+              <!-- Page Header for Iron -->
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 style="font-size:.8rem;font-weight:700;color:#d23d3d;margin:0;display:flex;align-items:center;gap:.5rem;">
+                    <i class="bi bi-heart-pulse"></i> Iron Supplementation
+                  </h6>
+                  <p class="text-muted mb-0" style="font-size:.65rem;">Anemia prevention tracking</p>
+                </div>
+              </div>
+
+              <!-- Iron Supplementation Schedule -->
+              <div class="tile mb-4" style="background:#ffe4e4;border:1px solid #f0d2d2;">
+                <div class="tile-header mb-3">
+                  <h5 style="font-size:.72rem;font-weight:800;color:#b02020;margin:0;">Iron Supplementation Schedule</h5>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#b02020;font-weight:600;">• 6-23 months:</span>
+                    <span style="color:#586c5d;">Daily iron drops</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#b02020;font-weight:600;">• Pregnant women:</span>
+                    <span style="color:#586c5d;">Daily iron + folic acid</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#b02020;font-weight:600;">• Monitor for</span>
+                    <span style="color:#586c5d;">compliance and side effects</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Placeholder for records -->
+              <div class="tile">
+                <div class="text-center py-5">
+                  <i class="bi bi-heart-pulse text-muted" style="font-size:3rem;color:#d23d3d;opacity:0.5;"></i>
+                  <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#b02020;">Iron Supplementation Records</h6>
+                  <p class="text-muted small mb-0" style="font-size:.65rem;">Iron supplementation records will appear here</p>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'deworming':
+            content = `
+              <!-- Page Header for Deworming -->
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 style="font-size:.8rem;font-weight:700;color:#077a44;margin:0;display:flex;align-items:center;gap:.5rem;">
+                    <i class="bi bi-shield-check"></i> Deworming Programs
+                  </h6>
+                  <p class="text-muted mb-0" style="font-size:.65rem;">Compliance recording and monitoring</p>
+                </div>
+              </div>
+
+              <!-- Deworming Schedule -->
+              <div class="tile mb-4" style="background:#f0f8f1;border:1px solid #d4e6d5;">
+                <div class="tile-header mb-3">
+                  <h5 style="font-size:.72rem;font-weight:800;color:#0b532d;margin:0;">Deworming Schedule</h5>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#0b532d;font-weight:600;">• 12-24 months:</span>
+                    <span style="color:#586c5d;">Every 6 months</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#0b532d;font-weight:600;">• 2-5 years:</span>
+                    <span style="color:#586c5d;">Every 6 months</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
+                    <span style="color:#0b532d;font-weight:600;">• Follow</span>
+                    <span style="color:#586c5d;">national deworming days</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Placeholder for records -->
+              <div class="tile">
+                <div class="text-center py-5">
+                  <i class="bi bi-shield-check text-muted" style="font-size:3rem;color:#077a44;opacity:0.5;"></i>
+                  <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#0b532d;">Deworming Records</h6>
+                  <p class="text-muted small mb-0" style="font-size:.65rem;">Deworming records will appear here</p>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'schedule':
+            content = `
+              <!-- Page Header for Schedule -->
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 style="font-size:.8rem;font-weight:700;color:#1c79d0;margin:0;display:flex;align-items:center;gap:.5rem;">
+                    <i class="bi bi-calendar3"></i> Supplementation Schedule
+                  </h6>
+                  <p class="text-muted mb-0" style="font-size:.65rem;">Upcoming due dates and reminders</p>
+                </div>
+              </div>
+
+              <!-- Schedule List -->
+              <div class="tile">
+                <div class="d-flex align-items-center justify-content-between mb-3" style="padding:.8rem;border-bottom:1px solid var(--border-soft);">
+                  <div class="d-flex align-items-center gap-3">
+                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#077a44;"></i>
+                    </div>
+                    <div>
+                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Ana Reyes</div>
+                      <div style="font-size:.62rem;color:#586c5d;">Deworming - Due: 10/10/2025</div>
+                    </div>
+                  </div>
+                  <div>
+                    <span class="badge" style="background:#ffe4e4;color:#b02020;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Overdue</span>
+                  </div>
+                </div>
+
+                <!-- Additional Schedule Items -->
+                <div class="d-flex align-items-center justify-content-between mb-3" style="padding:.8rem;border-bottom:1px solid var(--border-soft);">
+                  <div class="d-flex align-items-center gap-3">
+                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#f4a400;"></i>
+                    </div>
+                    <div>
+                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Maria Santos</div>
+                      <div style="font-size:.62rem;color:#586c5d;">Vitamin A - Due: 2/1/2026</div>
+                    </div>
+                  </div>
+                  <div>
+                    <span class="badge" style="background:#e8f5ea;color:#0b532d;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Upcoming</span>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between mb-3" style="padding:.8rem;border-bottom:1px solid var(--border-soft);">
+                  <div class="d-flex align-items-center gap-3">
+                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#d23d3d;"></i>
+                    </div>
+                    <div>
+                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Juan Dela Cruz</div>
+                      <div style="font-size:.62rem;color:#586c5d;">Iron - Due: 12/15/2025</div>
+                    </div>
+                  </div>
+                  <div>
+                    <span class="badge" style="background:#e8f5ea;color:#0b532d;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Upcoming</span>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between" style="padding:.8rem;">
+                  <div class="d-flex align-items-center gap-3">
+                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#f4a400;"></i>
+                    </div>
+                    <div>
+                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Sofia Martinez</div>
+                      <div style="font-size:.62rem;color:#586c5d;">Vitamin A - Due: 3/1/2026</div>
+                    </div>
+                  </div>
+                  <div>
+                    <span class="badge" style="background:#e8f5ea;color:#0b532d;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Upcoming</span>
+                  </div>
+                </div>
+              </div>
+            `;
+            break;
+          
+          default: // 'all' case
+            content = `
+              <!-- Child Registry Header -->
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Distribution Records</h6>
+                  <p class="text-muted mb-0" style="font-size:.65rem;">4 records found</p>
+                </div>
+                <div class="text-muted" style="font-size:.65rem;font-weight:600;">
+                  <i class="bi bi-download me-1"></i>
+                </div>
+              </div>
+
+              <!-- Data Table -->
+              <div class="tile" style="padding:0;overflow:hidden;">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0" style="font-size:.7rem;">
+                    <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+                      <tr>
+                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
+                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Supplement Type</th>
+                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date Given</th>
+                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Next Due Date</th>
+                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Days Until Due</th>
+                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style="border-bottom:1px solid #f0f4f1;">
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                            </div>
+                            <span style="font-weight:600;color:#1e3e27;">Maria Santos</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
+                            <span style="color:#586c5d;">Vitamin A</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">8/1/2025</td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">2/1/2026</td>
+                        <td style="padding:.8rem;border:none;">
+                          <span style="color:#0b7a43;font-weight:600;">121 days</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <span class="badge-status badge-NOR">Completed</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                            Update
+                          </button>
+                        </td>
+                      </tr>
+                      <tr style="border-bottom:1px solid #f0f4f1;">
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                            </div>
+                            <span style="font-weight:600;color:#1e3e27;">Juan Dela Cruz</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-heart-pulse" style="color:#d23d3d;font-size:.8rem;"></i>
+                            <span style="color:#586c5d;">Iron</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">9/15/2025</td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">12/15/2025</td>
+                        <td style="padding:.8rem;border:none;">
+                          <span style="color:#0b7a43;font-weight:600;">73 days</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <span class="badge-status badge-NOR">Completed</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                            Update
+                          </button>
+                        </td>
+                      </tr>
+                      <tr style="border-bottom:1px solid #f0f4f1;">
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                            </div>
+                            <span style="font-weight:600;color:#1e3e27;">Ana Reyes</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check" style="color:#077a44;font-size:.8rem;"></i>
+                            <span style="color:#586c5d;">Deworming</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">7/10/2025</td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">10/10/2025</td>
+                        <td style="padding:.8rem;border:none;">
+                          <span style="color:#dc3545;font-weight:600;">7 days</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <span class="badge-status" style="background:#ffe4e4;color:#b02020;">Overdue</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                            Update
+                          </button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                            </div>
+                            <span style="font-weight:600;color:#1e3e27;">Sofia Martinez</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
+                            <span style="color:#586c5d;">Vitamin A</span>
+                          </div>
+                        </td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">9/1/2025</td>
+                        <td style="padding:.8rem;border:none;color:#586c5d;">3/1/2026</td>
+                        <td style="padding:.8rem;border:none;">
+                          <span style="color:#0b7a43;font-weight:600;">149 days</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <span class="badge-status badge-NOR">Completed</span>
+                        </td>
+                        <td style="padding:.8rem;border:none;">
+                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                            Update
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+            break;
+        }
+        
+        contentArea.innerHTML = content;
+      });
+    });
+
+  }, 100);
+}
+function renderNutritionCalendarModule(label) {
+  showLoading(label);
+  
+  // Initialize calendar state
+  let currentCalendarDate = new Date();
+  // Set to Philippines timezone
+  currentCalendarDate = new Date(currentCalendarDate.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+  
+  // Fetch real events data from the API
+  fetchJSON(api.events + '?action=list')
+    .then(response => {
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch events data');
+      }
+      
+      const events = response.events || [];
+      
+      moduleContent.innerHTML = `
+        <div class="fade-in">
+          <!-- Page Header -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
+                📅 Nutrition Event Scheduling
+              </h1>
+              <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Plan and track nutrition sessions and activities</p>
+            </div>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#scheduleEventModal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.05rem;border-radius:11px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+              <i class="bi bi-plus-lg me-1"></i> Schedule Event
+            </button>
+          </div>
+
+          <!-- Tab Navigation -->
+          <div class="mb-3">
+            <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
+              <li class="nav-item">
+                <a class="nav-link active calendar-tab" href="#" data-tab="calendar" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
+                  Calendar View
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link calendar-tab" href="#" data-tab="health" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                  Health Sessions
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link calendar-tab" href="#" data-tab="feeding" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                  Feeding Programs
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link calendar-tab" href="#" data-tab="weighing" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                  Weighing Schedules
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link calendar-tab" href="#" data-tab="nutrition" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
+                  Nutrition Education
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Calendar Content -->
+          <div id="calendar-tab-content">
+            ${renderCalendarView(events, currentCalendarDate)}
+          </div>
+        </div>
+      `;
+
+      // Add tab switching functionality
+      setupCalendarTabs(events, currentCalendarDate);
+      
+      // Setup calendar navigation
+      setupCalendarNavigation(events, currentCalendarDate);
+    })
+    .catch(error => {
+      console.error('Error fetching events data:', error);
+      moduleContent.innerHTML = `
+        <div class="alert alert-danger" style="font-size:.7rem;">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Error loading events data: ${escapeHtml(error.message)}
+        </div>
+      `;
+    });
+
+  // Helper function to render calendar view with functional navigation
+  function renderCalendarView(events, calendarDate) {
+    const phToday = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+    const selectedDate = phToday.toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const todayEvents = events.filter(event => {
+      const eventDate = new Date(event.event_date).toLocaleDateString('en-PH', {
+        timeZone: 'Asia/Manila'
+      });
+      const todayDate = phToday.toLocaleDateString('en-PH', {
+        timeZone: 'Asia/Manila'
+      });
+      return eventDate === todayDate;
+    });
+
+    const upcomingEvents = events.filter(event => {
+      const eventDate = new Date(event.event_date);
+      const phEventDate = new Date(eventDate.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+      return phEventDate >= phToday;
+    }).sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+
+    return `
+      <div class="row g-3">
+        <!-- Left Calendar Panel -->
+        <div class="col-md-4">
+          <!-- Nutrition Calendar -->
+          <div class="tile mb-3">
+            <div class="tile-header mb-3">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">NUTRITION CALENDAR</h5>
+            </div>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Select a date to view events</p>
+            
+            <!-- Calendar Widget -->
+            <div class="calendar-widget">
+              <!-- Calendar Header with functional navigation -->
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-sm btn-outline-secondary" id="prevMonthBtn" style="font-size:.6rem;padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border-soft);background:var(--surface);">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <h6 id="calendarMonthYear" style="font-size:.75rem;font-weight:700;color:#18432b;margin:0;">
+                  ${calendarDate.toLocaleDateString('en-PH', { 
+                    timeZone: 'Asia/Manila',
+                    month: 'long', 
+                    year: 'numeric' 
+                  })}
+                </h6>
+                <button class="btn btn-sm btn-outline-secondary" id="nextMonthBtn" style="font-size:.6rem;padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border-soft);background:var(--surface);">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+              
+              <!-- Calendar Grid -->
+              <div class="calendar-grid">
+                <!-- Calendar Header Days -->
+                <div class="calendar-days-header">
+                  <div class="calendar-day-header">Su</div>
+                  <div class="calendar-day-header">Mo</div>
+                  <div class="calendar-day-header">Tu</div>
+                  <div class="calendar-day-header">We</div>
+                  <div class="calendar-day-header">Th</div>
+                  <div class="calendar-day-header">Fr</div>
+                  <div class="calendar-day-header">Sa</div>
+                </div>
+                
+                <!-- Calendar Days -->
+                <div class="calendar-days" id="calendarDays">
+                  ${generateCalendarDays(events, calendarDate)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Updated Legend to match UI exactly -->
+          <div class="tile">
+            <div class="tile-header mb-3">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">LEGEND:</h5>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:12px;height:12px;background:#077a44;border-radius:3px;"></div>
+                <span style="font-size:.65rem;color:#586c5d;">Health</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:12px;height:12px;background:#f4a400;border-radius:3px;"></div>
+                <span style="font-size:.65rem;color:#586c5d;">Feeding Program</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:12px;height:12px;background:#1c79d0;border-radius:3px;"></div>
+                <span style="font-size:.65rem;color:#586c5d;">Weighing</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:12px;height:12px;background:#a259c6;border-radius:3px;"></div>
+                <span style="font-size:.65rem;color:#586c5d;">Nutrition Education</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Events Panel -->
+        <div class="col-md-8">
+          <!-- Events for Selected Date -->
+          <div class="tile mb-3">
+            <div class="tile-header mb-3">
+              <div>
+                <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">EVENTS ON ${selectedDate.toUpperCase()}</h5>
+                <p style="font-size:.6rem;color:var(--muted);margin:.2rem 0 0;">${todayEvents.length} event(s) scheduled</p>
+              </div>
+            </div>
+            
+            ${todayEvents.length > 0 ? 
+              `<div class="event-list">${todayEvents.map(event => renderEventItem(event)).join('')}</div>` :
+              `<div class="text-center py-4">
+                <i class="bi bi-calendar-x text-muted" style="font-size:2rem;opacity:0.5;"></i>
+                <p style="font-size:.65rem;color:var(--muted);margin:.5rem 0 0;">No events scheduled for this date</p>
+              </div>`
+            }
+          </div>
+
+          <!-- All Upcoming Events -->
+          <div class="tile">
+            <div class="tile-header mb-3">
+              <div class="d-flex justify-content-between align-items-center w-100">
+                <div>
+                  <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">ALL UPCOMING EVENTS</h5>
+                  <p style="font-size:.6rem;color:var(--muted);margin:.2rem 0 0;">Scheduled nutrition activities</p>
+                </div>
+                <a href="#" style="font-size:.6rem;color:var(--green);text-decoration:none;font-weight:600;">All Events</a>
+              </div>
+            </div>
+
+            <!-- Event List -->
+            <div class="event-list">
+              ${upcomingEvents.length > 0 ? upcomingEvents.map(event => renderEventItem(event)).join('') : 
+                '<div class="text-center py-4"><i class="bi bi-calendar-x text-muted" style="font-size:2rem;opacity:0.5;"></i><p style="font-size:.65rem;color:var(--muted);margin:.5rem 0 0;">No upcoming events scheduled</p></div>'
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Helper function to setup calendar navigation functionality
+  function setupCalendarNavigation(events, currentDate) {
+    const prevBtn = document.getElementById('prevMonthBtn');
+    const nextBtn = document.getElementById('nextMonthBtn');
+    const monthYearDisplay = document.getElementById('calendarMonthYear');
+    const calendarDaysContainer = document.getElementById('calendarDays');
+    
+    let calendarDate = new Date(currentDate);
+    
+    function updateCalendar() {
+      // Update month/year display
+      monthYearDisplay.textContent = calendarDate.toLocaleDateString('en-PH', { 
+        timeZone: 'Asia/Manila',
+        month: 'long', 
+        year: 'numeric' 
+      });
+      
+      // Update calendar days
+      calendarDaysContainer.innerHTML = generateCalendarDays(events, calendarDate);
+      
+      // Add click handlers to calendar days
+      setupCalendarDayClickHandlers(events, calendarDate);
+    }
+    
+    // Previous month button
+    if (prevBtn) {
+      prevBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        calendarDate.setMonth(calendarDate.getMonth() - 1);
+        updateCalendar();
+      });
+    }
+    
+    // Next month button
+    if (nextBtn) {
+      nextBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        calendarDate.setMonth(calendarDate.getMonth() + 1);
+        updateCalendar();
+      });
+    }
+    
+    // Initial setup of day click handlers
+    setupCalendarDayClickHandlers(events, calendarDate);
+  }
+  
+  // Helper function to setup calendar day click handlers
+  function setupCalendarDayClickHandlers(events, calendarDate) {
+    document.querySelectorAll('.calendar-day:not(.prev-month):not(.next-month)').forEach(dayElement => {
+      dayElement.addEventListener('click', function() {
+        // Remove previous selection
+        document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
+        
+        // Add selection to clicked day
+        this.classList.add('selected');
+        
+        // Get the selected date
+        const selectedDay = parseInt(this.textContent);
+        const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), selectedDay);
+        
+        // Update events display for selected date
+        updateSelectedDateEvents(events, selectedDate);
+      });
+    });
+  }
+  
+  // Helper function to update events display for selected date
+  function updateSelectedDateEvents(events, selectedDate) {
+    const formattedDate = selectedDate.toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const selectedDateEvents = events.filter(event => {
+      const eventDate = new Date(event.event_date);
+      return eventDate.toDateString() === selectedDate.toDateString();
+    });
+    
+    // Find the events section and update it
+    const eventsSection = document.querySelector('.tile .tile-header h5');
+    const eventsCount = document.querySelector('.tile .tile-header p');
+    const eventsList = eventsSection?.closest('.tile').querySelector('.event-list, .text-center');
+    
+    if (eventsSection && eventsCount && eventsList) {
+      eventsSection.textContent = `EVENTS ON ${formattedDate.toUpperCase()}`;
+      eventsCount.textContent = `${selectedDateEvents.length} event(s) scheduled`;
+      
+      if (selectedDateEvents.length > 0) {
+        eventsList.innerHTML = selectedDateEvents.map(event => renderEventItem(event)).join('');
+        eventsList.className = 'event-list';
+      } else {
+        eventsList.innerHTML = `
+          <div class="text-center py-4">
+            <i class="bi bi-calendar-x text-muted" style="font-size:2rem;opacity:0.5;"></i>
+            <p style="font-size:.65rem;color:var(--muted);margin:.5rem 0 0;">No events scheduled for this date</p>
+          </div>
+        `;
+        eventsList.className = 'text-center py-4';
+      }
+    }
+  }
+
+  // Helper function to generate calendar days with proper styling
+  function generateCalendarDays(events, calendarDate) {
+    const phToday = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+    const currentMonth = calendarDate.getMonth();
+    const currentYear = calendarDate.getFullYear();
+    
+    // Create a map of dates with events
+    const eventDates = new Map();
+    events.forEach(event => {
+      const eventDate = new Date(event.event_date);
+      const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
+      if (!eventDates.has(dateKey)) {
+        eventDates.set(dateKey, []);
+      }
+      eventDates.get(dateKey).push(event);
+    });
+
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    
+    let daysHTML = '';
+    
+    // Previous month days
+    const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+    for (let i = firstDay - 1; i >= 0; i--) {
+      daysHTML += `<div class="calendar-day prev-month">${prevMonthDays - i}</div>`;
+    }
+    
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${currentYear}-${currentMonth}-${day}`;
+      const hasEvents = eventDates.has(dateKey);
+      
+      // Check if this is today
+      const isToday = (day === phToday.getDate() && 
+                     currentMonth === phToday.getMonth() && 
+                     currentYear === phToday.getFullYear());
+      
+      let dayClasses = 'calendar-day';
+      if (isToday) dayClasses += ' current-day';
+      
+      let dayStyle = '';
+      if (hasEvents) {
+        dayStyle = 'style="position:relative;"';
+        // Add a small indicator for events
+        const eventIndicator = '<div style="position:absolute;bottom:2px;right:2px;width:4px;height:4px;background:#077a44;border-radius:50%;"></div>';
+        daysHTML += `<div class="${dayClasses}" ${dayStyle} data-has-events="true">${day}${eventIndicator}</div>`;
+      } else {
+        daysHTML += `<div class="${dayClasses}">${day}</div>`;
+      }
+    }
+    
+    // Next month days to fill the grid
+    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+    const remainingCells = totalCells - (firstDay + daysInMonth);
+    for (let day = 1; day <= remainingCells; day++) {
+      daysHTML += `<div class="calendar-day next-month">${day}</div>`;
+    }
+    
+    return daysHTML;
+  }
+
+  // Add CSS for selected calendar day
+  const style = document.createElement('style');
+  style.textContent = `
+    .calendar-day.selected {
+      background: var(--green) !important;
+      color: white !important;
+      font-weight: 700;
+    }
+    .calendar-day:hover:not(.prev-month):not(.next-month) {
+      background: var(--surface-soft);
+      cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Helper function to render individual event items (same as before)
+  function renderEventItem(event) {
+    const eventDate = new Date(event.event_date);
+    const formattedDate = eventDate.toLocaleDateString('en-PH', { 
+      timeZone: 'Asia/Manila',
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    const eventTime = event.event_time ? new Date(`2000-01-01T${event.event_time}`).toLocaleTimeString('en-PH', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }) : 'Time TBD';
+
+    const eventTypeConfig = {
+      'health': { icon: 'bi-clipboard-data', color: '#077a44', bg: '#e8f5ea', badge: 'Health' },
+      'nutrition': { icon: 'bi-book', color: '#a259c6', bg: '#f3e8ff', badge: 'Nutrition Education' },
+      'feeding': { icon: 'bi-cup-hot', color: '#f4a400', bg: '#ffecc7', badge: 'Feeding Program' },
+      'weighing': { icon: 'bi-clipboard2-data', color: '#1c79d0', bg: '#e1f1ff', badge: 'Weighing' }
+    };
+
+    const config = eventTypeConfig[event.event_type] || eventTypeConfig['health'];
+
+    return `
+      <div class="event-item">
+        <div class="d-flex align-items-center gap-3">
+          <div class="event-icon" style="background:${config.bg};">
+            <i class="${config.icon}" style="color:${config.color};"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h6 class="event-title">${escapeHtml(event.event_title)}</h6>
+            <div class="event-details">
+              <span><i class="bi bi-calendar3"></i> ${formattedDate}</span>
+              <span><i class="bi bi-clock"></i> ${eventTime}</span>
+              <span><i class="bi bi-geo-alt"></i> ${escapeHtml(event.location || 'Location TBD')}</span>
+            </div>
+          </div>
+          <span class="event-badge" style="background:${config.bg};color:${config.color};">${config.badge}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Helper function to setup tab switching (same as before but with updated function signature)
+  function setupCalendarTabs(events, currentDate) {
+    document.querySelectorAll('.calendar-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Update active tab
+        document.querySelectorAll('.calendar-tab').forEach(t => {
+          t.classList.remove('active');
+          t.style.color = 'var(--muted)';
+          t.style.borderBottom = 'none';
+        });
+        
+        tab.classList.add('active');
+        tab.style.color = 'var(--green)';
+        tab.style.borderBottom = '2px solid var(--green)';
+        
+        // Update content based on tab
+        const tabType = tab.dataset.tab;
+        const contentArea = document.getElementById('calendar-tab-content');
+        
+        switch(tabType) {
+          case 'health':
+            contentArea.innerHTML = renderEventTypeView(events, 'health', 'Health Sessions', '🏥');
+            break;
+          case 'feeding':
+            contentArea.innerHTML = renderEventTypeView(events, 'feeding', 'Feeding Programs', '🍽️');
+            break;
+          case 'weighing':
+            contentArea.innerHTML = renderEventTypeView(events, 'weighing', 'Weighing Schedules', '⚖️');
+            break;
+          case 'nutrition':
+            contentArea.innerHTML = renderEventTypeView(events, 'nutrition', 'Nutrition Education', '📚');
+            break;
+          default: // 'calendar'
+            contentArea.innerHTML = renderCalendarView(events, currentDate);
+            // Re-setup navigation after re-rendering
+            setTimeout(() => setupCalendarNavigation(events, currentDate), 100);
+            break;
+        }
+      });
+    });
+  }
+
+  // Helper function to render events filtered by type (same as before)
+  function renderEventTypeView(events, eventType, title, icon) {
+    const filteredEvents = events.filter(event => event.event_type === eventType);
+    
+    return `
+      <div>
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h6 style="font-size:.8rem;font-weight:700;color:var(--green);margin:0;display:flex;align-items:center;gap:.5rem;">
+              ${icon} ${title}
+            </h6>
+            <p class="text-muted mb-0" style="font-size:.65rem;">${filteredEvents.length} event(s) scheduled</p>
+          </div>
+        </div>
+
+        <div class="tile">
+          ${filteredEvents.length > 0 ? 
+            filteredEvents.map(event => renderEventItem(event)).join('') :
+            `<div class="text-center py-5">
+              <i class="bi bi-calendar-x text-muted" style="font-size:3rem;opacity:0.3;"></i>
+              <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No ${title} Scheduled</h6>
+              <p class="text-muted small mb-0" style="font-size:.65rem;">No events of this type have been scheduled yet.</p>
+            </div>`
+          }
+        </div>
+      </div>
+    `;
+  }
+}
 function renderMothersModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Mothers Module</h5><p class="small-note">Placeholder.</p></div>'; }
 function renderReportModule(label){ renderNutritionClassificationModule(label); }
+
+// Fixed auto-calculation that actually works
+// Fixed auto-calculation consistent with UI and database structure
+// Fixed auto-calculation that matches your exact UI
+function autoCalculateWFLAssessment() {
+  const weightInput = document.getElementById('childWeight');
+  const heightInput = document.getElementById('childHeight');
+  const assessmentInput = document.getElementById('nutritionStatus');
+  const assessmentIdInput = document.getElementById('nutritionStatusId');
+  
+  if (!weightInput || !heightInput || !assessmentInput) {
+    console.error('Required input fields not found');
+    return;
+  }
+  
+  const weight = parseFloat(weightInput.value);
+  const height = parseFloat(heightInput.value);
+  
+  console.log('Auto-calculating with weight:', weight, 'height:', height);
+  
+  if (weight && height && weight > 0 && height > 0) {
+    // Show calculating status - exactly matching your form field style
+    assessmentInput.value = 'Calculating...';
+    assessmentInput.style.cssText = `
+      font-size: .72rem;
+      padding: .65rem .85rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      font-style: italic;
+      font-weight: 500;
+    `;
+    
+    // Fixed API URL
+    const url = `${api.nutrition}?classify=1&weight=${weight}&length=${height}`;
+    console.log('Calling API:', url);
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-CSRF-Token': window.__BNS_CSRF,
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      console.log('API response status:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Classification result:', data);
+      
+      if (data.success && data.status_code) {
+        // Success - use your exact badge styling
+        const statusInfo = getConsistentStatusDisplay(data.status_code, data.status_description);
+        
+        assessmentInput.value = statusInfo.displayText;
+        assessmentInput.style.cssText = `
+          font-size: .72rem;
+          padding: .65rem .85rem;
+          border: 1px solid var(--border-soft);
+          border-radius: 8px;
+          background: ${statusInfo.background};
+          color: ${statusInfo.color};
+          font-style: normal;
+          font-weight: 600;
+        `;
+        
+        // Store the status ID for form submission
+        if (assessmentIdInput && data.status_id) {
+          assessmentIdInput.value = data.status_id;
+        }
+        
+        console.log('Assessment calculated successfully:', statusInfo.displayText);
+      } else {
+        // Error state - consistent with your error styling
+        assessmentInput.value = 'Unable to calculate';
+        assessmentInput.style.cssText = `
+          font-size: .72rem;
+          padding: .65rem .85rem;
+          border: 1px solid #dc3545;
+          border-radius: 8px;
+          background: #fff5f5;
+          color: #dc3545;
+          font-style: italic;
+          font-weight: normal;
+        `;
+        
+        if (assessmentIdInput) {
+          assessmentIdInput.value = '';
+        }
+        
+        console.error('API returned error:', data);
+      }
+    })
+    .catch(error => {
+      console.error('Error calculating assessment:', error);
+      // Error state matching your existing "Calculation error" style
+      assessmentInput.value = 'Calculation error';
+      assessmentInput.style.cssText = `
+        font-size: .72rem;
+        padding: .65rem .85rem;
+        border: 1px solid #dc3545;
+        border-radius: 8px;
+        background: #fff5f5;
+        color: #dc3545;
+        font-style: italic;
+        font-weight: normal;
+      `;
+      
+      if (assessmentIdInput) {
+        assessmentIdInput.value = '';
+      }
+    });
+  } else {
+    // Clear state - back to placeholder styling exactly like your form
+    assessmentInput.value = 'Auto-calculated when weight and height are entered';
+    assessmentInput.style.cssText = `
+      font-size: .72rem;
+      padding: .65rem .85rem;
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      background: #f8f9fa;
+      color: var(--muted);
+      font-style: italic;
+      font-weight: normal;
+    `;
+    
+    if (assessmentIdInput) {
+      assessmentIdInput.value = '';
+    }
+  }
+}
+
+// Helper function using your exact badge colors from your UI
+function getConsistentStatusDisplay(statusCode, statusDescription) {
+  const statusMap = {
+    'NOR': { 
+      displayText: 'Normal (NOR)', 
+      color: '#15692d', 
+      background: '#dff4e4' 
+    },
+    'MAM': { 
+      displayText: 'Moderate Acute Malnutrition (MAM)', 
+      color: '#845900', 
+      background: '#ffebc9' 
+    },
+    'SAM': { 
+      displayText: 'Severe Acute Malnutrition (SAM)', 
+      color: '#b02020', 
+      background: '#ffdcdc' 
+    },
+    'UW': { 
+      displayText: 'Underweight (UW)', 
+      color: '#7c5100', 
+      background: '#fff0d6' 
+    },
+    'OW': { 
+      displayText: 'Overweight (OW)', 
+      color: '#105694', 
+      background: '#e1f1ff' 
+    },
+    'OB': { 
+      displayText: 'Obese (OB)', 
+      color: '#105694', 
+      background: '#e1f1ff' 
+    },
+    'ST': { 
+      displayText: 'Stunted (ST)', 
+      color: '#b02020', 
+      background: '#ffdcdc' 
+    }
+  };
+  
+  return statusMap[statusCode] || { 
+    displayText: statusDescription || statusCode, 
+    color: 'var(--text)', 
+    background: '#f8f9fa' 
+  };
+}
+
+// Helper function to get consistent status display based on your database
+function getStatusDisplay(statusCode, statusDescription) {
+  const statusMap = {
+    'NOR': { 
+      text: 'Normal (NOR)', 
+      color: '#15692d', 
+      background: '#dff4e4' 
+    },
+    'MAM': { 
+      text: 'Moderate Acute Malnutrition (MAM)', 
+      color: '#845900', 
+      background: '#ffebc9' 
+    },
+    'SAM': { 
+      text: 'Severe Acute Malnutrition (SAM)', 
+      color: '#b02020', 
+      background: '#ffdcdc' 
+    },
+    'OW': { 
+      text: 'Overweight (OW)', 
+      color: '#105694', 
+      background: '#e1f1ff' 
+    },
+    'OB': { 
+      text: 'Obese (OB)', 
+      color: '#105694', 
+      background: '#e1f1ff' 
+    },
+    'ST': { 
+      text: 'Stunted (ST)', 
+      color: '#b02020', 
+      background: '#ffdcdc' 
+    },
+    'UW': { 
+      text: 'Underweight (UW)', 
+      color: '#7c5100', 
+      background: '#fff0d6' 
+    }
+  };
+  
+  return statusMap[statusCode] || { 
+    text: statusDescription || statusCode, 
+    color: 'var(--text)', 
+    background: '#f8f9fa' 
+  };
+}
+
+// Proper event listener setup that actually works
+function setupAutoCalculation() {
+  console.log('Setting up auto-calculation...');
+  
+  // Wait for DOM to be ready
+  setTimeout(() => {
+    const weightInput = document.getElementById('childWeight');
+    const heightInput = document.getElementById('childHeight');
+    
+    if (!weightInput || !heightInput) {
+      console.error('Weight or height input not found!');
+      return;
+    }
+    
+    console.log('Found weight and height inputs, adding event listeners...');
+    
+    // Remove any existing listeners to prevent duplicates
+    weightInput.removeEventListener('input', handleWeightHeightChange);
+    heightInput.removeEventListener('input', handleWeightHeightChange);
+    weightInput.removeEventListener('blur', autoCalculateWFLAssessment);
+    heightInput.removeEventListener('blur', autoCalculateWFLAssessment);
+    
+    // Add new event listeners
+    weightInput.addEventListener('input', handleWeightHeightChange);
+    heightInput.addEventListener('input', handleWeightHeightChange);
+    weightInput.addEventListener('blur', autoCalculateWFLAssessment);
+    heightInput.addEventListener('blur', autoCalculateWFLAssessment);
+    
+    console.log('Event listeners added successfully');
+  }, 200);
+}
+
+// Debounced handler for input events
+let calculationTimeout;
+function handleWeightHeightChange() {
+  console.log('Weight or height changed, scheduling calculation...');
+  
+  // Clear existing timeout
+  if (calculationTimeout) {
+    clearTimeout(calculationTimeout);
+  }
+  
+  // Schedule calculation after user stops typing
+  calculationTimeout = setTimeout(() => {
+    console.log('Executing delayed calculation...');
+    autoCalculateWFLAssessment();
+  }, 500);
+}
+
+// Updated form rendering with consistent UI
+function renderWeighingModule(label) {
+  showLoading(label);
+  setTimeout(() => {
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-icon">
+            <i class="bi bi-clipboard2-data"></i>
+          </div>
+          <div class="page-header-text">
+            <h1>Nutrition Data Entry</h1>
+            <p>Record comprehensive nutrition and growth measurements</p>
+          </div>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+          <!-- Child Information Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon child">
+                <i class="bi bi-person-plus"></i>
+              </div>
+              <h3 class="form-section-title">Child Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Select Child</label>
+                <select class="form-select" id="childSelect" required>
+                  <option value="">Select a child</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="childFullName" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sex</label>
+                <input type="text" class="form-control" id="childSex" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Birth Date</label>
+                <input type="text" class="form-control" id="childBirthDate" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Current Age (months)</label>
+                <input type="text" class="form-control" id="childAge" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mother/Caregiver</label>
+                <input type="text" class="form-control" id="motherName" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- New Weighing Record Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-clipboard-data"></i>
+              </div>
+              <h3 class="form-section-title">📊 New Weighing Record</h3>
+            </div>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Record new measurement data for the selected child</p>
+            
+            <!-- Weighing Form Grid -->
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Date of Weighing *</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" id="weighingDate" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Weight (kg) *</label>
+                <input type="number" step="0.1" class="form-control" id="childWeight" 
+                       placeholder="Enter weight in kg" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Height/Length (cm) *</label>
+                <input type="number" step="0.1" class="form-control" id="childHeight" 
+                       placeholder="Enter height in cm" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">WFL/H Assessment</label>
+                <input type="text" class="form-control" id="nutritionStatus" 
+                       placeholder="Auto-calculated when weight and height are entered" 
+                       readonly>
+                <input type="hidden" id="nutritionStatusId" name="wfl_ht_status_id">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Remarks</label>
+                <textarea class="form-control" id="remarks" 
+                          placeholder="Additional notes or observations" rows="3"></textarea>
+              </div>
+            </div>
+
+            <!-- Add Record Button -->
+            <div class="d-flex justify-content-end mt-3">
+              <button class="btn btn-success" id="saveNutritionRecord" 
+                      style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+                <i class="bi bi-plus-lg me-1"></i> Add Weighing Record
+              </button>
+            </div>
+          </div>
+
+          <!-- Previous Records Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;">
+                <i class="bi bi-clipboard-data"></i>
+              </div>
+              <h3 class="form-section-title">📋 Previous Weighing Records</h3>
+            </div>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Historical measurement data for the selected child</p>
+            
+            <div class="table-responsive" id="previousRecordsContainer">
+              <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+                <i class="bi bi-person-check" style="font-size:2rem;opacity:0.3;"></i>
+                <p style="margin:.5rem 0 0;">Select a child to view their weighing history</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nutrition Classification Guide -->
+          <div class="form-section" style="background:#f0f8f1;border:1px solid #d3e8d9;">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-info-circle"></i>
+              </div>
+              <h3 class="form-section-title">Nutrition Classification Guide</h3>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-NOR" style="min-width:70px;text-align:center;">Normal</span>
+                <span style="font-size:.65rem;color:#15692d;font-weight:600;">Healthy weight for age and height</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-MAM" style="min-width:70px;text-align:center;">MAM</span>
+                <span style="font-size:.65rem;color:#845900;font-weight:600;">Moderate Acute Malnutrition</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-SAM" style="min-width:70px;text-align:center;">SAM</span>
+                <span style="font-size:.65rem;color:#b02020;font-weight:600;">Severe Acute Malnutrition</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-UW" style="min-width:70px;text-align:center;">Underweight</span>
+                <span style="font-size:.65rem;color:#7c5100;font-weight:600;">Below normal weight for age</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-OW" style="min-width:70px;text-align:center;">Overweight</span>
+                <span style="font-size:.65rem;color:#105694;font-weight:600;">Above normal weight</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.7rem;">
+                <span class="badge-status badge-OB" style="min-width:70px;text-align:center;">Obese</span>
+                <span style="font-size:.65rem;color:#105694;font-weight:600;">Significantly above normal weight</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Initialize functionality
+    initializeNutritionDataEntry();
+  }, 100);
+}
+
+// Updated initialization function
+function initializeNutritionDataEntry() {
+  console.log('Initializing nutrition data entry...');
+  
+  // Load children for selection
+  loadChildrenForSelection();
+  
+  // Set today's date as default (Philippine timezone)
+  const today = new Date().toLocaleDateString('en-CA', {timeZone: 'Asia/Manila'});
+  if (document.getElementById('weighingDate')) {
+    document.getElementById('weighingDate').value = today;
+  }
+  
+  // Setup other handlers
+  setupChildSelectionHandler();
+  setupSaveRecordHandler();
+  
+  // Setup auto-calculation (most important - do this last)
+  setupAutoCalculation();
+}
+
+// Debug function to test if auto-calculation works
+function testAutoCalculation() {
+  console.log('Testing auto-calculation...');
+  
+  // Set test values
+  const weightInput = document.getElementById('childWeight');
+  const heightInput = document.getElementById('childHeight');
+  
+  if (weightInput && heightInput) {
+    weightInput.value = '10.5';
+    heightInput.value = '75';
+    
+    console.log('Test values set, triggering calculation...');
+    autoCalculateWFLAssessment();
+  } else {
+    console.error('Could not find weight/height inputs for testing');
+  }
+}
 
 /* Module map */
 const handlers={
@@ -913,9 +4197,531 @@ document.addEventListener('click',e=>{
   }
 });
 
+
+
 /* Initial load */
 loadModule('dashboard_home','Dashboard');
+
+
+
+// Modal functionality for Register New Child
+document.addEventListener('DOMContentLoaded', function() {
+  const registerChildModal = document.getElementById('registerChildModal');
+  const saveChildBtn = document.getElementById('saveChildBtn');
+  const registerChildForm = document.getElementById('registerChildForm');
+
+  // Handle save button click
+  if (saveChildBtn) {
+    saveChildBtn.addEventListener('click', function() {
+      // Get form data
+      const formData = new FormData(registerChildForm);
+      const childData = Object.fromEntries(formData.entries());
+
+      console.log('Form data collected:', childData); // Debug log
+
+      // UPDATED VALIDATION - match your actual form fields
+      if (!childData.full_name || !childData.sex || !childData.birth_date || 
+          !childData.purok_id || !childData.address_details || 
+          !childData.mother_full_name || !childData.contact_number) {
+        
+        // More detailed validation feedback
+        const missingFields = [];
+        if (!childData.full_name) missingFields.push('Child Full Name');
+        if (!childData.sex) missingFields.push('Child Sex');
+        if (!childData.birth_date) missingFields.push('Child Birth Date');
+        if (!childData.purok_id) missingFields.push('Purok/Location');
+        if (!childData.address_details) missingFields.push('Complete Address');
+        if (!childData.mother_full_name) missingFields.push('Mother Full Name');
+        if (!childData.contact_number) missingFields.push('Contact Number');
+        
+        alert(`Please fill in the following required fields:\n• ${missingFields.join('\n• ')}`);
+        console.log('Missing fields:', missingFields); // Debug log
+        return;
+      }
+
+      // Validate contact number format
+      const contactPattern = /^09\d{9}$/;
+      if (!contactPattern.test(childData.contact_number.replace(/\s/g, ''))) {
+        alert('Please enter a valid contact number (09XXXXXXXXX).');
+        return;
+      }
+
+      // Show loading state
+      saveChildBtn.disabled = true;
+      saveChildBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Registering...';
+
+      // Prepare data matching your database structure exactly
+      const submitData = {
+        // Child data (matches children table structure)
+        child: {
+          full_name: childData.full_name,
+          sex: childData.sex, // enum('male', 'female')
+          birth_date: childData.birth_date
+        },
+        // Mother/Caregiver data (matches mothers_caregivers table structure exactly)
+        mother_caregiver: {
+          full_name: childData.mother_full_name,                     // varchar(255) NOT NULL
+          date_of_birth: childData.mother_date_of_birth || null,     // date (nullable)
+          emergency_contact_name: childData.emergency_contact_name || null,  // varchar(120) (nullable)
+          emergency_contact_number: childData.emergency_contact_number || null,  // varchar(40) (nullable)
+          purok_id: parseInt(childData.purok_id),                    // int(11) (nullable but required in form)
+          address_details: childData.address_details || '',          // text (nullable)
+          contact_number: childData.contact_number                   // varchar(20) (nullable but required in form)
+          // created_by and user_account_id will be set automatically from session
+        }
+      };
+
+      console.log('Submitting data:', submitData); // Debug log
+
+      // Submit to API endpoint
+      fetchJSON('bns_modules/api_children.php?action=register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData)
+      })
+      .then(response => {
+        console.log('API Response:', response); // Debug log
+        
+        if (response.success) {
+          // Success message with better UX
+          const successMessage = `✅ Child registered successfully!\n\nChild: ${childData.full_name}\nMother: ${childData.mother_full_name}\nPurok: ${childData.purok_id}`;
+          alert(successMessage);
+          
+          // Reset form
+          registerChildForm.reset();
+          
+          // Close modal with better animation
+          const modal = bootstrap.Modal.getInstance(registerChildModal);
+          modal.hide();
+          
+          // Refresh the children list if we're on the children management page
+          if (titleEl.textContent === 'Children Management') {
+            renderChildrenModule('Children Management');
+          }
+        } else {
+          throw new Error(response.error || 'Registration failed');
+        }
+      })
+      .catch(error => {
+        console.error('Registration error:', error);
+        alert('❌ Error registering child: ' + error.message);
+      })
+      .finally(() => {
+        // Reset button
+        saveChildBtn.disabled = false;
+        saveChildBtn.innerHTML = '<i class="bi bi-save me-1"></i> Register Child';
+      });
+    });
+  }
+
+  // Reset form when modal is closed
+  if (registerChildModal) {
+    registerChildModal.addEventListener('hidden.bs.modal', function() {
+      registerChildForm.reset();
+      saveChildBtn.disabled = false;
+      saveChildBtn.innerHTML = '<i class="bi bi-save me-1"></i> Register Child';
+    });
+  }
+
+  // Format contact numbers as user types
+  const contactInputs = document.querySelectorAll('input[name="contact_number"], input[name="emergency_contact_number"]');
+  contactInputs.forEach(input => {
+    input.addEventListener('input', function() {
+      // Remove all non-digits
+      let value = this.value.replace(/\D/g, '');
+      
+      // Limit to 11 digits for Philippine mobile numbers
+      if (value.length > 11) {
+        value = value.slice(0, 11);
+      }
+      
+      this.value = value;
+    });
+  });
+});
+// Schedule Event Modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const scheduleEventModal = document.getElementById('scheduleEventModal');
+  const saveEventBtn = document.getElementById('saveEventBtn');
+  const scheduleEventForm = document.getElementById('scheduleEventForm');
+
+  // Set minimum date to today
+  const eventDateInput = document.querySelector('input[name="event_date"]');
+  if (eventDateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    eventDateInput.setAttribute('min', today);
+  }
+
+  // Handle save button click
+  if (saveEventBtn) {
+    saveEventBtn.addEventListener('click', function() {
+      // Get form data
+      const formData = new FormData(scheduleEventForm);
+      const eventData = Object.fromEntries(formData.entries());
+
+      console.log('Event form data collected:', eventData); // Debug log
+
+      // Validation
+      if (!eventData.event_title || !eventData.event_type || !eventData.event_date || 
+          !eventData.event_time || !eventData.location) {
+        
+        const missingFields = [];
+        if (!eventData.event_title) missingFields.push('Event Title');
+        if (!eventData.event_type) missingFields.push('Event Type');
+        if (!eventData.event_date) missingFields.push('Event Date');
+        if (!eventData.event_time) missingFields.push('Event Time');
+        if (!eventData.location) missingFields.push('Location');
+        
+        alert(`Please fill in the following required fields:\n• ${missingFields.join('\n• ')}`);
+        return;
+      }
+
+      // Validate that event date is not in the past
+      const eventDateTime = new Date(`${eventData.event_date}T${eventData.event_time}`);
+      const now = new Date();
+      
+      if (eventDateTime <= now) {
+        alert('Event date and time must be in the future.');
+        return;
+      }
+
+      // Show loading state
+      saveEventBtn.disabled = true;
+      saveEventBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Scheduling...';
+
+      // Prepare data for API
+      const submitData = {
+        event_title: eventData.event_title,
+        event_description: eventData.event_description || '',
+        event_type: eventData.event_type,
+        event_date: eventData.event_date,
+        event_time: eventData.event_time,
+        location: eventData.location,
+        target_audience: eventData.target_audience || '',
+        is_published: parseInt(eventData.is_published) || 1
+      };
+
+      console.log('Submitting event data:', submitData); // Debug log
+
+      // Submit to API endpoint
+      fetchJSON('bns_modules/api_events.php?action=create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData)
+      })
+      .then(response => {
+        console.log('API Response:', response); // Debug log
+        
+        if (response.success) {
+          // Format date and time for display
+          const eventDate = new Date(eventDateTime);
+          const dateStr = eventDate.toLocaleDateString();
+          const timeStr = eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          
+          // Success message
+          const successMessage = `✅ Event scheduled successfully!\n\nEvent: ${eventData.event_title}\nDate: ${dateStr}\nTime: ${timeStr}\nLocation: ${eventData.location}`;
+          alert(successMessage);
+          
+          // Reset form
+          scheduleEventForm.reset();
+          
+          // Close modal
+          const modal = bootstrap.Modal.getInstance(scheduleEventModal);
+          modal.hide();
+          
+          // Refresh the calendar/event list if we're on the event scheduling page
+          if (titleEl.textContent === 'Event Scheduling') {
+            renderNutritionCalendarModule('Event Scheduling');
+          }
+        } else {
+          throw new Error(response.error || 'Failed to schedule event');
+        }
+      })
+      .catch(error => {
+        console.error('Event scheduling error:', error);
+        alert('❌ Error scheduling event: ' + error.message);
+      })
+      .finally(() => {
+        // Reset button
+        saveEventBtn.disabled = false;
+        saveEventBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
+      });
+    });
+  }
+
+  // Reset form when modal is closed
+  if (scheduleEventModal) {
+    scheduleEventModal.addEventListener('hidden.bs.modal', function() {
+      scheduleEventForm.reset();
+      saveEventBtn.disabled = false;
+      saveEventBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
+    });
+  }
+
+  // Auto-populate event title based on event type selection
+  const eventTypeSelect = document.querySelector('select[name="event_type"]');
+  const eventTitleInput = document.querySelector('input[name="event_title"]');
+  
+  if (eventTypeSelect && eventTitleInput) {
+    eventTypeSelect.addEventListener('change', function() {
+      const eventType = this.value;
+      const currentTitle = eventTitleInput.value.trim();
+      
+      // Only auto-populate if title is empty
+      if (!currentTitle && eventType) {
+        const suggestions = {
+          'health': 'Health Consultation Session',
+          'nutrition': 'Nutrition Education Seminar',
+          'vaccination': 'Vaccination Drive',
+          'feeding': 'Supplementary Feeding Program',
+          'weighing': 'Monthly Weighing Session',
+          'general': 'Community Health Meeting',
+          'other': 'Special Health Activity'
+        };
+        
+        if (suggestions[eventType]) {
+          eventTitleInput.value = suggestions[eventType];
+        }
+      }
+    });
+  }
+});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Register New Child Modal -->
+<div class="modal fade" id="registerChildModal" tabindex="-1" aria-labelledby="registerChildModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content" style="border-radius:16px;border:1px solid var(--border-soft);box-shadow:0 10px 40px -10px rgba(15,32,23,.15);">
+      <!-- Modal Header -->
+      <div class="modal-header" style="border-bottom:1px solid var(--border-soft);padding:1.2rem 1.5rem;">
+        <div>
+          <h5 class="modal-title" id="registerChildModalLabel" style="font-size:.9rem;font-weight:700;color:var(--text);margin:0;">Register New Child</h5>
+          <p class="text-muted mb-0" style="font-size:.65rem;margin-top:.2rem;">Add a new child to the nutrition monitoring program</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size:.8rem;"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body" style="padding:1.5rem;">
+        <form id="registerChildForm">
+          <!-- Child Information Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon child">
+                <i class="bi bi-person-plus"></i>
+              </div>
+              <h3 class="form-section-title">Child Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="full_name" placeholder="Child's complete name" maxlength="255" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sex</label>
+                <select class="form-select" name="sex" required>
+                  <option value="">Select sex</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Birth Date</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" name="birth_date" required>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Address Information Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon address">
+                <i class="bi bi-geo-alt-fill"></i>
+              </div>
+              <h3 class="form-section-title">Address Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Purok/Location</label>
+                <select class="form-select" name="purok_id" required>
+                  <option value="">Select purok</option>
+                  <option value="1">Purok 1</option>
+                  <option value="2">Purok 2</option>
+                  <option value="3">Purok 3</option>
+                  <option value="4">Purok 4</option>
+                  <option value="5">Purok 5</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Complete Address</label>
+                <input type="text" class="form-control" name="address_details" placeholder="Street, barangay" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Household Number</label>
+                <input type="text" class="form-control" name="household_number" placeholder="HH-####">
+              </div>
+            </div>
+          </div>
+
+          <!-- Mother/Caregiver Details Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon mother">
+                <i class="bi bi-person-heart"></i>
+              </div>
+              <h3 class="form-section-title">Mother/Caregiver Details</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="mother_full_name" placeholder="Mother's complete name" maxlength="255" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date of Birth</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" name="mother_date_of_birth">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contact Number</label>
+                <input type="text" class="form-control" name="contact_number" placeholder="09XXXXXXXXX" maxlength="20" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Emergency Contact Name</label>
+                <input type="text" class="form-control" name="emergency_contact_name" placeholder="Emergency contact person" maxlength="120">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Emergency Contact Number</label>
+                <input type="text" class="form-control" name="emergency_contact_number" placeholder="09XXXXXXXXX" maxlength="40">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="border-top:1px solid var(--border-soft);padding:1rem 1.5rem;">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;">Cancel</button>
+        <button type="button" class="btn btn-success" id="saveChildBtn" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+          <i class="bi bi-save me-1"></i> Register Child
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Schedule Event Modal -->
+<div class="modal fade" id="scheduleEventModal" tabindex="-1" aria-labelledby="scheduleEventModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:16px;border:1px solid var(--border-soft);box-shadow:0 10px 40px -10px rgba(15,32,23,.15);">
+      <!-- Modal Header -->
+      <div class="modal-header" style="border-bottom:1px solid var(--border-soft);padding:1.2rem 1.5rem;">
+        <div>
+          <h5 class="modal-title" id="scheduleEventModalLabel" style="font-size:.9rem;font-weight:700;color:var(--text);margin:0;">Schedule New Event</h5>
+          <p class="text-muted mb-0" style="font-size:.65rem;margin-top:.2rem;">Plan nutrition sessions and activities</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size:.8rem;"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body" style="padding:1.5rem;">
+        <form id="scheduleEventForm">
+          <!-- Event Details Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-calendar-event"></i>
+              </div>
+              <h3 class="form-section-title">Event Details</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Event Title *</label>
+                <input type="text" class="form-control" name="event_title" placeholder="Enter event title" maxlength="255" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Event Type *</label>
+                <select class="form-select" name="event_type" required>
+                  <option value="">Select event type</option>
+                  <option value="health">Health</option>
+                  <option value="feeding">Feeding Program</option>
+                  <option value="weighing">Weighing</option>
+                  <option value="nutrition">Nutrition Education</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Event Description</label>
+                <textarea class="form-control" name="event_description" placeholder="Brief description of the event" rows="3" maxlength="500"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schedule Information Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;">
+                <i class="bi bi-clock"></i>
+              </div>
+              <h3 class="form-section-title">Schedule Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Event Date *</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" name="event_date" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Event Time *</label>
+                <input type="time" class="form-control" name="event_time" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Location *</label>
+                <input type="text" class="form-control" name="location" placeholder="Event venue" maxlength="255" required>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Information Section -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#f3e8ff;color:#a259c6;">
+                <i class="bi bi-people"></i>
+              </div>
+              <h3 class="form-section-title">Additional Information</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Target Audience</label>
+                <input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Publication Status</label>
+                <select class="form-select" name="is_published">
+                  <option value="1">Published (Visible to public)</option>
+                  <option value="0">Draft (Not visible yet)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer" style="border-top:1px solid var(--border-soft);padding:1rem 1.5rem;">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;">Cancel</button>
+        <button type="button" class="btn btn-success" id="saveEventBtn" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+          <i class="bi bi-calendar-plus me-1"></i> Schedule Event
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -35,35 +35,79 @@ function provisional_classify(float $weightKg, float $lengthCm): ?string {
 
 if ($method==='GET') {
 
-    // Quick classification endpoint for front-end auto-fill
-    if (isset($_GET['classify'])) {
-        $w = isset($_GET['weight']) ? (float)$_GET['weight'] : 0;
-        $l = isset($_GET['length']) ? (float)$_GET['length'] : 0;
-        if ($w <= 0 || $l <= 0) fail('Invalid weight/length');
-        $code = provisional_classify($w,$l);
-        if (!$code) echo json_encode(['success'=>true,'status'=>null]);
-
-        $stmt = $mysqli->prepare("SELECT status_id,status_description FROM wfl_ht_status_types WHERE status_code=? LIMIT 1");
-        $stmt->bind_param('s',$code);
-        $stmt->execute();
-        $stmt->bind_result($sid,$sdesc);
-        if ($stmt->fetch()) {
-            $bmi = $w / pow($l/100,2);
-            echo json_encode([
-                'success'=>true,
-                'status_code'=>$code,
-                'status_id'=>$sid,
-                'status_description'=>$sdesc,
-                'bmi'=>round($bmi,2)
-            ]);
-            $stmt->close();
-            exit;
+    // 1) Growth Monitoring summary (fix for HTTP 400 on Growth Monitoring page)
+    // Returns the latest nutrition status per child, grouped and counted.
+    if (isset($_GET['classification_summary'])) {
+        try {
+            $sql = "
+                SELECT COALESCE(s.status_code,'UNSET') AS status_code,
+                       COUNT(DISTINCT c.child_id)    AS child_count
+                FROM children c
+                LEFT JOIN (
+                    SELECT nr1.child_id, nr1.weighing_date, nr1.wfl_ht_status_id
+                    FROM nutrition_records nr1
+                    INNER JOIN (
+                        SELECT child_id, MAX(weighing_date) AS max_date
+                        FROM nutrition_records
+                        GROUP BY child_id
+                    ) mx ON mx.child_id = nr1.child_id AND mx.max_date = nr1.weighing_date
+                ) latest ON latest.child_id = c.child_id
+                LEFT JOIN wfl_ht_status_types s ON s.status_id = latest.wfl_ht_status_id
+                GROUP BY status_code
+            ";
+            $res = $mysqli->query($sql);
+            $counts = [];
+            while ($row = $res->fetch_assoc()) {
+                $counts[$row['status_code']] = (int)$row['child_count'];
+            }
+            // Ensure stable output with zeroes for known codes
+            $known = ['NOR','MAM','SAM','UW','OW','OB','ST','UNSET'];
+            $summary = [];
+            foreach ($known as $code) {
+                if (isset($counts[$code])) {
+                    $summary[] = ['status_code'=>$code, 'child_count'=>$counts[$code]];
+                } elseif ($code !== 'UNSET') { // include UNSET only if it exists
+                    $summary[] = ['status_code'=>$code, 'child_count'=>0];
+                } elseif (isset($counts['UNSET'])) {
+                    $summary[] = ['status_code'=>'UNSET', 'child_count'=>$counts['UNSET']];
+                }
+            }
+            echo json_encode(['success'=>true,'summary'=>$summary]); exit;
+        } catch (Throwable $e) {
+            fail('Failed to compute classification summary: '.$e->getMessage(),500);
         }
-        $stmt->close();
-        echo json_encode(['success'=>true,'status_code'=>$code,'status_id'=>null,'status_description'=>null]);
-        exit;
     }
 
+    // 2) List records for a specific child (used by Weighing module history)
+    if (isset($_GET['child_id'])) {
+        $cid = (int)$_GET['child_id'];
+        if ($cid <= 0) fail('Invalid child_id');
+        $sql = "
+            SELECT nr.record_id,
+                   nr.weighing_date,
+                   nr.age_in_months,
+                   nr.weight_kg,
+                   nr.length_height_cm,
+                   nr.remarks,
+                   s.status_code,
+                   s.status_description
+            FROM nutrition_records nr
+            LEFT JOIN wfl_ht_status_types s ON s.status_id = nr.wfl_ht_status_id
+            WHERE nr.child_id = ?
+            ORDER BY nr.weighing_date DESC, nr.record_id DESC
+            LIMIT 500
+        ";
+        $stmt = $mysqli->prepare($sql);
+        if(!$stmt) fail('DB prepare failed',500);
+        $stmt->bind_param('i',$cid);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $rows=[]; while($r=$res->fetch_assoc()) $rows[]=$r;
+        $stmt->close();
+        echo json_encode(['success'=>true,'records'=>$rows]); exit;
+    }
+
+    // 3) Recent records feed
     if (isset($_GET['recent'])) {
         $sql = "
           SELECT nr.record_id, nr.weighing_date, nr.age_in_months, nr.weight_kg,
@@ -81,30 +125,43 @@ if ($method==='GET') {
         echo json_encode(['success'=>true,'records'=>$rows]); exit;
     }
 
-    if (isset($_GET['classification_summary'])) {
-        $sql = "
-          SELECT t.wfl_ht_status_id, w.status_code, w.status_description,
-                 COUNT(*) AS child_count
-          FROM (
-            SELECT nr1.child_id, nr1.wfl_ht_status_id
-            FROM nutrition_records nr1
-            JOIN (
-              SELECT child_id, MAX(weighing_date) AS max_date
-              FROM nutrition_records
-              GROUP BY child_id
-            ) mx ON mx.child_id = nr1.child_id AND mx.max_date = nr1.weighing_date
-            GROUP BY nr1.child_id
-          ) t
-          LEFT JOIN wfl_ht_status_types w ON w.status_id = t.wfl_ht_status_id
-          GROUP BY t.wfl_ht_status_id, w.status_code, w.status_description
-          ORDER BY child_count DESC
-        ";
-        $res=$mysqli->query($sql);
-        $rows=[]; while($r=$res->fetch_assoc()) $rows[]=$r;
-        echo json_encode(['success'=>true,'summary'=>$rows]); exit;
+    // 4) Quick classification endpoint for front-end auto-fill
+    if (isset($_GET['classify'])) {
+        $w = isset($_GET['weight']) ? (float)$_GET['weight'] : 0;
+        $l = isset($_GET['length']) ? (float)$_GET['length'] : 0;
+        if ($w <= 0 || $l <= 0) fail('Invalid weight/length');
+
+        $code = provisional_classify($w,$l);
+        if (!$code) { echo json_encode(['success'=>true,'status'=>null]); exit; }
+
+        $stmt = $mysqli->prepare("SELECT status_id,status_description FROM wfl_ht_status_types WHERE status_code=? LIMIT 1");
+        if(!$stmt) fail('Database prepare failed',500);
+        $stmt->bind_param('s',$code);
+        $stmt->execute();
+        $stmt->bind_result($sid,$sdesc);
+        if ($stmt->fetch()) {
+            $bmi = $w / pow($l/100,2);
+            $stmt->close();
+            echo json_encode([
+                'success'=>true,
+                'status_code'=>$code,
+                'status_id'=>$sid,
+                'status_description'=>$sdesc,
+                'bmi'=>round($bmi,2)
+            ]);
+            exit;
+        }
+        $stmt->close();
+        echo json_encode([
+            'success'=>true,
+            'status_code'=>$code,
+            'status_id'=>null,
+            'status_description'=>null
+        ]);
+        exit;
     }
 
-    // Combined (consolidated table) dataset (optional – only used if you added it)
+    // 5) Combined (consolidated table) dataset (optional)
     if (isset($_GET['combined'])) {
         $date = $_GET['date'] ?? date('Y-m-d');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/',$date)) $date = date('Y-m-d');

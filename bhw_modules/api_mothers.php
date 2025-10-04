@@ -30,6 +30,19 @@ function nz($s){
   return $s === '' ? null : $s;
 }
 
+/* ADDED: helper to list existing columns for dynamic INSERT */
+function table_columns($mysqli,$table){
+    static $cache=[];
+    if(isset($cache[$table])) return $cache[$table];
+    $cols=[];
+    if($res=$mysqli->query("SHOW COLUMNS FROM `".$mysqli->real_escape_string($table)."`")){
+        while($r=$res->fetch_assoc()){
+            $cols[$r['Field']] = true;
+        }
+    }
+    return $cache[$table] = $cols;
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
@@ -95,19 +108,28 @@ if ($method === 'POST') {
         fail('CSRF failed',419);
     }
 
+    // Dynamically detect which optional columns exist so we don't 500 if DB not migrated yet
+    $colsAvail = table_columns($mysqli,'mothers_caregivers');
+
     $full_name       = nz($_POST['full_name'] ?? '');
     $purok_name      = nz($_POST['purok_name'] ?? '');
     $address_details = nz($_POST['address_details'] ?? '');
     $contact_number  = nz($_POST['contact_number'] ?? '');
     $user_id         = (int)($_SESSION['user_id'] ?? 0);
 
-    $date_of_birth   = nz($_POST['date_of_birth'] ?? '');
-    if ($date_of_birth && !preg_match('/^\d{4}-\d{2}-\d{2}$/',$date_of_birth)) $date_of_birth = null;
-    $gravida         = (isset($_POST['gravida']) && $_POST['gravida'] !== '') ? (int)$_POST['gravida'] : null;
-    $para            = (isset($_POST['para']) && $_POST['para'] !== '') ? (int)$_POST['para'] : null;
-    $blood_type      = nz($_POST['blood_type'] ?? '');
-    $emg_name        = nz($_POST['emergency_contact_name'] ?? '');
-    $emg_number      = nz($_POST['emergency_contact_number'] ?? '');
+    // Prepare optional fields only if the columns exist
+    $date_of_birth = null;
+    if(isset($colsAvail['date_of_birth'])){
+        $date_of_birth = nz($_POST['date_of_birth'] ?? '');
+        if ($date_of_birth && !preg_match('/^\d{4}-\d{2}-\d{2}$/',$date_of_birth)) $date_of_birth = null;
+    }
+    $gravida = (isset($colsAvail['gravida']) && isset($_POST['gravida']) && $_POST['gravida']!=='')
+        ? (int)$_POST['gravida'] : null;
+    $para = (isset($colsAvail['para']) && isset($_POST['para']) && $_POST['para']!=='')
+        ? (int)$_POST['para'] : null;
+    $blood_type = isset($colsAvail['blood_type']) ? nz($_POST['blood_type'] ?? '') : null;
+    $emg_name   = isset($colsAvail['emergency_contact_name']) ? nz($_POST['emergency_contact_name'] ?? '') : null;
+    $emg_number = isset($colsAvail['emergency_contact_number']) ? nz($_POST['emergency_contact_number'] ?? '') : null;
 
     if (!$full_name || !$purok_name) {
         fail('Full name at Purok ay required.');
@@ -131,23 +153,28 @@ if ($method === 'POST') {
         $ins->close();
     }
 
-    $sql="INSERT INTO mothers_caregivers
-        (full_name,purok_id,address_details,contact_number,
-         date_of_birth,gravida,para,blood_type,
-         emergency_contact_name,emergency_contact_number,created_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+    // Build dynamic insert
+    $fields = ['full_name','purok_id','address_details','contact_number'];
+    $place  = ['?','?','?','?'];
+    $types  = 'siss';
+    $values = [$full_name,$purok_id,$address_details,$contact_number];
 
+    if(isset($colsAvail['date_of_birth'])){ $fields[]='date_of_birth'; $place[]='?'; $types.='s'; $values[]=$date_of_birth; }
+    if(isset($colsAvail['gravida'])){ $fields[]='gravida'; $place[]='?'; $types.='i'; $values[]=$gravida; }
+    if(isset($colsAvail['para'])){ $fields[]='para'; $place[]='?'; $types.='i'; $values[]=$para; }
+    if(isset($colsAvail['blood_type'])){ $fields[]='blood_type'; $place[]='?'; $types.='s'; $values[]=$blood_type; }
+    if(isset($colsAvail['emergency_contact_name'])){ $fields[]='emergency_contact_name'; $place[]='?'; $types.='s'; $values[]=$emg_name; }
+    if(isset($colsAvail['emergency_contact_number'])){ $fields[]='emergency_contact_number'; $place[]='?'; $types.='s'; $values[]=$emg_number; }
+
+    $fields[]='created_by';
+    $place[]='?';
+    $types.='i';
+    $values[]=$user_id;
+
+    $sql = "INSERT INTO mothers_caregivers (".implode(',',$fields).") VALUES (".implode(',',$place).")";
     $ins2=$mysqli->prepare($sql);
     if(!$ins2) fail('Prepare failed: '.$mysqli->error,500);
-
-    // Types: s i s s s i i s s s i
-    $types="sisssiisssi";
-    $ins2->bind_param(
-        $types,
-        $full_name,$purok_id,$address_details,$contact_number,
-        $date_of_birth,$gravida,$para,$blood_type,
-        $emg_name,$emg_number,$user_id
-    );
+    $ins2->bind_param($types, ...$values);
 
     if(!$ins2->execute()){
         fail('Insert failed: '.$ins2->error,500);

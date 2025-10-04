@@ -18,6 +18,41 @@ if ($method === 'GET') {
 
     // Full maternal patients list (similar to old mothers list)
     if (isset($_GET['list'])) {
+        // Pagination & filtering
+        $page = max(1,(int)($_GET['page'] ?? 1));
+        $pageSize = max(5,min(100,(int)($_GET['page_size'] ?? 20)));
+        $offset = ($page-1)*$pageSize;
+        $search = trim($_GET['search'] ?? '');
+        $riskFilter = trim($_GET['risk'] ?? ''); // high | monitor | normal
+
+        // Build dynamic WHERE
+        $where = [];
+        $params = '';
+        $vals = [];
+        if($search!==''){
+            $where[] = '(m.full_name LIKE ? OR p.purok_name LIKE ?)';
+            $like = '%'.$search.'%';
+            $params .= 'ss';
+            $vals[] = $like; $vals[] = $like;
+        }
+        // risk is derived from counting risk indicators via subquery; we'll approximate by HAVING later
+        $whereSql = $where? ('WHERE '.implode(' AND ',$where)) : '';
+
+        // Total count (without LIMIT)
+        $countSql = "SELECT COUNT(*) AS total FROM maternal_patients m LEFT JOIN puroks p ON p.purok_id=m.purok_id $whereSql";
+        if($params){
+            $cStmt=$mysqli->prepare($countSql);
+            $cStmt->bind_param($params,...$vals);
+            $cStmt->execute();
+            $cRes=$cStmt->get_result();
+            $total = (int)($cRes->fetch_assoc()['total'] ?? 0);
+            $cStmt->close();
+        } else {
+            $cRes=$mysqli->query($countSql);
+            $total = (int)($cRes->fetch_assoc()['total'] ?? 0);
+        }
+        $totalPages = $pageSize? (int)ceil($total/$pageSize) : 1;
+
         $rows = [];
         $sql = "
           SELECT m.mother_id,
@@ -49,12 +84,40 @@ if ($method === 'GET') {
                  ) AS risk_count
           FROM maternal_patients m
           LEFT JOIN puroks p ON p.purok_id = m.purok_id
+          $whereSql
           ORDER BY m.created_at DESC
-          LIMIT 600
+          LIMIT ? OFFSET ?
         ";
-        $res=$mysqli->query($sql);
+        $paramsPage = $params . 'ii';
+        $valsPage = array_merge($vals, [$pageSize,$offset]);
+        $stmt=$mysqli->prepare($sql);
+        if($paramsPage){
+            $stmt->bind_param($paramsPage,...$valsPage);
+        }
+        $stmt->execute();
+        $res=$stmt->get_result();
         while($res && $r=$res->fetch_assoc()) $rows[]=$r;
-        echo json_encode(['success'=>true,'mothers'=>$rows]);
+        $stmt->close();
+
+        // Apply risk HAVING filter in PHP (lightweight, dataset already paginated)
+        if($riskFilter){
+            $rows = array_values(array_filter($rows,function($r) use ($riskFilter){
+                $score = (int)($r['risk_count'] ?? 0);
+                if($riskFilter==='high') return $score>=2;
+                if($riskFilter==='monitor') return $score===1;
+                if($riskFilter==='normal') return $score===0;
+                return true;
+            }));
+        }
+
+        echo json_encode([
+            'success'=>true,
+            'mothers'=>$rows,
+            'total_count'=>$total,
+            'current_page'=>$page,
+            'page_size'=>$pageSize,
+            'total_pages'=>$totalPages
+        ]);
         exit;
     }
 
