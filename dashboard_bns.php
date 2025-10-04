@@ -192,6 +192,31 @@ $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), arra
   --gradient-card:linear-gradient(135deg,#eef7f2,#ffffff 60%);
 }
 
+/* Global font scaling utility (apply a class to <body>) */
+body.font-xs { --base-font-size:14px; }
+body.font-sm { --base-font-size:15px; }
+body.font-md { --base-font-size:16px; } /* default */
+body.font-lg { --base-font-size:17px; }
+body.font-xl { --base-font-size:18px; }
+
+/* Optional: fine‑tune key UI elements to track base scale */
+body.font-xs .stat-val{font-size:1.85rem;}
+body.font-sm .stat-val{font-size:1.9rem;}
+body.font-md .stat-val{font-size:2rem;}
+body.font-lg .stat-val{font-size:2.1rem;}
+body.font-xl .stat-val{font-size:2.2rem;}
+
+body.font-xs h1.page-title{font-size:1.2rem;}
+body.font-sm h1.page-title{font-size:1.28rem;}
+body.font-lg h1.page-title{font-size:1.42rem;}
+body.font-xl h1.page-title{font-size:1.5rem;}
+
+/* Navigation link sizing tweaks */
+body.font-xs .nav-link-bns{font-size:.74rem;}
+body.font-sm .nav-link-bns{font-size:.77rem;}
+body.font-lg .nav-link-bns{font-size:.83rem;}
+body.font-xl .nav-link-bns{font-size:.86rem;}
+
 html{font-size:var(--base-font-size);}
 html,body{height:100%;}
 body{
@@ -321,6 +346,14 @@ body{
   font-size:.55rem;
   color:#627567;
   border-top:1px solid var(--border-soft);
+}
+
+/* Sidebar logout button */
+.sidebar-logout{
+  margin:.25rem 1rem 1rem;
+}
+.sidebar-logout .btn{
+  padding:.55rem .9rem;
 }
 
 /* Topbar */
@@ -861,7 +894,7 @@ h1.page-title{
 }
 </style>
 </head>
-<body>
+<body class="font-lg">
 <div class="layout-wrapper">
 
   <!-- Sidebar -->
@@ -897,6 +930,11 @@ h1.page-title{
       Regular weighing helps track child growth and identify malnutrition early.
     </div>
 
+    <div class="sidebar-logout" style="padding:1rem 1.1rem;">
+      <a href="logout.php" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+        <i class="bi bi-box-arrow-right me-1"></i> Logout
+      </a>
+    </div>
     <div class="sidebar-footer">
       Powered by Barangay Health System<br>&copy; <?php echo date('Y'); ?>
     </div>
@@ -904,36 +942,24 @@ h1.page-title{
 
   <!-- Main content area -->
   <div class="content-area">
-    <header class="topbar">
-      <button class="btn btn-outline-success btn-sm btn-toggle" id="sidebarToggle" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+<!-- REPLACE the whole header.topbar with this simplified version -->
+<header class="topbar">
+  <button class="btn btn-outline-success btn-sm btn-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+    <i class="bi bi-list"></i>
+  </button>
 
-      <div class="search-wrap">
-        <i class="bi bi-search"></i>
-        <input type="text" id="globalSearch" placeholder="Search children, caregivers..." aria-label="Search">
-      </div>
+  <!-- spacer so user-chip stays on the right -->
+  <div class="ms-auto"></div>
 
-      <button class="quick-add-btn" data-module="child_profiles" data-label="Children Management">
-        <i class="bi bi-plus-lg"></i> Quick Add Child
-      </button>
-
-      <button class="notif-btn" type="button" aria-label="Notifications">
-        <i class="bi bi-bell"></i>
-        <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
-      </button>
-
-      <div class="user-chip" aria-label="User profile">
-        <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
-        <div class="d-flex flex-column lh-1">
-          <span style="font-size:.7rem;font-weight:700;"><?php echo htmlspecialchars($userFull); ?></span>
-          <small style="font-size:.55rem;color:#6a7a6d;font-weight:600;">BNS</small>
-        </div>
-        <i class="bi bi-chevron-down ms-1" style="font-size:.62rem;opacity:.55;"></i>
-      </div>
-
-      <a href="logout.php" class="btn btn-outline-danger btn-sm ms-2" style="font-size:.64rem;font-weight:600;border-radius:10px;">
-        <i class="bi bi-box-arrow-right me-1"></i> Logout
-      </a>
-    </header>
+  <div class="user-chip" aria-label="User profile">
+    <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
+    <div class="d-flex flex-column lh-1">
+      <span style="font-size:.7rem;font-weight:700;"><?php echo htmlspecialchars($userFull); ?></span>
+      <small style="font-size:.55rem;color:#6a7a6d;font-weight:600;">BNS</small>
+    </div>
+    <i class="bi bi-chevron-down ms-1" style="font-size:.62rem;opacity:.55;"></i>
+  </div>
+</header>
 
     <main id="mainRegion">
       <h1 class="page-title" id="currentModuleTitle">Dashboard</h1>
