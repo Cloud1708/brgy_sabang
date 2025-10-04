@@ -987,10 +987,11 @@ const api = {
   feeding_programs: 'bns_modules/api_feeding_programs.php',
   weighing_schedules: 'bns_modules/api_weighing_schedules.php',
   nutrition_education: 'bns_modules/api_nutrition_education.php',
-  events: 'bns_modules/api_events.php'
+  events: 'bns_modules/api_events.php',
+  supplementation: 'bns_modules/api_supplementation.php'
 };
 
-function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch','X-CSRF-Token':window.__BNS_CSRF},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch','X-CSRF-Token':window.__BNS_CSRF, 'Accept':'application/json'},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
 function escapeHtml(s){if(s==null)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function setActive(el){document.querySelectorAll('.nav-link-bns.active').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
 function showLoading(label){moduleContent.innerHTML=`<div class="loading-state"><div class="spinner"></div><div>Loading ${escapeHtml(label)}...</div></div>`;}
@@ -2419,9 +2420,10 @@ function setupSaveRecordHandler() {
 }
 
 // REPLACE this whole function
+// REPLACE the whole renderNutritionClassificationModule() with this version (Growth Insights instead of charts)
 function renderNutritionClassificationModule(label){
   showLoading(label);
-
+ 
   Promise.all([
     fetchJSON(api.children + '?action=list').catch(()=>({children:[]})),
     fetchJSON(api.nutrition + '?classification_summary=1').catch(()=>({summary:[]})),
@@ -2430,8 +2432,86 @@ function renderNutritionClassificationModule(label){
     const children = childRes.children || [];
     const summary = classRes.summary || [];
     const recent = recentRes.records || [];
-
-    // Local helpers (scoped to this module only)
+ 
+    const counts = Object.fromEntries(summary.map(s => [s.status_code, Number(s.child_count||0)]));
+    const normalCount = counts.NOR || 0;
+    const belowNormal = (counts.SAM||0) + (counts.MAM||0) + (counts.UW||0);
+ 
+    const {stableCount, improvedCount} = computeStabilityAndImprovement(recent);
+    const firstChildId = children[0]?.child_id || null;
+ 
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <div class="page-header">
+          <div class="page-header-icon"><i class="bi bi-clipboard2-pulse"></i></div>
+          <div class="page-header-text">
+            <h1>Growth Monitoring</h1>
+            <p>Track child development and nutrition status trends</p>
+          </div>
+        </div>
+ 
+        <!-- Overview Cards -->
+        <div class="stat-grid" style="margin-top:.4rem;">
+          ${statCard('Normal Growth', normalCount, '↑ vs last month','green', true)}
+          ${statCard('Below Normal', belowNormal, '↓ vs last month','amber', false)}
+          ${statCard('Stable Cases', stableCount, 'No change','blue', false)}
+          ${statCard('Improved', improvedCount, 'This month','green', false)}
+        </div>
+ 
+        <!-- Tabs -->
+        <div class="mb-3">
+          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
+            <li class="nav-item">
+              <a class="nav-link active gm-tab" href="#" data-tab="individual" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
+                Individual Child
+              </a>
+            </li>
+            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="population" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Population Trends</a></li>
+            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="wfl" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">WFL/H Assessment</a></li>
+            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="progress" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Progress Documentation</a></li>
+          </ul>
+        </div>
+ 
+        <!-- Tab Content -->
+        <div id="gm-tab-content">
+          ${renderIndividualChildPanel(children, firstChildId)}
+        </div>
+      </div>
+    `;
+ 
+    // Wire up tabs
+    document.querySelectorAll('.gm-tab').forEach(tab=>{
+      tab.addEventListener('click',e=>{
+        e.preventDefault();
+        document.querySelectorAll('.gm-tab').forEach(t=>{t.classList.remove('active');t.style.color='var(--muted)';t.style.borderBottom='none';});
+        tab.classList.add('active');
+        tab.style.color='var(--green)';
+        tab.style.borderBottom='2px solid var(--green)';
+ 
+        const type = tab.dataset.tab;
+        const container = document.getElementById('gm-tab-content');
+        if(type==='individual'){
+          container.innerHTML = renderIndividualChildPanel(children, document.getElementById('gmChildSelect')?.value || firstChildId);
+          attachIndividualHandlers(children);
+          const id = parseInt(document.getElementById('gmChildSelect').value,10);
+          if(id) loadAndRenderChildSeries(id);
+        } else if (type==='population') {
+          container.innerHTML = renderPopulationPanel(summary, recent, children);
+        } else if (type==='wfl') {
+          container.innerHTML = renderWFLPanel(summary);
+          } else {
+          container.innerHTML = renderProgressDocsPanel(children, recent);
+          attachProgressHandlersProgress();
+        }
+      });
+    });
+ 
+    // Initialize Individual panel
+    attachIndividualHandlers(children);
+    if(firstChildId) loadAndRenderChildSeries(firstChildId);
+ 
+    // ===== Helpers (scoped to this module) =====
+ 
     function statCard(t,val,desc,color,progress=false,extras=''){
       return `<div class="stat-card ${color}">
         <div class="stat-title"><i class="bi ${iconFor(t)}"></i>${escapeHtml(t)}</div>
@@ -2448,117 +2528,6 @@ function renderNutritionClassificationModule(label){
       if(/Improved/i.test(t)) return 'bi-graph-up-arrow';
       return 'bi-circle';
     }
-    function buildTrend(recentData){
-      const map = {};
-      recentData.forEach(r => {
-        if(!r.weighing_date) return;
-        const ym = r.weighing_date.slice(0,7);
-        if(!map[ym]) map[ym] = {NOR:0};
-        if(r.status_code === 'NOR') map[ym].NOR++;
-      });
-      const arr = Object.entries(map)
-        .sort((a,b) => a[0] > b[0] ? 1 : -1)
-        .slice(-6)
-        .map(([ym,o]) => ({label: ym.slice(5), value: o.NOR}));
-      if(!arr.length) return `<div class="chart-placeholder">No trend data available</div>`;
-
-      const max = Math.max(...arr.map(d => d.value)) || 1;
-      const pts = arr.map((d,i) => {
-        const x = (i/(arr.length-1)) * 100;
-        const y = 100 - (d.value/max) * 85 - 7;
-        return {x, y, label: d.label};
-      });
-      const poly = pts.map(p => `${p.x},${p.y}`).join(' ');
-      const circles = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
-      return `<div style="width:100%;position:relative;">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:140px;">
-          <polyline fill="none" stroke="#0b7a43" stroke-width="1.4" points="${poly}" />
-          ${circles}
-        </svg>
-        <div class="d-flex justify-content-between" style="margin-top:-10px;">
-          ${pts.map(p => `<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
-        </div>
-      </div>`;
-    }
-
-    const counts = Object.fromEntries(summary.map(s => [s.status_code, Number(s.child_count||0)]));
-    const normalCount = counts.NOR || 0;
-    const belowNormal = (counts.SAM||0) + (counts.MAM||0) + (counts.UW||0);
-
-    // Best-effort derive stable/improved using last 2 records per child
-    const {stableCount, improvedCount} = computeStabilityAndImprovement(recent);
-
-    // Default selected child
-    const firstChildId = children[0]?.child_id || null;
-
-    moduleContent.innerHTML = `
-      <div class="fade-in">
-        <div class="page-header">
-          <div class="page-header-icon"><i class="bi bi-clipboard2-pulse"></i></div>
-          <div class="page-header-text">
-            <h1>Growth Monitoring</h1>
-            <p>Track child development and nutrition status trends</p>
-          </div>
-        </div>
-
-        <!-- Overview Cards -->
-        <div class="stat-grid" style="margin-top:.4rem;">
-          ${statCard('Normal Growth', normalCount, '↑ vs last month','green', true)}
-          ${statCard('Below Normal', belowNormal, '↓ vs last month','amber', false)}
-          ${statCard('Stable Cases', stableCount, 'No change','blue', false)}
-          ${statCard('Improved', improvedCount, 'This month','green', false)}
-        </div>
-
-        <!-- Tabs -->
-        <div class="mb-3">
-          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
-            <li class="nav-item">
-              <a class="nav-link active gm-tab" href="#" data-tab="individual" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
-                Individual Child
-              </a>
-            </li>
-            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="population" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Population Trends</a></li>
-            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="wfl" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">WFL/H Assessment</a></li>
-            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="progress" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Progress Documentation</a></li>
-          </ul>
-        </div>
-
-        <!-- Tab Content -->
-        <div id="gm-tab-content">
-          ${renderIndividualChildPanel(children, firstChildId)}
-        </div>
-      </div>
-    `;
-
-    // Wire up tabs
-    document.querySelectorAll('.gm-tab').forEach(tab=>{
-      tab.addEventListener('click',e=>{
-        e.preventDefault();
-        document.querySelectorAll('.gm-tab').forEach(t=>{t.classList.remove('active');t.style.color='var(--muted)';t.style.borderBottom='none';});
-        tab.classList.add('active');
-        tab.style.color='var(--green)';
-        tab.style.borderBottom='2px solid var(--green)';
-
-        const type = tab.dataset.tab;
-        const container = document.getElementById('gm-tab-content');
-        if(type==='individual'){
-          container.innerHTML = renderIndividualChildPanel(children, firstChildId);
-          attachIndividualHandlers(children);
-        } else if (type==='population') {
-          container.innerHTML = renderPopulationPanel(summary, recent);
-        } else if (type==='wfl') {
-          container.innerHTML = renderWFLPanel();
-        } else {
-          container.innerHTML = renderProgressDocsPanel();
-        }
-      });
-    });
-
-    // After initial render, attach handlers and load first child data
-    attachIndividualHandlers(children);
-    if(firstChildId) loadAndRenderChildSeries(firstChildId);
-
-    // Helpers scoped to this module
     function computeStabilityAndImprovement(recent){
       const map = new Map();
       recent.forEach(r=>{
@@ -2579,14 +2548,18 @@ function renderNutritionClassificationModule(label){
       });
       return {stableCount:stable, improvedCount:improved};
     }
-
+ 
+    // UI renderers for tabs
     function renderIndividualChildPanel(children, selectedId){
-      const options = children.map(c=>`<option value="${c.child_id}" ${c.child_id===selectedId?'selected':''}>${escapeHtml(c.full_name)}</option>`).join('');
+      const options = children.map(c=>`<option value="${c.child_id}" ${String(c.child_id)===String(selectedId)?'selected':''}>${escapeHtml(c.full_name)}</option>`).join('');
       return `
         <div class="tile">
           <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="tile-header mb-0">
-              <h5><i class="bi bi-graph-up-arrow text-success"></i> Individual Growth Chart</h5>
+            <div>
+              <h5 style="font-size:.75rem;font-weight:800;display:flex;align-items:center;gap:.4rem;margin:0;color:#18432b;">
+                <i class="bi bi-activity text-success"></i> Growth Insights
+              </h5>
+              <p class="tile-sub" style="margin:.2rem 0 0;">Quick analysis from the child’s latest records</p>
             </div>
             <div class="d-flex align-items-center gap-2">
               <select id="gmChildSelect" class="form-select" style="font-size:.72rem;min-width:220px;">${options}</select>
@@ -2595,20 +2568,668 @@ function renderNutritionClassificationModule(label){
               </button>
             </div>
           </div>
-
-          <!-- Status bar -->
-          <div id="gmStatusBar" class="d-flex justify-content-between align-items-center" style="background:#eaf5ee;border:1px solid var(--border-soft);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem;">
-            <div><div style="font-size:.62rem;color:#5f7464;">Current Status</div><div id="gmCurrentStatus" class="badge-status" style="display:inline-block;margin-top:.2rem;">—</div></div>
-            <div><div style="font-size:.62rem;color:#5f7464;">Latest Weight</div><div id="gmLatestWeight" style="font-size:.75rem;font-weight:700;">—</div></div>
-            <div><div style="font-size:.62rem;color:#5f7464;">Latest Height</div><div id="gmLatestHeight" style="font-size:.75rem;font-weight:700;">—</div></div>
+ 
+          <!-- Status strip -->
+          <div id="gmStatusStrip" style="background:#eaf5ee;border:1px solid var(--border-soft);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.1rem;display:flex;gap:1rem;flex-wrap:wrap;">
+            <div style="min-width:180px;">
+              <div style="font-size:.62rem;color:#5f7464;">Current Status</div>
+              <div id="gmCurrentStatus" class="badge-status" style="display:inline-block;margin-top:.2rem;">—</div>
+            </div>
+            <div style="min-width:180px;">
+              <div style="font-size:.62rem;color:#5f7464;">Latest Weight</div>
+              <div id="gmLatestWeight" style="font-size:.75rem;font-weight:700;">—</div>
+            </div>
+            <div style="min-width:180px;">
+              <div style="font-size:.62rem;color:#5f7464;">Latest Height</div>
+              <div id="gmLatestHeight" style="font-size:.75rem;font-weight:700;">—</div>
+            </div>
           </div>
-
-          <!-- Chart area -->
-          <div id="gmChart" class="chart-placeholder">Select a child to load chart</div>
+ 
+          <!-- Insights grid -->
+          <div id="gmInsights" class="row g-2 mb-3">
+            <!-- Filled dynamically -->
+          </div>
+ 
+          <!-- Classification history -->
+          <div>
+            <div style="font-size:.72rem;font-weight:700;color:#18432b;margin:0 0 .4rem;">Classification History</div>
+            <div id="gmHistoryChips" style="display:flex;flex-wrap:wrap;gap:.4rem;">
+              <!-- Filled dynamically -->
+            </div>
+          </div>
         </div>
       `;
     }
-
+ 
+// REPLACE this function inside renderNutritionClassificationModule(...)
+function renderPopulationPanel(summary, recent, children){
+  // Build monthly aggregates (last 6 months), dedup per child per month (latest-only)
+  const agg = aggregateMonthlyCounts(recent, 6);
+  const chartHtml = buildStackedBarChart(agg); // 100% stacked bars (percent)
+  const kpis = computePopulationKPIs(summary, recent, children || []);
+ 
+  return `
+    <div class="tile">
+      <div class="tile-header">
+        <h5><i class="bi bi-graph-up text-success"></i> Population-Level Nutrition Trends</h5>
+      </div>
+      <p class="tile-sub">6-month overview of nutrition status distribution</p>
+ 
+      <!-- Legend -->
+      <div class="d-flex align-items-center gap-3 mb-2" aria-label="Legend" style="flex-wrap:wrap;">
+        <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+          <span style="width:12px;height:12px;background:#0b7a43;border-radius:3px;display:inline-block;"></span> Normal
+        </span>
+        <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+          <span style="width:12px;height:12px;background:#f4a400;border-radius:3px;display:inline-block;"></span> Below Normal
+        </span>
+        <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+          <span style="width:12px;height:12px;background:#8e44ad;border-radius:3px;display:inline-block;"></span> Above Normal
+        </span>
+      </div>
+ 
+      ${chartHtml}
+ 
+      <!-- KPI cards -->
+      <div class="row g-3 mt-3">
+        ${kpiCard('Improvement Rate', kpis.improvementRate, 'Children moved to normal status')}
+        ${kpiCard('At Risk', kpis.atRisk, 'Require close monitoring')}
+        ${kpiCard('Coverage', kpis.coverage, 'Children monitored regularly')}
+      </div>
+    </div>
+  `;
+ 
+  // ---------- Helpers ----------
+ 
+  function kpiCard(title, value, desc){
+    return `
+      <div class="col-12 col-md-4">
+        <div class="tile" style="min-height:110px;">
+          <div style="font-size:.62rem;color:#5f7464;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${escapeHtml(title)}</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#0b7a43;line-height:1;margin-top:.2rem;">${value}</div>
+          <div style="font-size:.62rem;color:#586c5d;margin-top:.3rem;">${escapeHtml(desc)}</div>
+        </div>
+      </div>
+    `;
+  }
+ 
+  // Data: last N months, latest record per child per month
+  function aggregateMonthlyCounts(recentRecords, lastN=6){
+    const perMonth = new Map(); // ym -> Map(child -> status)
+    const sorted = (recentRecords||[]).slice().sort((a,b)=>{
+      return String(a.weighing_date||'').localeCompare(String(b.weighing_date||'')); // oldest -> newest
+    });
+ 
+    for(const r of sorted){
+      const d = r.weighing_date; if(!d) continue;
+      const ym = d.slice(0,7); // YYYY-MM
+      if(!perMonth.has(ym)) perMonth.set(ym, new Map());
+      const key = r.child_name || `#${r.child_id||0}`;
+      perMonth.get(ym).set(key, r.status_code || 'UNSET'); // latest wins
+    }
+ 
+    const allYms = Array.from(perMonth.keys()).sort();
+    const yms = allYms.slice(-lastN);
+ 
+    const labels = [];
+    const normal = [];
+    const below = [];
+    const above = [];
+    const isBelow = (c)=> c==='SAM' || c==='MAM' || c==='UW';
+    const isAbove = (c)=> c==='OW' || c==='OB';
+ 
+    for(const ym of yms){
+      labels.push(formatYm(ym));
+      let n=0,b=0,a=0;
+      perMonth.get(ym).forEach(code=>{
+        if(code==='NOR') n++;
+        else if(isBelow(code)) b++;
+        else if(isAbove(code)) a++;
+      });
+      normal.push(n);
+      below.push(b);
+      above.push(a);
+    }
+ 
+    return { labels, normal, below, above };
+  }
+ 
+  function formatYm(ym){
+    const [Y,M] = ym.split('-').map(Number);
+    const d = new Date(Y, M-1, 1);
+    return d.toLocaleDateString('en-PH',{month:'short', year:'numeric'});
+  }
+ 
+  // 100% stacked bars (percent)
+  function buildStackedBarChart(data){
+    if(!data.labels.length){
+      return `<div class="chart-placeholder">No trend data available</div>`;
+    }
+ 
+    const labels = data.labels;
+    const series = [
+      { key:'normal', label:'Normal',       color:'#0b7a43', values:data.normal },
+      { key:'below',  label:'Below Normal', color:'#f4a400', values:data.below  },
+      { key:'above',  label:'Above Normal', color:'#8e44ad', values:data.above  }
+    ];
+ 
+    // Compute percent per month
+    const percents = labels.map((_,i)=>{
+      const total = series.reduce((s,sv)=>s+(sv.values[i]||0),0);
+      const pct = total ? series.map(sv => (sv.values[i]||0)/total) : series.map(()=>0);
+      return { total, pct };
+    });
+ 
+    // SVG dims
+    const VB = { w: 100, h: 70 };
+    const pad = { l: 10, r: 4, t: 6, b: 16 };
+    const chartW = VB.w - pad.l - pad.r;
+    const chartH = VB.h - pad.t - pad.b;
+ 
+    const groupCount = labels.length;
+    const barWidth = chartW / groupCount * 0.6;
+    const step = chartW / groupCount;
+ 
+    // Y axis ticks (0..100%)
+    const ticks = [0,25,50,75,100];
+ 
+    function yForPct(p){ // p in [0..1]
+      return pad.t + chartH * (1 - p);
+    }
+ 
+    // Build bars
+    let bars = '';
+    labels.forEach((lab, i)=>{
+      const x = pad.l + i*step + (step - barWidth)/2;
+      let yCursor = pad.t + chartH; // bottom
+      // Order bottom -> top: Normal, Below, Above
+      series.forEach((sv, sIdx)=>{
+        const h = chartH * (percents[i].pct[sIdx] || 0);
+        const y = yCursor - h;
+        const title = `${sv.label}: ${formatPct(percents[i].pct[sIdx]*100)} (${lab})`;
+        bars += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" fill="${sv.color}" rx="1" ry="1"><title>${title}</title></rect>`;
+        yCursor = y;
+      });
+    });
+ 
+    // Grid + Y labels
+    const grids = ticks.map(t=>{
+      const y = yForPct(t/100).toFixed(2);
+      return `<line x1="${pad.l}" y1="${y}" x2="${VB.w-pad.r}" y2="${y}" stroke="#e6ede9" stroke-width="0.4" />
+              <text x="${pad.l-1.8}" y="${(+y)+1.8}" font-size="2.6" fill="#637668" text-anchor="end">${t}%</text>`;
+    }).join('');
+ 
+    // X labels
+    const xlabels = labels.map((lab,i)=>{
+      const x = (pad.l + i*step + step/2).toFixed(2);
+      const y = (VB.h - 2.5).toFixed(2);
+      return `<text x="${x}" y="${y}" font-size="2.6" fill="#637668" text-anchor="middle">${lab}</text>`;
+    }).join('');
+ 
+    return `
+      <div style="width:100%;position:relative;">
+        <svg viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="none" style="width:100%;height:240px;border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+          ${grids}
+          ${bars}
+          ${xlabels}
+        </svg>
+      </div>
+    `;
+  }
+ 
+  // KPI computations (unchanged logic)
+  function computePopulationKPIs(summary, recentRecords, childrenList){
+    const counts = Object.fromEntries((summary||[]).map(s=>[s.status_code, Number(s.child_count||0)]));
+    const normal = counts.NOR || 0;
+    const below = (counts.SAM||0)+(counts.MAM||0)+(counts.UW||0);
+    const above = (counts.OW||0)+(counts.OB||0);
+    const denom = normal+below+above;
+    const atRiskPct = denom ? (below/denom*100) : null;
+ 
+    const { improved, pairs } = computeImprovement(recentRecords||[]);
+    const improvementPct = pairs ? (improved/pairs*100) : null;
+ 
+    const today = new Date();
+    const coverageDen = (childrenList||[]).length || 0;
+    const coverageNum = (childrenList||[]).reduce((acc,c)=>{
+      const d = (c.last_weighing_date && c.last_weighing_date!=='Never') ? new Date(c.last_weighing_date+'T00:00:00') : null;
+      if(!d) return acc;
+      const days = Math.round((today - d)/(1000*60*60*24));
+      return acc + (days<=45 ? 1 : 0);
+    },0);
+    const coveragePct = coverageDen ? (coverageNum/coverageDen*100) : null;
+ 
+    return {
+      improvementRate: formatPct(improvementPct),
+      atRisk: formatPct(atRiskPct),
+      coverage: formatPct(coveragePct)
+    };
+  }
+ 
+  function computeImprovement(recentRecords){
+    const map = new Map();
+    const mal = new Set(['SAM','MAM','UW']);
+    for(const r of (recentRecords||[])){
+      const k = r.child_name || `#${r.child_id||0}`;
+      if(!map.has(k)) map.set(k, []);
+      const arr = map.get(k);
+      if(arr.length<2) arr.push(r); // expect recent feed desc; ok even if not perfect
+    }
+    let improved=0, pairs=0;
+    map.forEach(arr=>{
+      if(arr.length<2) return;
+      const [latest, prev] = arr;
+      if(latest?.status_code && prev?.status_code){
+        pairs++;
+        if(mal.has(prev.status_code) && latest.status_code==='NOR') improved++;
+      }
+    });
+    return { improved, pairs };
+  }
+ 
+  function formatPct(n){
+    if(n==null || !isFinite(n)) return '—';
+    return `${(Math.round(n*10)/10).toFixed(1)}%`;
+  }
+}
+ 
+// Replace the entire renderWFLPanel(...) with this version.
+ 
+function renderWFLPanel(summary){
+  // Map summary into WFL/H categories like in the screenshot
+  const counts = toCounts(summary || []);
+  const categories = [
+    { code:'SAM', label:'Severely Wasted', color:'#d23d3d' },
+    { code:'MAM', label:'Wasted',          color:'#f4a400' },
+    { code:'NOR', label:'Normal',          color:'#0b7a43' },
+    { code:'OW',  label:'Overweight',      color:'#1c79d0' },
+    { code:'OB',  label:'Obese',           color:'#8e44ad' }
+  ].map(c => ({ ...c, count: counts[c.code] || 0 }));
+ 
+  const total = categories.reduce((s,c)=>s+c.count,0);
+ 
+  const chartHtml = total ? horizontalBars(categories) : `<div class="chart-placeholder">No WFL/H data available</div>`;
+  const listHtml = total ? breakdownList(categories, total) : '';
+ 
+  return `
+    <div class="tile">
+      <div class="tile-header">
+        <h5><i class="bi bi-scales text-success"></i> Weight-for-Length/Height Assessment</h5>
+      </div>
+      <p class="tile-sub">Auto-generated WFL/H classifications</p>
+ 
+      ${chartHtml}
+ 
+      <div class="mt-3">
+        ${listHtml}
+      </div>
+    </div>
+  `;
+ 
+  // ---- Helpers ----
+ 
+  function toCounts(summaryArr){
+    const map = { SAM:0, MAM:0, NOR:0, OW:0, OB:0 };
+    summaryArr.forEach(s=>{
+      const code = s.status_code;
+      if(map.hasOwnProperty(code)){
+        map[code] += Number(s.child_count||0);
+      }
+    });
+    return map;
+  }
+ 
+  // Horizontal bar chart SVG (clean, ticks, left labels)
+  function horizontalBars(items){
+    const maxVal = Math.max(1, ...items.map(i=>i.count));
+    const VB = { w: 120, h: 70 }; // a bit wider for labels
+    const pad = { l: 34, r: 6, t: 8, b: 10 };
+    const chartW = VB.w - pad.l - pad.r;
+    const chartH = VB.h - pad.t - pad.b;
+ 
+    const bandH = chartH / items.length;
+    const ticks = 4; // 4 gridlines between 0 and max
+ 
+    // Gridlines and x-ticks
+    let grid = '';
+    for(let i=0; i<=ticks; i++){
+      const x = pad.l + (chartW * i / ticks);
+      grid += `<line x1="${x.toFixed(2)}" y1="${pad.t}" x2="${x.toFixed(2)}" y2="${(VB.h-pad.b).toFixed(2)}"
+                 stroke="#e6ede9" stroke-width="0.4" />`;
+    }
+ 
+    // Bars + tracks + y labels
+    let rows = '';
+    items.forEach((it, idx)=>{
+      const y = pad.t + idx*bandH + bandH*0.18;
+      const h = bandH*0.64;
+ 
+      const w = chartW * (it.count / maxVal);
+      const x = pad.l;
+ 
+      // Track background
+      rows += `<rect x="${x}" y="${y}" width="${chartW}" height="${h}" rx="1.5" ry="1.5" fill="#f4f7f5"></rect>`;
+      // Value bar
+      rows += `<rect x="${x}" y="${y}" width="${w.toFixed(2)}" height="${h}" rx="1.5" ry="1.5" fill="${it.color}">
+                 <title>${it.label}\nCount: ${it.count}${total?`\nShare: ${formatPct(it.count/total*100)}`:''}</title>
+               </rect>`;
+      // Left-side labels
+      rows += `<text x="${(pad.l-2)}" y="${(y+h/2+1.2).toFixed(2)}" font-size="2.9" fill="#5e7264" text-anchor="end">${it.label}</text>`;
+    });
+ 
+    return `
+      <div style="width:100%;position:relative;">
+        <svg viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="none"
+             style="width:100%;height:240px;border:1px solid var(--border-soft);border-radius:12px;background:#ffffff;">
+          ${grid}
+          ${rows}
+        </svg>
+      </div>
+    `;
+  }
+ 
+  // Breakdown list like the screenshot
+  function breakdownList(items, total){
+    const row = (it)=>{
+      const pct = total ? (it.count/total*100) : 0;
+      const pctTxt = formatPct(pct);
+      const countTxt = `${it.count} ${it.count===1?'child':'children'}`;
+      return `
+        <div class="d-flex align-items-center justify-content-between"
+             style="background:#fbfdfb;border:1px solid #e4ebe5;border-radius:10px;padding:.6rem .75rem;margin-bottom:.5rem;">
+          <div class="d-flex align-items-center gap-2">
+            <span style="width:12px;height:12px;border-radius:3px;display:inline-block;background:${it.color};"></span>
+            <span style="font-size:.72rem;font-weight:700;color:#1e3e27;">${escapeHtml(it.label)}</span>
+          </div>
+          <div class="d-flex align-items-center gap-3" style="font-size:.65rem;font-weight:700;">
+            <span style="color:#1e3e27;">${countTxt}</span>
+            <span style="color:#5f7464;">${pctTxt}</span>
+          </div>
+        </div>
+      `;
+    };
+    return items.map(row).join('');
+  }
+ 
+  function formatPct(n){
+    if(n==null || !isFinite(n)) return '—';
+    return `${(Math.round(n*10)/10).toFixed(1)}%`;
+  }
+}
+ 
+//    Keep these functions inside renderNutritionClassificationModule(...)
+ 
+function renderProgressDocsPanel(children, recent){
+  // Build per-child before/after using the two most recent records in `recent` feed
+  // Map children by full_name to get child_id and purok
+  const childMap = new Map((children||[]).map(c => [c.full_name, { id:c.child_id, purok:c.purok_name || 'Not Set' }]));
+ 
+  // recent is desc by date; collect latest two per child
+  const byChild = new Map();
+  (recent||[]).forEach(r=>{
+    const key = r.child_name;
+    if(!key) return;
+    const arr = byChild.get(key) || [];
+    if (arr.length < 2) arr.push(r); // keep only latest 2 (desc order in feed)
+    byChild.set(key, arr);
+  });
+ 
+  const mal = new Set(['SAM','MAM','UW']);
+  const items = [];
+  byChild.forEach((arr, name)=>{
+    if (arr.length < 2) return;
+    const after = arr[0]; // latest
+    const before = arr[1]; // previous
+    const meta = childMap.get(name) || { id:null, purok:'Not Set' };
+ 
+    let change = 'Unchanged';
+    if (before.status_code && after.status_code) {
+      if (mal.has(before.status_code) && after.status_code === 'NOR') change = 'Improved';
+      else if (before.status_code === 'NOR' && mal.has(after.status_code)) change = 'Worsened';
+      else if (before.status_code !== after.status_code) change = 'Changed';
+    }
+ 
+    items.push({
+      name,
+      child_id: meta.id,
+      purok: meta.purok,
+      before, after, change
+    });
+  });
+ 
+  // Sort: Improved first, then Changed, Unchanged
+  const rank = {Improved:0, Changed:1, Unchanged:2, Worsened:-1};
+  items.sort((a,b)=>{
+    const ra = (a.change in rank)?rank[a.change]:1;
+    const rb = (b.change in rank)?rank[b.change]:1;
+    if (ra !== rb) return ra - rb;
+    // tie-break by name
+    return a.name.localeCompare(b.name);
+  });
+ 
+  // Keep for export/use
+  window.__progressItems = items;
+ 
+  const header = `
+    <div class="tile">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="tile-header">
+            <h5><i class="bi bi-journal-text text-success"></i> Intervention Progress Documentation</h5>
+          </div>
+          <p class="tile-sub">Before and after tracking of interventions</p>
+        </div>
+        <button id="progExportBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+          <i class="bi bi-download me-1"></i> Export Report
+        </button>
+      </div>
+    </div>
+  `;
+ 
+  const list = items.length ? items.map((it, idx)=>progressCard(it, idx)).join('') :
+    `<div class="tile"><div class="text-center py-5" style="color:var(--muted);font-size:.7rem;">
+      <i class="bi bi-emoji-neutral" style="font-size:2rem;opacity:.4;"></i>
+      <div class="mt-2">Not enough data yet. Add at least 2 weighing records per child to see progress.</div>
+    </div></div>`;
+ 
+  return `
+    ${header}
+    ${list}
+  `;
+ 
+  // ---------- helpers ----------
+ 
+  function progressCard(it, idx){
+    const latestCode = it.after?.status_code || '';
+    const latestChip = latestCode ? `<span class="badge-status badge-${esc(latestCode)}" style="padding:.28rem .55rem;border-radius:12px;font-size:.55rem;font-weight:800;text-transform:uppercase;">${prettyStatus(latestCode)}</span>` : '';
+ 
+    return `
+      <div class="tile" style="padding:0;">
+        <div style="padding:1rem 1rem .4rem;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:.8rem;font-weight:700;color:#18432b;">${esc(it.name)}</div>
+            <div style="font-size:.62rem;color:#6a7a6d;">${esc(it.purok)}</div>
+          </div>
+          ${latestChip}
+        </div>
+ 
+        <!-- Before/After row -->
+        <div class="row g-0" style="padding: .65rem;">
+          <div class="col-12 col-lg-6">
+            ${beforeAfterBox('Before Intervention', it.before)}
+          </div>
+          <div class="col-12 col-lg-6">
+            ${beforeAfterBox('After Intervention', it.after)}
+          </div>
+        </div>
+ 
+        <!-- Details toggle -->
+        <div style="border-top:1px solid var(--border-soft);padding:.45rem .8rem;">
+          <button class="prog-toggle btn btn-link p-0" data-index="${idx}" data-child-id="${it.child_id||''}" style="font-size:.7rem;font-weight:700;text-decoration:none;color:#1e3e27;">
+            <i class="bi bi-eye me-2" aria-hidden="true"></i> View Details
+          </button>
+        </div>
+ 
+        <div id="prog-det-${idx}" class="prog-details" style="display:none;padding:.5rem .8rem .9rem;"></div>
+      </div>
+    `;
+  }
+ 
+  function beforeAfterBox(title, r){
+    const ok = !!r;
+    const bg = '#eaf5ee';
+    return `
+      <div style="background:${bg};border:1px solid var(--border-soft);border-radius:10px;padding:.7rem .9rem;margin:.25rem;">
+        <div style="font-size:.6rem;color:#5f7464;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.25rem;">
+          ${esc(title)}
+        </div>
+        <div style="font-size:.7rem;color:#1e3e27;">
+          <div><span style="color:#5f7464;">Date:</span> ${ok?fmtDate(r.weighing_date):'—'}</div>
+          <div><span style="color:#5f7464;">Weight:</span> ${ok?fmtNum(r.weight_kg,'kg'):'—'}</div>
+          <div><span style="color:#5f7464;">Height:</span> ${ok?fmtNum(r.length_height_cm,'cm'):'—'}</div>
+          <div><span style="color:#5f7464;">Status:</span> ${ok?prettyStatus(r.status_code):'—'}</div>
+        </div>
+      </div>
+    `;
+  }
+ 
+  function fmtDate(d){
+    if(!d) return '—';
+    try { return new Date(d+'T00:00:00').toLocaleDateString('en-PH'); } catch(e){ return d; }
+  }
+  function fmtNum(v,suffix){
+    if(v==null || v==='') return '—';
+    const n = Number(v);
+    if (!isFinite(n)) return '—';
+    const val = Math.round(n*10)/10;
+    return `${val} ${suffix}`;
+  }
+  function prettyStatus(code){
+    const map = {
+      NOR: 'Normal',
+      MAM: 'MAM',
+      SAM: 'SAM',
+      UW:  'Underweight',
+      OW:  'Overweight',
+      OB:  'Obese',
+      ST:  'Stunted',
+      UNSET:'Not Set'
+    };
+    return map[code] || code || '—';
+  }
+  function esc(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+}
+ 
+// Wire up details toggles and export, runs after renderProgressDocsPanel(...)
+function attachProgressHandlersProgress(){
+  // Export CSV
+  const exportBtn = document.getElementById('progExportBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', ()=>{
+      const items = window.__progressItems || [];
+      if (!items.length) { alert('No data to export'); return; }
+      const rows = [];
+      rows.push(['Child','Purok','Before Date','Before Weight (kg)','Before Height (cm)','Before Status','After Date','After Weight (kg)','After Height (cm)','After Status','Change']);
+      items.forEach(it=>{
+        const b=it.before||{}, a=it.after||{};
+        rows.push([
+          it.name,
+          it.purok,
+          b.weighing_date||'',
+          b.weight_kg??'',
+          b.length_height_cm??'',
+          b.status_code||'',
+          a.weighing_date||'',
+          a.weight_kg??'',
+          a.length_height_cm??'',
+          a.status_code||'',
+          it.change||''
+        ]);
+      });
+      const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `progress_report_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+ 
+  // Details toggles (fetch last records on demand)
+  document.querySelectorAll('.prog-toggle').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const idx = btn.dataset.index;
+      const childId = parseInt(btn.dataset.childId||'0',10);
+      const panel = document.getElementById(`prog-det-${idx}`);
+      if (!panel) return;
+ 
+      // Toggle if already loaded
+      if (panel.dataset.loaded === '1') {
+        panel.style.display = (panel.style.display==='none' || !panel.style.display) ? 'block' : 'none';
+        return;
+      }
+ 
+      // Load on first open
+      if (!childId) {
+        panel.innerHTML = `<div class="text-muted" style="font-size:.65rem;">Details unavailable (no child ID)</div>`;
+        panel.dataset.loaded = '1';
+        panel.style.display = 'block';
+        return;
+      }
+ 
+      panel.innerHTML = `<div class="text-muted" style="font-size:.65rem;"><span class="spinner-border spinner-border-sm me-2"></span>Loading details...</div>`;
+      panel.style.display = 'block';
+ 
+      try{
+        const res = await fetch(`${api.nutrition}?child_id=${childId}`, {
+          headers: {'X-CSRF-Token': window.__BNS_CSRF, 'X-Requested-With':'XMLHttpRequest'}
+        });
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const data = await res.json();
+        const rows = (data.records||[]).slice(0,6); // last 6 (API returns desc order)
+        if(!rows.length){
+          panel.innerHTML = `<div class="text-muted" style="font-size:.65rem;">No history found.</div>`;
+        } else {
+          panel.innerHTML = `
+            <div class="table-responsive">
+              <table class="table table-sm mb-0" style="font-size:.65rem;">
+                <thead>
+                  <tr>
+                    <th style="border:none;">Date</th>
+                    <th style="border:none;">Age (mo)</th>
+                    <th style="border:none;">Weight</th>
+                    <th style="border:none;">Height</th>
+                    <th style="border:none;">Status</th>
+                    <th style="border:none;">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows.map(r=>`
+                    <tr>
+                      <td style="border-top:1px solid #f0f4f1;">${r.weighing_date ? new Date(r.weighing_date+'T00:00:00').toLocaleDateString('en-PH') : '—'}</td>
+                      <td style="border-top:1px solid #f0f4f1;">${r.age_in_months ?? '—'}</td>
+                      <td style="border-top:1px solid #f0f4f1;">${r.weight_kg ?? '—'}</td>
+                      <td style="border-top:1px solid #f0f4f1;">${r.length_height_cm ?? '—'}</td>
+                      <td style="border-top:1px solid #f0f4f1;">${r.status_code ? `<span class="badge-status badge-${r.status_code}">${r.status_code}</span>` : '—'}</td>
+                      <td style="border-top:1px solid #f0f4f1;">${(r.remarks||'-').replace(/</g,'&lt;')}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+        panel.dataset.loaded = '1';
+      } catch(e){
+        console.error('Details load error', e);
+        panel.innerHTML = `<div class="text-danger" style="font-size:.65rem;">Error loading details.</div>`;
+        panel.dataset.loaded = '1';
+      }
+    });
+  });
+}
     function attachIndividualHandlers(children){
       const sel = document.getElementById('gmChildSelect');
       const btn = document.getElementById('gmExportBtn');
@@ -2623,71 +3244,159 @@ function renderNutritionClassificationModule(label){
         });
       }
     }
-
+ 
     function loadAndRenderChildSeries(childId){
-      const chartEl = document.getElementById('gmChart');
+      const insightsEl = document.getElementById('gmInsights');
+      const historyEl = document.getElementById('gmHistoryChips');
       const statusEl = document.getElementById('gmCurrentStatus');
       const wEl = document.getElementById('gmLatestWeight');
       const hEl = document.getElementById('gmLatestHeight');
-
-      chartEl.innerHTML = `<div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
-        <span class="spinner-border spinner-border-sm me-2"></span>Loading growth data...</div>`;
-
+ 
+      if (insightsEl) insightsEl.innerHTML = `
+        <div class="col-12 text-muted" style="font-size:.65rem;">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading child data...
+        </div>`;
+ 
       fetchJSON(`${api.nutrition}?child_id=${childId}`).then(data=>{
-        const records = (data.records||[]).slice().reverse(); // oldest -> newest
+        let records = (data.records||[]).slice().reverse(); // oldest -> newest
+ 
         if(!records.length){
-          chartEl.innerHTML = `<div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">No history found</div>`;
           statusEl.textContent = '—'; wEl.textContent='—'; hEl.textContent='—';
+          statusEl.className = 'badge-status';
+          if (insightsEl) insightsEl.innerHTML = `
+            <div class="col-12 text-center py-4" style="color:var(--muted);font-size:.65rem;">No history found</div>`;
+          if (historyEl) historyEl.innerHTML = '';
           return;
         }
-
+ 
         const latest = records[records.length-1];
+        const prev = records.length>1 ? records[records.length-2] : null;
+ 
+        // Status strip
         statusEl.className = `badge-status ${latest.status_code?('badge-'+latest.status_code):''}`;
         statusEl.textContent = latest.status_code || 'Not Available';
         wEl.textContent = latest.weight_kg ? `${latest.weight_kg} kg` : '—';
         hEl.textContent = latest.length_height_cm ? `${latest.length_height_cm} cm` : '—';
-
-        chartEl.innerHTML = buildWeightChartSVG(records);
+ 
+        // Insights
+        const toDate = (s)=> new Date(s+'T00:00:00');
+        const daysBetween = (a,b)=> Math.max(0, Math.round((a-b)/(1000*60*60*24)));
+        const today = new Date();
+        const lastDate = latest.weighing_date ? toDate(latest.weighing_date) : null;
+        const daysSince = lastDate ? daysBetween(today, lastDate) : null;
+ 
+        const bmi = (latest.weight_kg && latest.length_height_cm)
+          ? +(latest.weight_kg / Math.pow(latest.length_height_cm/100,2)).toFixed(2)
+          : null;
+ 
+        let wVel = null, hVel = null, wArrow='→', hArrow='→';
+        if (prev && prev.weighing_date) {
+          const d1 = toDate(prev.weighing_date);
+          const d2 = toDate(latest.weighing_date);
+          const dDays = Math.max(1, daysBetween(d2, d1)); // avoid div by zero
+          const months = dDays/30;
+          if (prev.weight_kg!=null && latest.weight_kg!=null) {
+            wVel = (latest.weight_kg - prev.weight_kg)/months;
+            wArrow = wVel > 0.05 ? '↑' : (wVel < -0.05 ? '↓' : '→');
+          }
+          if (prev.length_height_cm!=null && latest.length_height_cm!=null) {
+            hVel = (latest.length_height_cm - prev.length_height_cm)/months;
+            hArrow = hVel > 0.2 ? '↑' : (hVel < -0.2 ? '↓' : '→');
+          }
+        }
+ 
+        // Consecutive in current status
+        let consecutive = 0;
+        for (let i = records.length-1; i>=0; i--) {
+          const s = records[i].status_code || '';
+          if (!s || s !== (latest.status_code||'')) break;
+          consecutive++;
+        }
+ 
+        // Build insights cards
+        const card = (title, value, sub='', color='var(--text)') => `
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div style="background:#fff;border:1px solid var(--border-soft);border-radius:12px;padding:.8rem;box-shadow:var(--shadow-sm);height:100%;">
+              <div style="font-size:.6rem;color:#5f7464;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${title}</div>
+              <div style="font-size:1.15rem;font-weight:800;color:${color};line-height:1.15;margin-top:.2rem;">${value}</div>
+              ${sub?`<div style="font-size:.6rem;color:#586c5d;margin-top:.15rem;">${sub}</div>`:''}
+            </div>
+          </div>`;
+ 
+        const fmt = (n,dec=2)=> (n==null || !isFinite(n)) ? '—' : (Math.round(n*Math.pow(10,dec))/Math.pow(10,dec)).toFixed(dec);
+ 
+        const insightsHtml = [
+          card('BMI Now', bmi!=null?`${fmt(bmi,2)}`:'—', (latest.weight_kg&&latest.length_height_cm)?'kg/m²':'', '#0b7a43'),
+          card('Weight Velocity', wVel!=null?`${fmt(wVel,2)} kg/mo ${wArrow}`:'—', prev?'vs last record':'Need ≥2 records', wVel!=null?(wVel>0?'#0b7a43':(wVel<0?'#b02020':'#845900')):'var(--text)'),
+          card('Height Velocity', hVel!=null?`${fmt(hVel,2)} cm/mo ${hArrow}`:'—', prev?'vs last record':'Need ≥2 records', hVel!=null?(hVel>0?'#0b7a43':(hVel<0?'#b02020':'#845900')):'var(--text)'),
+          card('Days Since Last Weigh', daysSince!=null?`${daysSince} day${daysSince===1?'':'s'}`:'—', lastDate?new Date(lastDate).toLocaleDateString('en-PH'):'', daysSince!=null?(daysSince<=30?'#0b7a43':(daysSince<=45?'#f4a400':'#b02020')):'var(--text)'),
+          card('Consecutive in Status', `${consecutive}`, latest.status_code?escapeHtml(latest.status_code):'', '#1c79d0')
+        ].join('');
+ 
+        if (insightsEl) insightsEl.innerHTML = insightsHtml;
+ 
+        // History chips (last 6)
+        const last6 = records.slice(-6);
+        const chip = (r) => {
+          const label = r.weighing_date ? (new Date(r.weighing_date+'T00:00:00')).toLocaleDateString('en-PH',{month:'short'}) : '';
+          const sc = r.status_code || 'UNSET';
+          const cls = `badge-status ${r.status_code?('badge-'+sc):''}`;
+          return `<span title="${r.weighing_date||''}" style="display:inline-flex;align-items:center;gap:.35rem;background:#f6faf7;border:1px solid var(--border-soft);border-radius:999px;padding:.25rem .5rem;font-size:.58rem;font-weight:700;">
+            <span class="${cls}" style="padding:.2rem .45rem;border-radius:8px;">${escapeHtml(sc)}</span>
+            <span style="color:#637668;">${label}</span>
+          </span>`;
+        };
+        if (historyEl) historyEl.innerHTML = last6.map(chip).join('');
+ 
       }).catch(()=>{
-        chartEl.innerHTML = `<div class="text-center py-4" style="color:var(--red);font-size:.65rem;">Error loading data</div>`;
+        if (insightsEl) insightsEl.innerHTML = `<div class="col-12 text-center py-4" style="color:var(--red);font-size:.65rem;">Error loading data</div>`;
+        if (historyEl) historyEl.innerHTML = '';
       });
     }
-
-    function buildWeightChartSVG(records){
-      const pts = records.map((r,i)=>({x:i, y: Number(r.weight_kg||0), label: new Date(r.weighing_date).toLocaleDateString('en-PH')}));
-      const values = pts.map(p=>p.y).filter(v=>v>0);
-      const min = Math.max(0, (values.length?Math.min(...values):0) - 0.5);
-      const max = values.length? Math.max(...values)+0.5 : 1;
-      const n = pts.length || 1;
-
-      const px = (i)=> n===1 ? 5 : (i/(n-1))*95+5;
-      const py = (v)=> 85 - ((v-min)/(max-min||1))*70;
-
-      const poly = pts.map(p=>`${px(p.x)},${py(p.y)}`).join(' ');
-      const circles = pts.map(p=>`<circle cx="${px(p.x)}" cy="${py(p.y)}" r="1.6" fill="#14a063"></circle>`).join('');
-
-      const xLabels = pts.map(p=>`<span style="font-size:.52rem;color:#637668;">${p.label}</span>`).join('');
-
-      return `
-        <div style="width:100%;position:relative;">
-          <svg viewBox="0 0 100 90" preserveAspectRatio="none" style="width:100%;height:220px;border:1px dashed #c9d8cb;border-radius:8px;background:linear-gradient(135deg,#f9fcfa 0%,#f2f8f4 100%);">
-            <polyline fill="none" stroke="#14a063" stroke-width="1.2" stroke-dasharray="2 2" points="${poly}"></polyline>
-            ${circles}
-          </svg>
-          <div class="d-flex justify-content-between mt-1">${xLabels}</div>
+ 
+    // Population trend (NOR-only trend as in dashboard)
+    function buildPopTrend(recent){
+      const map = {};
+      recent.forEach(r => {
+        if(!r.weighing_date) return;
+        const ym = r.weighing_date.slice(0,7);
+        if(!map[ym]) map[ym] = {NOR:0};
+        if(r.status_code === 'NOR') map[ym].NOR++;
+      });
+      const arr = Object.entries(map)
+        .sort((a,b) => a[0] > b[0] ? 1 : -1)
+        .slice(-6)
+        .map(([ym,o]) => ({label: ym.slice(5), value: o.NOR}));
+      if(!arr.length) return `<div class="chart-placeholder">No trend data available</div>`;
+ 
+      const max = Math.max(...arr.map(d => d.value)) || 1;
+      const pts = arr.map((d,i) => {
+        const x = (i/(arr.length-1)) * 100;
+        const y = 100 - (d.value/max) * 85 - 7;
+        return {x, y, label: d.label};
+      });
+      const poly = pts.map(p => `${p.x},${p.y}`).join(' ');
+      const circles = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
+      return `<div style="width:100%;position:relative;">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:140px;">
+          <polyline fill="none" stroke="#0b7a43" stroke-width="1.4" points="${poly}" />
+          ${circles}
+        </svg>
+        <div class="d-flex justify-content-between" style="margin-top:-10px;">
+          ${pts.map(p => `<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
         </div>
-      `;
+      </div>`;
     }
-
+ 
     function exportChildSeriesCSV(childId){
       fetchJSON(`${api.nutrition}?child_id=${childId}`).then(data=>{
         const rows = data.records||[];
         if(!rows.length){ alert('No records to export'); return; }
         const header = ['Date','Age (months)','Weight (kg)','Height (cm)','Status','Remarks'];
-        const csv = [header].concat(rows.map(r=>[
+        const csv = [header].concat(rows.slice().reverse().map(r=>[
           r.weighing_date, r.age_in_months, r.weight_kg||'', r.length_height_cm||'', r.status_code||'', (r.remarks||'').replaceAll('\n',' ')
         ])).map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-
+ 
         const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -2696,35 +3405,6 @@ function renderNutritionClassificationModule(label){
         a.click();
         URL.revokeObjectURL(url);
       });
-    }
-
-    function renderPopulationPanel(summary, recent){
-      const trendSvg = buildTrend(recent);
-      return `
-        <div class="lower-grid">
-          <div class="tile">
-            <div class="tile-header"><h5><i class="bi bi-graph-up-arrow text-success"></i> Population Trends</h5></div>
-            <p class="tile-sub">Recent NOR pattern</p>
-            ${trendSvg}
-          </div>
-          <div class="tile">
-            <div class="tile-header"><h5><i class="bi bi-pie-chart text-success"></i> Status Distribution</h5></div>
-            ${(summary||[]).map(s=>`
-              <div class="dist-row">
-                <div class="dist-left"><span class="badge-status badge-${escapeHtml(s.status_code)}">${escapeHtml(s.status_code)}</span><span>${escapeHtml(s.status_code)}</span></div>
-                <span style="font-size:.52rem;font-weight:700;">${s.child_count}</span>
-              </div>`).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    function renderWFLPanel(){
-      return `<div class="tile"><div class="text-center py-5"><i class="bi bi-clipboard-data text-muted" style="font-size:2.2rem;opacity:.4;"></i><p class="mt-3 mb-0" style="font-size:.72rem;">WFL/H assessment tools will be placed here.</p></div></div>`;
-    }
-
-    function renderProgressDocsPanel(){
-      return `<div class="tile"><div class="text-center py-5"><i class="bi bi-journal-text text-muted" style="font-size:2.2rem;opacity:.4;"></i><p class="mt-3 mb-0" style="font-size:.72rem;">Progress documentation view.</p></div></div>`;
     }
   }).catch(err=>{
     console.error('Growth Monitoring error:', err);
@@ -2739,10 +3419,129 @@ function renderNutritionClassificationModule(label){
 
 function renderFeedingProgramsModule(label) {
   showLoading(label);
+
+  // State
+  let allSuppRecords = [];
+  let currentFilters = { q: '', type: '', status: '' };
+
+  // Helpers
+  const typeIcon = (t) => {
+    if (/vitamin/i.test(t)) return {icon:'bi-capsule', color:'#f4a400'};
+    if (/iron/i.test(t))    return {icon:'bi-heart-pulse', color:'#d23d3d'};
+    if (/deworm/i.test(t))  return {icon:'bi-shield-check', color:'#077a44'};
+    return {icon:'bi-capsule', color:'#077a44'};
+    };
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'}) : '—';
+  const statusBadge = (s) => {
+    if (s === 'overdue') return `<span class="badge-status" style="background:#ffe4e4;color:#b02020;">OVERDUE</span>`;
+    return `<span class="badge-status badge-NOR">COMPLETED</span>`;
+  };
+  const daysDisplay = (n) => {
+    if (n == null) return '—';
+    if (n < 0) return `<span style="color:#dc3545;font-weight:600;">${Math.abs(n)} days</span>`;
+    return `<span style="color:#0b7a43;font-weight:600;">${n} days</span>`;
+  };
+
+  function renderTable(records) {
+    return `
+      <div class="tile" style="padding:0;overflow:hidden;">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" style="font-size:.7rem;">
+            <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+              <tr>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Supplement Type</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date Given</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Next Due Date</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Days Until Due</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map(r => {
+                const ico = typeIcon(r.supplement_type || '');
+                return `
+                  <tr style="border-bottom:1px solid #f0f4f1;">
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
+                        </div>
+                        <span style="font-weight:600;color:#1e3e27;">${escapeHtml(r.child_name || 'Unknown')}</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi ${ico.icon}" style="color:${ico.color};font-size:.8rem;"></i>
+                        <span style="color:#586c5d;">${escapeHtml(r.supplement_type)}</span>
+                      </div>
+                    </td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">${formatDate(r.supplement_date)}</td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">${formatDate(r.next_due_date)}</td>
+                    <td style="padding:.8rem;border:none;">${daysDisplay(r.days_until_due)}</td>
+                    <td style="padding:.8rem;border:none;">${statusBadge(r.status)}</td>
+                    <td style="padding:.8rem;border:none;">
+                      <button class="btn btn-sm btn-outline-primary" data-supp-id="${r.supplement_id}" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
+                        Update
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function applyFilters() {
+    const searchTerm = currentFilters.q.toLowerCase();
+    const out = allSuppRecords.filter(r => {
+      const matchesQ = !searchTerm || (r.child_name && r.child_name.toLowerCase().includes(searchTerm));
+      const matchesType = !currentFilters.type || (r.supplement_type === currentFilters.type);
+      const matchesStatus = !currentFilters.status || (r.status === currentFilters.status);
+      return matchesQ && matchesType && matchesStatus;
+    });
+    // Update count header
+    document.getElementById('suppRecordsCount')?.replaceChildren(document.createTextNode(`${out.length} record${out.length!==1?'s':''} found`));
+    document.getElementById('suppRecordsContainer').innerHTML = out.length ? renderTable(out) : `
+      <div class="tile" style="padding:2rem;text-align:center;">
+        <i class="bi bi-clipboard-x text-muted" style="font-size:2.2rem;opacity:.3;"></i>
+        <div class="mt-2" style="font-size:.7rem;color:var(--muted);">No records found</div>
+      </div>`;
+  }
+
+  function loadSuppRecords() {
+    // OLD (breaks if app is in a subfolder):
+    // const url = new URL(api.supplementation, window.location.origin);
+    // url.searchParams.set('list','1');
+    // return fetchJSON(url.toString())
+
+    // NEW: resolve relative to current page (works in subfolders), or simply concat
+    const url = `${api.supplementation}?list=1`;
+    return fetchJSON(url)
+      .then(res => {
+        if (!res.success) throw new Error(res.error || 'Failed to load supplementation records');
+        allSuppRecords = res.records || [];
+        applyFilters();
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('suppRecordsContainer').innerHTML = `
+          <div class="text-center py-4" style="color:#dc3545;font-size:.65rem;">
+            <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:.5;color:#dc3545;"></i>
+            <p style="margin:.5rem 0 0;color:#dc3545;">Error loading supplementation records</p>
+          </div>
+        `;
+      });
+  }
+
+  // Render shell
   setTimeout(() => {
     moduleContent.innerHTML = `
       <div class="fade-in">
-        <!-- Page Header -->
         <div class="d-flex justify-content-between align-items-start mb-3">
           <div>
             <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
@@ -2752,745 +3551,179 @@ function renderFeedingProgramsModule(label) {
           </div>
         </div>
 
-        <!-- Supplementation Cards Grid -->
-        <div class="row g-3 mb-4">
-          <!-- Vitamin A Card -->
-          <div class="col-md-3">
-            <div class="tile" style="background:linear-gradient(135deg,#fff8e7,#ffffff);border-left:4px solid #f4a400;padding:1.2rem;min-height:180px;position:relative;">
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <h5 style="font-size:.75rem;font-weight:700;color:#8d5b00;margin:0;">Vitamin A</h5>
-                <div style="width:28px;height:28px;background:#ffecc7;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                  <i class="bi bi-capsule" style="font-size:.9rem;color:#f4a400;"></i>
-                </div>
-              </div>
-              
-              <div style="margin-bottom:1rem;">
-                <div style="font-size:2rem;font-weight:700;color:#8d5b00;line-height:1;">2</div>
-                <div style="font-size:.65rem;color:#8d5b00;font-weight:600;margin-top:.2rem;">Distributions recorded</div>
-              </div>
-
-              <!-- Progress Bar -->
-              <div style="background:#f0e6d2;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
-                <div style="background:#f4a400;height:100%;width:65%;"></div>
-              </div>
-
-              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
-                <button class="btn btn-outline-warning btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#f4a400;color:#8d5b00;">
-                  View All
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Iron Supplements Card -->
-          <div class="col-md-3">
-            <div class="tile" style="background:linear-gradient(135deg,#ffe4e4,#ffffff);border-left:4px solid #d23d3d;padding:1.2rem;min-height:180px;position:relative;">
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <h5 style="font-size:.75rem;font-weight:700;color:#b02020;margin:0;">Iron Supplements</h5>
-                <div style="width:28px;height:28px;background:#ffdcdc;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                  <i class="bi bi-heart-pulse" style="font-size:.9rem;color:#d23d3d;"></i>
-                </div>
-              </div>
-              
-              <div style="margin-bottom:1rem;">
-                <div style="font-size:2rem;font-weight:700;color:#b02020;line-height:1;">1</div>
-                <div style="font-size:.65rem;color:#b02020;font-weight:600;margin-top:.2rem;">Anemia prevention tracking</div>
-              </div>
-
-              <!-- Progress Bar -->
-              <div style="background:#f0d2d2;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
-                <div style="background:#d23d3d;height:100%;width:30%;"></div>
-              </div>
-
-              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
-                <button class="btn btn-outline-danger btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#d23d3d;color:#b02020;">
-                  View All
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Deworming Card -->
-          <div class="col-md-3">
-            <div class="tile" style="background:linear-gradient(135deg,#f0f8f1,#ffffff);border-left:4px solid #077a44;padding:1.2rem;min-height:180px;position:relative;">
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <h5 style="font-size:.75rem;font-weight:700;color:#0b532d;margin:0;">Deworming</h5>
-                <div style="width:28px;height:28px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                  <i class="bi bi-shield-check" style="font-size:.9rem;color:#077a44;"></i>
-                </div>
-              </div>
-              
-              <div style="margin-bottom:1rem;">
-                <div style="font-size:2rem;font-weight:700;color:#0b532d;line-height:1;">1</div>
-                <div style="font-size:.65rem;color:#0b532d;font-weight:600;margin-top:.2rem;">Compliance recorded</div>
-              </div>
-
-              <!-- Progress Bar -->
-              <div style="background:#d4e6d5;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
-                <div style="background:#077a44;height:100%;width:45%;"></div>
-              </div>
-
-              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
-                <button class="btn btn-outline-success btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#077a44;color:#0b532d;">
-                  View All
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Overdue Card -->
-          <div class="col-md-3">
-            <div class="tile" style="background:linear-gradient(135deg,#fff0f0,#ffffff);border-left:4px solid #dc3545;padding:1.2rem;min-height:180px;position:relative;">
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <h5 style="font-size:.75rem;font-weight:700;color:#a82929;margin:0;">Overdue</h5>
-                <div style="width:28px;height:28px;background:#ffe4e4;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                  <i class="bi bi-exclamation-triangle" style="font-size:.9rem;color:#dc3545;"></i>
-                </div>
-              </div>
-              
-              <div style="margin-bottom:1rem;">
-                <div style="font-size:2rem;font-weight:700;color:#a82929;line-height:1;">1</div>
-                <div style="font-size:.65rem;color:#a82929;font-weight:600;margin-top:.2rem;">Requires follow-up</div>
-              </div>
-
-              <!-- Progress Bar -->
-              <div style="background:#f0d2d2;height:4px;border-radius:4px;margin-bottom:1rem;overflow:hidden;">
-                <div style="background:#dc3545;height:100%;width:20%;"></div>
-              </div>
-
-              <div style="position:absolute;bottom:1.2rem;right:1.2rem;">
-                <button class="btn btn-outline-danger btn-sm" style="font-size:.6rem;font-weight:600;padding:.4rem .7rem;border-radius:6px;border-color:#dc3545;color:#a82929;">
-                  View All
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Navigation -->
+        <!-- Tabs -->
         <div class="mb-3">
           <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
-            <li class="nav-item">
-              <a class="nav-link active supplement-tab" href="#" data-tab="all" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
-                All Records
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link supplement-tab" href="#" data-tab="vitamin-a" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                Vitamin A
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link supplement-tab" href="#" data-tab="iron" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                Iron
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link supplement-tab" href="#" data-tab="deworming" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                Deworming
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link supplement-tab" href="#" data-tab="schedule" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                Schedule
-              </a>
-            </li>
+            <li class="nav-item"><a class="nav-link active supplement-tab" href="#" data-tab="all" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">All Records</a></li>
+            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="vitamin-a" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Vitamin A</a></li>
+            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="iron" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Iron</a></li>
+            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="deworming" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Deworming</a></li>
+            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="schedule" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Schedule</a></li>
           </ul>
         </div>
 
-        <!-- Search & Filter Section -->
+        <!-- Search & Filter -->
         <div class="tile mb-4">
           <div class="tile-header mb-3">
             <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">Search & Filter</h5>
           </div>
-          
           <div class="row g-3 align-items-end">
-            <!-- Search Child -->
             <div class="col-md-3">
               <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Search Child</label>
               <div class="position-relative">
                 <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
-                <input type="text" class="form-control" placeholder="Child name..." style="font-size:.7rem;padding:.6rem .8rem .6rem 2.2rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                <input type="text" class="form-control" id="suppSearchInput" placeholder="Child name..." style="font-size:.7rem;padding:.6rem .8rem .6rem 2.2rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
               </div>
             </div>
-
-            <!-- Supplement Type Dropdown -->
             <div class="col-md-3">
               <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Supplement Type</label>
-              <select class="form-select" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
-                <option selected>All Types</option>
-                <option>Vitamin A</option>
-                <option>Iron</option>
-                <option>Deworming</option>
+              <select class="form-select" id="suppTypeFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                <option value="">All Types</option>
+                <option value="Vitamin A">Vitamin A</option>
+                <option value="Iron">Iron</option>
+                <option value="Deworming">Deworming</option>
               </select>
             </div>
-
-            <!-- Status Dropdown -->
             <div class="col-md-3">
               <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Status</label>
-              <select class="form-select" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
-                <option selected>All Status</option>
-                <option>Completed</option>
-                <option>Overdue</option>
-                <option>Scheduled</option>
+              <select class="form-select" id="suppStatusFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                <option value="">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="overdue">Overdue</option>
               </select>
             </div>
-
-            <!-- Add Record Button -->
             <div class="col-md-3 d-flex justify-content-end">
-              <button class="btn btn-success" style="font-size:.65rem;font-weight:600;padding:.6rem 1rem;border-radius:8px;">
+              <button class="btn btn-success" id="openSuppModalBtn" data-bs-toggle="modal" data-bs-target="#supplementationRecordModal" style="font-size:.65rem;font-weight:600;padding:.6rem 1rem;border-radius:8px;">
                 <i class="bi bi-plus-lg me-1"></i> Add Record
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Distribution Records Section -->
-        <div id="supplement-tab-content">
-          <!-- Child Registry Header -->
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Distribution Records</h6>
-              <p class="text-muted mb-0" style="font-size:.65rem;">4 records found</p>
-            </div>
-            <div class="text-muted" style="font-size:.65rem;font-weight:600;">
-              <i class="bi bi-download me-1"></i>
-            </div>
+        <!-- Records -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Distribution Records</h6>
+            <p class="text-muted mb-0" id="suppRecordsCount" style="font-size:.65rem;">—</p>
           </div>
+          <div class="text-muted" style="font-size:.65rem;"><i class="bi bi-download me-1"></i></div>
+        </div>
 
-          <!-- Data Table -->
-          <div class="tile" style="padding:0;overflow:hidden;">
-            <div class="table-responsive">
-              <table class="table table-hover mb-0" style="font-size:.7rem;">
-                <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
-                  <tr>
-                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
-                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Supplement Type</th>
-                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date Given</th>
-                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Next Due Date</th>
-                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Days Until Due</th>
-                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
-                    <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style="border-bottom:1px solid #f0f4f1;">
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                        </div>
-                        <span style="font-weight:600;color:#1e3e27;">Maria Santos</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
-                        <span style="color:#586c5d;">Vitamin A</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">8/1/2025</td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">2/1/2026</td>
-                    <td style="padding:.8rem;border:none;">
-                      <span style="color:#0b7a43;font-weight:600;">121 days</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <span class="badge-status badge-NOR">Completed</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                        Update
-                      </button>
-                    </td>
-                  </tr>
-                  <tr style="border-bottom:1px solid #f0f4f1;">
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                        </div>
-                        <span style="font-weight:600;color:#1e3e27;">Juan Dela Cruz</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-heart-pulse" style="color:#d23d3d;font-size:.8rem;"></i>
-                        <span style="color:#586c5d;">Iron</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">9/15/2025</td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">12/15/2025</td>
-                    <td style="padding:.8rem;border:none;">
-                      <span style="color:#0b7a43;font-weight:600;">73 days</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <span class="badge-status badge-NOR">Completed</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                        Update
-                      </button>
-                    </td>
-                  </tr>
-                  <tr style="border-bottom:1px solid #f0f4f1;">
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                        </div>
-                        <span style="font-weight:600;color:#1e3e27;">Ana Reyes</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-shield-check" style="color:#077a44;font-size:.8rem;"></i>
-                        <span style="color:#586c5d;">Deworming</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">7/10/2025</td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">10/10/2025</td>
-                    <td style="padding:.8rem;border:none;">
-                      <span style="color:#dc3545;font-weight:600;">7 days</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <span class="badge-status" style="background:#ffe4e4;color:#b02020;">Overdue</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                        Update
-                      </button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                          <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                        </div>
-                        <span style="font-weight:600;color:#1e3e27;">Sofia Martinez</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
-                        <span style="color:#586c5d;">Vitamin A</span>
-                      </div>
-                    </td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">9/1/2025</td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">3/1/2026</td>
-                    <td style="padding:.8rem;border:none;">
-                      <span style="color:#0b7a43;font-weight:600;">149 days</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <span class="badge-status badge-NOR">Completed</span>
-                    </td>
-                    <td style="padding:.8rem;border:none;">
-                      <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                        Update
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        <div id="suppRecordsContainer">
+          <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+            <div class="spinner-border spinner-border-sm me-2" role="status" style="width:1rem;height:1rem;border-width:2px;"></div>
+            Loading distribution records...
           </div>
         </div>
       </div>
     `;
 
-    // Add tab switching functionality
-    document.querySelectorAll('.supplement-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        // Update active tab
-        document.querySelectorAll('.supplement-tab').forEach(t => {
-          t.classList.remove('active');
-          t.style.color = 'var(--muted)';
-          t.style.borderBottom = 'none';
-        });
-        
-        tab.classList.add('active');
-        tab.style.color = 'var(--green)';
-        tab.style.borderBottom = '2px solid var(--green)';
-        
-        // Update content based on tab
-        const tabType = tab.dataset.tab;
-        const contentArea = document.getElementById('supplement-tab-content');
-        
-        let content = '';
-        switch(tabType) {
-          case 'vitamin-a':
-            content = `
-              <!-- Page Header for Vitamin A -->
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <h6 style="font-size:.8rem;font-weight:700;color:#f4a400;margin:0;display:flex;align-items:center;gap:.5rem;">
-                    <i class="bi bi-capsule"></i> Vitamin A Distribution
-                  </h6>
-                  <p class="text-muted mb-0" style="font-size:.65rem;">Track vitamin A supplementation for vision and immunity</p>
-                </div>
-              </div>
+    // Wire filters
+    document.getElementById('suppSearchInput').addEventListener('input', e => {
+      currentFilters.q = e.target.value;
+      applyFilters();
+    });
+    document.getElementById('suppTypeFilter').addEventListener('change', e => {
+      currentFilters.type = e.target.value;
+      applyFilters();
+    });
+    document.getElementById('suppStatusFilter').addEventListener('change', e => {
+      currentFilters.status = e.target.value;
+      applyFilters();
+    });
 
-              <!-- Dosage Guidelines -->
-              <div class="tile mb-4" style="background:#fff8e7;border:1px solid #f0e6d2;">
-                <div class="tile-header mb-3">
-                  <h5 style="font-size:.72rem;font-weight:800;color:#8d5b00;margin:0;">Dosage Guidelines</h5>
-                </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#8d5b00;font-weight:600;">• 6-11 months:</span>
-                    <span style="color:#586c5d;">100,000 IU</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#8d5b00;font-weight:600;">• 12-59 months:</span>
-                    <span style="color:#586c5d;">200,000 IU</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#8d5b00;font-weight:600;">• Given every</span>
-                    <span style="color:#586c5d;">6 months</span>
-                  </div>
-                </div>
-              </div>
+    // Prepare modal each time it opens
+    const modalEl = document.getElementById('supplementationRecordModal');
+    modalEl?.addEventListener('show.bs.modal', () => {
+      // Load children into the select
+      fetchJSON(api.children+'?action=list')
+        .then(res => {
+          const sel = document.getElementById('suppChildSelect');
+          sel.innerHTML = '<option value="">Select child</option>';
+          (res.children||[]).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.child_id;
+            opt.textContent = c.full_name;
+            sel.appendChild(opt);
+          });
+          // default today
+          const today = new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
+          document.getElementById('suppDate').value = today;
+          document.getElementById('suppNextDue').value = '';
+          document.getElementById('suppDosage').value = '';
+          document.getElementById('suppNotes').value = '';
+          document.getElementById('suppType').value = '';
+        })
+        .catch(()=>{});
+    });
 
-              <!-- Placeholder for records -->
-              <div class="tile">
-                <div class="text-center py-5">
-                  <i class="bi bi-capsule text-muted" style="font-size:3rem;color:#f4a400;opacity:0.5;"></i>
-                  <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#8d5b00;">Vitamin A Distribution Records</h6>
-                  <p class="text-muted small mb-0" style="font-size:.65rem;">Vitamin A distribution records will appear here</p>
-                </div>
-              </div>
-            `;
-            break;
-          
-          case 'iron':
-            content = `
-              <!-- Page Header for Iron -->
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <h6 style="font-size:.8rem;font-weight:700;color:#d23d3d;margin:0;display:flex;align-items:center;gap:.5rem;">
-                    <i class="bi bi-heart-pulse"></i> Iron Supplementation
-                  </h6>
-                  <p class="text-muted mb-0" style="font-size:.65rem;">Anemia prevention tracking</p>
-                </div>
-              </div>
-
-              <!-- Iron Supplementation Schedule -->
-              <div class="tile mb-4" style="background:#ffe4e4;border:1px solid #f0d2d2;">
-                <div class="tile-header mb-3">
-                  <h5 style="font-size:.72rem;font-weight:800;color:#b02020;margin:0;">Iron Supplementation Schedule</h5>
-                </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#b02020;font-weight:600;">• 6-23 months:</span>
-                    <span style="color:#586c5d;">Daily iron drops</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#b02020;font-weight:600;">• Pregnant women:</span>
-                    <span style="color:#586c5d;">Daily iron + folic acid</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#b02020;font-weight:600;">• Monitor for</span>
-                    <span style="color:#586c5d;">compliance and side effects</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Placeholder for records -->
-              <div class="tile">
-                <div class="text-center py-5">
-                  <i class="bi bi-heart-pulse text-muted" style="font-size:3rem;color:#d23d3d;opacity:0.5;"></i>
-                  <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#b02020;">Iron Supplementation Records</h6>
-                  <p class="text-muted small mb-0" style="font-size:.65rem;">Iron supplementation records will appear here</p>
-                </div>
-              </div>
-            `;
-            break;
-          
-          case 'deworming':
-            content = `
-              <!-- Page Header for Deworming -->
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <h6 style="font-size:.8rem;font-weight:700;color:#077a44;margin:0;display:flex;align-items:center;gap:.5rem;">
-                    <i class="bi bi-shield-check"></i> Deworming Programs
-                  </h6>
-                  <p class="text-muted mb-0" style="font-size:.65rem;">Compliance recording and monitoring</p>
-                </div>
-              </div>
-
-              <!-- Deworming Schedule -->
-              <div class="tile mb-4" style="background:#f0f8f1;border:1px solid #d4e6d5;">
-                <div class="tile-header mb-3">
-                  <h5 style="font-size:.72rem;font-weight:800;color:#0b532d;margin:0;">Deworming Schedule</h5>
-                </div>
-                
-                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#0b532d;font-weight:600;">• 12-24 months:</span>
-                    <span style="color:#586c5d;">Every 6 months</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#0b532d;font-weight:600;">• 2-5 years:</span>
-                    <span style="color:#586c5d;">Every 6 months</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.7rem; font-size:.7rem;">
-                    <span style="color:#0b532d;font-weight:600;">• Follow</span>
-                    <span style="color:#586c5d;">national deworming days</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Placeholder for records -->
-              <div class="tile">
-                <div class="text-center py-5">
-                  <i class="bi bi-shield-check text-muted" style="font-size:3rem;color:#077a44;opacity:0.5;"></i>
-                  <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#0b532d;">Deworming Records</h6>
-                  <p class="text-muted small mb-0" style="font-size:.65rem;">Deworming records will appear here</p>
-                </div>
-              </div>
-            `;
-            break;
-          
-          case 'schedule':
-            content = `
-              <!-- Page Header for Schedule -->
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <h6 style="font-size:.8rem;font-weight:700;color:#1c79d0;margin:0;display:flex;align-items:center;gap:.5rem;">
-                    <i class="bi bi-calendar3"></i> Supplementation Schedule
-                  </h6>
-                  <p class="text-muted mb-0" style="font-size:.65rem;">Upcoming due dates and reminders</p>
-                </div>
-              </div>
-
-              <!-- Schedule List -->
-              <div class="tile">
-                <div class="d-flex align-items-center justify-content-between mb-3" style="padding:.8rem;border-bottom:1px solid var(--border-soft);">
-                  <div class="d-flex align-items-center gap-3">
-                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#077a44;"></i>
-                    </div>
-                    <div>
-                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Ana Reyes</div>
-                      <div style="font-size:.62rem;color:#586c5d;">Deworming - Due: 10/10/2025</div>
-                    </div>
-                  </div>
-                  <div>
-                    <span class="badge" style="background:#ffe4e4;color:#b02020;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Overdue</span>
-                  </div>
-                </div>
-
-                <!-- Additional Schedule Items -->
-                <div class="d-flex align-items-center justify-content-between mb-3" style="padding:.8rem;border-bottom:1px solid var(--border-soft);">
-                  <div class="d-flex align-items-center gap-3">
-                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#f4a400;"></i>
-                    </div>
-                    <div>
-                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Maria Santos</div>
-                      <div style="font-size:.62rem;color:#586c5d;">Vitamin A - Due: 2/1/2026</div>
-                    </div>
-                  </div>
-                  <div>
-                    <span class="badge" style="background:#e8f5ea;color:#0b532d;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Upcoming</span>
-                  </div>
-                </div>
-
-                <div class="d-flex align-items-center justify-content-between mb-3" style="padding:.8rem;border-bottom:1px solid var(--border-soft);">
-                  <div class="d-flex align-items-center gap-3">
-                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#d23d3d;"></i>
-                    </div>
-                    <div>
-                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Juan Dela Cruz</div>
-                      <div style="font-size:.62rem;color:#586c5d;">Iron - Due: 12/15/2025</div>
-                    </div>
-                  </div>
-                  <div>
-                    <span class="badge" style="background:#e8f5ea;color:#0b532d;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Upcoming</span>
-                  </div>
-                </div>
-
-                <div class="d-flex align-items-center justify-content-between" style="padding:.8rem;">
-                  <div class="d-flex align-items-center gap-3">
-                    <div style="width:32px;height:32px;background:#e8f5ea;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                      <i class="bi bi-calendar3" style="font-size:.9rem;color:#f4a400;"></i>
-                    </div>
-                    <div>
-                      <div style="font-size:.72rem;font-weight:600;color:#1e3e27;">Sofia Martinez</div>
-                      <div style="font-size:.62rem;color:#586c5d;">Vitamin A - Due: 3/1/2026</div>
-                    </div>
-                  </div>
-                  <div>
-                    <span class="badge" style="background:#e8f5ea;color:#0b532d;font-size:.55rem;font-weight:600;padding:.3rem .6rem;border-radius:12px;">Upcoming</span>
-                  </div>
-                </div>
-              </div>
-            `;
-            break;
-          
-          default: // 'all' case
-            content = `
-              <!-- Child Registry Header -->
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                  <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Distribution Records</h6>
-                  <p class="text-muted mb-0" style="font-size:.65rem;">4 records found</p>
-                </div>
-                <div class="text-muted" style="font-size:.65rem;font-weight:600;">
-                  <i class="bi bi-download me-1"></i>
-                </div>
-              </div>
-
-              <!-- Data Table -->
-              <div class="tile" style="padding:0;overflow:hidden;">
-                <div class="table-responsive">
-                  <table class="table table-hover mb-0" style="font-size:.7rem;">
-                    <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
-                      <tr>
-                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
-                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Supplement Type</th>
-                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date Given</th>
-                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Next Due Date</th>
-                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Days Until Due</th>
-                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
-                        <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr style="border-bottom:1px solid #f0f4f1;">
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                            </div>
-                            <span style="font-weight:600;color:#1e3e27;">Maria Santos</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
-                            <span style="color:#586c5d;">Vitamin A</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">8/1/2025</td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">2/1/2026</td>
-                        <td style="padding:.8rem;border:none;">
-                          <span style="color:#0b7a43;font-weight:600;">121 days</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <span class="badge-status badge-NOR">Completed</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                            Update
-                          </button>
-                        </td>
-                      </tr>
-                      <tr style="border-bottom:1px solid #f0f4f1;">
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                            </div>
-                            <span style="font-weight:600;color:#1e3e27;">Juan Dela Cruz</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-heart-pulse" style="color:#d23d3d;font-size:.8rem;"></i>
-                            <span style="color:#586c5d;">Iron</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">9/15/2025</td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">12/15/2025</td>
-                        <td style="padding:.8rem;border:none;">
-                          <span style="color:#0b7a43;font-weight:600;">73 days</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <span class="badge-status badge-NOR">Completed</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                            Update
-                          </button>
-                        </td>
-                      </tr>
-                      <tr style="border-bottom:1px solid #f0f4f1;">
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                            </div>
-                            <span style="font-weight:600;color:#1e3e27;">Ana Reyes</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-shield-check" style="color:#077a44;font-size:.8rem;"></i>
-                            <span style="color:#586c5d;">Deworming</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">7/10/2025</td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">10/10/2025</td>
-                        <td style="padding:.8rem;border:none;">
-                          <span style="color:#dc3545;font-weight:600;">7 days</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <span class="badge-status" style="background:#ffe4e4;color:#b02020;">Overdue</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                            Update
-                          </button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <div style="width:24px;height:24px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                              <i class="bi bi-check" style="font-size:.7rem;color:#0b7a43;"></i>
-                            </div>
-                            <span style="font-weight:600;color:#1e3e27;">Sofia Martinez</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-capsule" style="color:#f4a400;font-size:.8rem;"></i>
-                            <span style="color:#586c5d;">Vitamin A</span>
-                          </div>
-                        </td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">9/1/2025</td>
-                        <td style="padding:.8rem;border:none;color:#586c5d;">3/1/2026</td>
-                        <td style="padding:.8rem;border:none;">
-                          <span style="color:#0b7a43;font-weight:600;">149 days</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <span class="badge-status badge-NOR">Completed</span>
-                        </td>
-                        <td style="padding:.8rem;border:none;">
-                          <button class="btn btn-sm btn-outline-primary" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                            Update
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            `;
-            break;
+    // Auto-suggest next due date based on type
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'suppType') {
+        const t = e.target.value;
+        const d = document.getElementById('suppDate').value;
+        if (!d) return;
+        const base = new Date(d);
+        // Vitamin A: +6 months, Iron: +3 months, Deworming: +6 months
+        if (t === 'Vitamin A' || t === 'Deworming') {
+          base.setMonth(base.getMonth()+6);
+        } else if (t === 'Iron') {
+          base.setMonth(base.getMonth()+3);
+        } else {
+          return;
         }
-        
-        contentArea.innerHTML = content;
+        const ph = new Date(base.toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+        document.getElementById('suppNextDue').value = ph.toISOString().split('T')[0];
+      }
+    });
+
+    // Save handler
+    document.getElementById('saveSuppRecordBtn')?.addEventListener('click', () => {
+      const payload = {
+        child_id: parseInt(document.getElementById('suppChildSelect').value || '0', 10),
+        supplement_type: document.getElementById('suppType').value,
+        supplement_date: document.getElementById('suppDate').value,
+        dosage: document.getElementById('suppDosage').value || null,
+        next_due_date: document.getElementById('suppNextDue').value || null,
+        notes: document.getElementById('suppNotes').value || null
+      };
+
+      const missing = [];
+      if (!payload.child_id) missing.push('Child');
+      if (!payload.supplement_type) missing.push('Supplement Type');
+      if (!payload.supplement_date) missing.push('Date Given');
+      if (missing.length) { alert('Please fill in: '+missing.join(', ')); return; }
+
+      const btn = document.getElementById('saveSuppRecordBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+      fetchJSON(api.supplementation, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (!res.success) throw new Error(res.error||'Failed to save');
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'));
+        modal?.hide();
+        // Refresh list
+        return loadSuppRecords();
+      })
+      .catch(err => {
+        console.error(err);
+        alert('❌ Error saving record: '+(err.message||err));
+      })
+      .finally(() => {
+        const b = document.getElementById('saveSuppRecordBtn');
+        if (b) { b.disabled = false; b.innerHTML = '<i class="bi bi-save me-1"></i> Save Record'; }
       });
     });
 
-  }, 100);
+    // Initial load
+    loadSuppRecords();
+  }, 50);
 }
 function renderNutritionCalendarModule(label) {
   showLoading(label);
@@ -5289,6 +5522,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
+
 <!-- Schedule Event Modal -->
 <div class="modal fade" id="scheduleEventModal" tabindex="-1" aria-labelledby="scheduleEventModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -5396,5 +5630,76 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
+
+<!-- Supplementation Add Record Modal -->
+<div class="modal fade" id="supplementationRecordModal" tabindex="-1" aria-labelledby="supplementationRecordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:16px;border:1px solid var(--border-soft);box-shadow:0 10px 40px -10px rgba(15,32,23,.15);">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-soft);padding:1.2rem 1.5rem;">
+        <div>
+          <h5 class="modal-title" id="supplementationRecordModalLabel" style="font-size:.9rem;font-weight:700;color:var(--text);margin:0;">Add Supplementation Record</h5>
+          <p class="text-muted mb-0" style="font-size:.65rem;margin-top:.2rem;">Record Vitamin A, Iron, or Deworming distributions</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size:.8rem;"></button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem;">
+        <form id="suppRecordForm">
+          <div class="form-section">
+            <div class="form-section-header">
+              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
+                <i class="bi bi-capsule"></i>
+              </div>
+              <h3 class="form-section-title">Record Details</h3>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Child</label>
+                <select class="form-select" id="suppChildSelect" required>
+                  <option value="">Select child</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Supplement Type</label>
+                <select class="form-select" id="suppType" required>
+                  <option value="">Select type</option>
+                  <option value="Vitamin A">Vitamin A</option>
+                  <option value="Iron">Iron</option>
+                  <option value="Deworming">Deworming</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date Given</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" id="suppDate" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Dosage</label>
+                <input type="text" class="form-control" id="suppDosage" placeholder="e.g., 200,000 IU">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Next Due Date</label>
+                <div class="date-input">
+                  <input type="date" class="form-control" id="suppNextDue" placeholder="Auto-suggested based on type">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea class="form-control" id="suppNotes" rows="3" placeholder="Additional notes..."></textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--border-soft);padding:1rem 1.5rem;">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;">Cancel</button>
+        <button type="button" class="btn btn-success" id="saveSuppRecordBtn" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+          <i class="bi bi-save me-1"></i> Save Record
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
