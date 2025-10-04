@@ -3418,12 +3418,14 @@ function attachProgressHandlersProgress(){
   });
 }
 
+// REPLACE the whole renderFeedingProgramsModule(...) with this version
 function renderFeedingProgramsModule(label) {
   showLoading(label);
 
   // State
   let allSuppRecords = [];
   let currentFilters = { q: '', type: '', status: '' };
+  let currentView = 'table'; // 'table' | 'schedule'
 
   // Helpers
   const typeIcon = (t) => {
@@ -3431,7 +3433,7 @@ function renderFeedingProgramsModule(label) {
     if (/iron/i.test(t))    return {icon:'bi-heart-pulse', color:'#d23d3d'};
     if (/deworm/i.test(t))  return {icon:'bi-shield-check', color:'#077a44'};
     return {icon:'bi-capsule', color:'#077a44'};
-    };
+  };
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'}) : '—';
   const statusBadge = (s) => {
     if (s === 'overdue') return `<span class="badge-status" style="background:#ffe4e4;color:#b02020;">OVERDUE</span>`;
@@ -3439,8 +3441,8 @@ function renderFeedingProgramsModule(label) {
   };
   const daysDisplay = (n) => {
     if (n == null) return '—';
-    if (n < 0) return `<span style="color:#dc3545;font-weight:600;">${Math.abs(n)} days</span>`;
-    return `<span style="color:#0b7a43;font-weight:600;">${n} days</span>`;
+    if (n < 0) return `<span style="color:#dc3545;font-weight:600;">${Math.abs(n)} day${Math.abs(n)===1?'':'s'}</span>`;
+    return `<span style="color:#0b7a43;font-weight:600;">${n} day${n===1?'':'s'}</span>`;
   };
 
   function renderTable(records) {
@@ -3498,6 +3500,10 @@ function renderFeedingProgramsModule(label) {
   }
 
   function applyFilters() {
+    if (currentView === 'schedule') {
+      renderSchedulePanel();
+      return;
+    }
     const searchTerm = currentFilters.q.toLowerCase();
     const out = allSuppRecords.filter(r => {
       const matchesQ = !searchTerm || (r.child_name && r.child_name.toLowerCase().includes(searchTerm));
@@ -3505,7 +3511,6 @@ function renderFeedingProgramsModule(label) {
       const matchesStatus = !currentFilters.status || (r.status === currentFilters.status);
       return matchesQ && matchesType && matchesStatus;
     });
-    // Update count header
     document.getElementById('suppRecordsCount')?.replaceChildren(document.createTextNode(`${out.length} record${out.length!==1?'s':''} found`));
     document.getElementById('suppRecordsContainer').innerHTML = out.length ? renderTable(out) : `
       <div class="tile" style="padding:2rem;text-align:center;">
@@ -3514,19 +3519,67 @@ function renderFeedingProgramsModule(label) {
       </div>`;
   }
 
-  function loadSuppRecords() {
-    // OLD (breaks if app is in a subfolder):
-    // const url = new URL(api.supplementation, window.location.origin);
-    // url.searchParams.set('list','1');
-    // return fetchJSON(url.toString())
+  // NEW: Schedule view renderer
+  function renderSchedulePanel() {
+    // Only include records with a next_due_date
+    const items = (allSuppRecords || [])
+      .filter(r => r.next_due_date)
+      .sort((a,b) => new Date(a.next_due_date) - new Date(b.next_due_date));
 
-    // NEW: resolve relative to current page (works in subfolders), or simply concat
+    document.getElementById('suppRecordsCount')?.replaceChildren(
+      document.createTextNode(`${items.length} due item${items.length!==1?'s':''}`)
+    );
+
+    const itemRow = (r) => {
+      const isOverdue = r.status === 'overdue';
+      const badge = isOverdue
+        ? `<span class="badge-status" style="background:#ff6b6b;color:#fff;">Overdue</span>`
+        : (Number.isFinite(r.days_until_due) ? 
+           `<span class="badge-status" style="background:#e8f5ea;color:#077a44;">In ${r.days_until_due} day${r.days_until_due===1?'':'s'}</span>` : '');
+
+      return `
+        <div class="d-flex align-items-center justify-content-between"
+             style="background:#fff;border:1px solid #e9efeb;border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;">
+          <div class="d-flex align-items-center" style="gap:.7rem;">
+            <div style="width:32px;height:32px;border-radius:10px;background:#e8f5ea;display:flex;align-items:center;justify-content:center;">
+              <i class="bi bi-calendar-event" style="color:#077a44;"></i>
+            </div>
+            <div>
+              <div style="font-size:.78rem;font-weight:700;color:#18432b;line-height:1;">${escapeHtml(r.child_name || 'Unknown')}</div>
+              <div style="font-size:.62rem;color:#586c5d;">${escapeHtml(r.supplement_type)} - Due: ${formatDate(r.next_due_date)}</div>
+            </div>
+          </div>
+          <div>${badge}</div>
+        </div>
+      `;
+    };
+
+    document.getElementById('suppRecordsContainer').innerHTML = `
+      <div class="tile">
+        <div class="tile-header">
+          <h5><i class="bi bi-calendar3 text-success"></i> Supplementation Schedule</h5>
+        </div>
+        <p class="tile-sub">Upcoming due dates and reminders</p>
+        ${ items.length ? items.map(itemRow).join('') :
+          `<div class="text-center py-4">
+             <i class="bi bi-inbox text-muted" style="font-size:2rem;opacity:.35;"></i>
+             <p class="mt-2" style="font-size:.65rem;color:var(--muted);">No upcoming or overdue supplementation schedules</p>
+           </div>`}
+      </div>
+    `;
+  }
+
+  function loadSuppRecords() {
     const url = `${api.supplementation}?list=1`;
     return fetchJSON(url)
       .then(res => {
         if (!res.success) throw new Error(res.error || 'Failed to load supplementation records');
         allSuppRecords = res.records || [];
-        applyFilters();
+        if (currentView === 'schedule') {
+          renderSchedulePanel();
+        } else {
+          applyFilters();
+        }
       })
       .catch(err => {
         console.error(err);
@@ -3624,16 +3677,15 @@ function renderFeedingProgramsModule(label) {
       currentFilters.q = e.target.value;
       applyFilters();
     });
-    // --- Supplement Tabs + Type Filter Sync (Inserted) ---
-    // Helper: set active styling sa tabs
+
+    // Tabs + Type filter sync
     function setSuppTabActive(key){
-      const mapKey = key; // 'all' | 'vitamin-a' | 'iron' | 'deworming'
       document.querySelectorAll('.supplement-tab').forEach(t=>{
         t.classList.remove('active');
         t.style.color = 'var(--muted)';
         t.style.borderBottom = 'none';
       });
-      const el = document.querySelector(`.supplement-tab[data-tab="${mapKey}"]`);
+      const el = document.querySelector(`.supplement-tab[data-tab="${key}"]`);
       if (el) {
         el.classList.add('active');
         el.style.color = 'var(--green)';
@@ -3641,9 +3693,8 @@ function renderFeedingProgramsModule(label) {
       }
     }
 
-    // Helper: apply type filter + sync dropdown + tab visuals
     function setTypeAndFilter(typeLabel){
-      // typeLabel: '' | 'Vitamin A' | 'Iron' | 'Deworming'
+      currentView = 'table';
       currentFilters.type = typeLabel;
       const sel = document.getElementById('suppTypeFilter');
       if (sel) sel.value = typeLabel;
@@ -3658,13 +3709,14 @@ function renderFeedingProgramsModule(label) {
       applyFilters();
     }
 
-    // Wire: tab clicks -> filter
     document.querySelectorAll('.supplement-tab').forEach(tab=>{
       tab.addEventListener('click', (e)=>{
         e.preventDefault();
         const which = tab.dataset.tab; // 'all' | 'vitamin-a' | 'iron' | 'deworming' | 'schedule'
         if (which === 'schedule') {
-          // Placeholder: schedule view could be implemented here
+          currentView = 'schedule';
+          setSuppTabActive('schedule');
+          renderSchedulePanel();
           return;
         }
         const map = {
@@ -3677,12 +3729,11 @@ function renderFeedingProgramsModule(label) {
       });
     });
 
-    // Sync: kapag nagbago ang dropdown, i-highlight din ang tamang tab
     document.getElementById('suppTypeFilter')?.addEventListener('change', e=>{
-      const typeLabel = e.target.value; // '' | 'Vitamin A' | 'Iron' | 'Deworming'
+      const typeLabel = e.target.value;
       setTypeAndFilter(typeLabel);
     });
-    // --- End Supplement Tabs + Type Filter Sync ---
+
     document.getElementById('suppStatusFilter').addEventListener('change', e => {
       currentFilters.status = e.target.value;
       applyFilters();
@@ -3691,7 +3742,6 @@ function renderFeedingProgramsModule(label) {
     // Prepare modal each time it opens
     const modalEl = document.getElementById('supplementationRecordModal');
     modalEl?.addEventListener('show.bs.modal', () => {
-      // Load children into the select
       fetchJSON(api.children+'?action=list')
         .then(res => {
           const sel = document.getElementById('suppChildSelect');
@@ -3702,7 +3752,6 @@ function renderFeedingProgramsModule(label) {
             opt.textContent = c.full_name;
             sel.appendChild(opt);
           });
-          // default today
           const today = new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
           document.getElementById('suppDate').value = today;
           document.getElementById('suppNextDue').value = '';
@@ -3720,7 +3769,6 @@ function renderFeedingProgramsModule(label) {
         const d = document.getElementById('suppDate').value;
         if (!d) return;
         const base = new Date(d);
-        // Vitamin A: +6 months, Iron: +3 months, Deworming: +6 months
         if (t === 'Vitamin A' || t === 'Deworming') {
           base.setMonth(base.getMonth()+6);
         } else if (t === 'Iron') {
@@ -3733,19 +3781,16 @@ function renderFeedingProgramsModule(label) {
       }
     });
 
-    // Save handler
-    // Save handler (single-bind + busy guard to prevent duplicate POSTs)
+    // Save handler (single-bind + busy guard)
     const saveBtnEl = document.getElementById('saveSuppRecordBtn');
     if (saveBtnEl) {
-      // Remove previously bound handler (if any) to avoid duplicates after re-render
       if (saveBtnEl.__handlerRef) {
         saveBtnEl.removeEventListener('click', saveBtnEl.__handlerRef);
       }
- 
+
       const onSaveClick = () => {
-        // Busy guard
         if (saveBtnEl.dataset.busy === '1') return;
- 
+
         const payload = {
           child_id: parseInt(document.getElementById('suppChildSelect').value || '0', 10),
           supplement_type: document.getElementById('suppType').value,
@@ -3755,27 +3800,25 @@ function renderFeedingProgramsModule(label) {
           notes: document.getElementById('suppNotes').value || null
         };
 
-      const missing = [];
+        const missing = [];
         if (!payload.child_id) missing.push('Child');
         if (!payload.supplement_type) missing.push('Supplement Type');
         if (!payload.supplement_date) missing.push('Date Given');
         if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
 
-      saveBtnEl.dataset.busy = '1';
+        saveBtnEl.dataset.busy = '1';
         saveBtnEl.disabled = true;
         saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
 
-      fetchJSON(api.supplementation, {
+        fetchJSON(api.supplementation, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
         .then(res => {
           if (!res.success) throw new Error(res.error || 'Failed to save');
-          // Close modal
           const modal = bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'));
           modal?.hide();
-          // Refresh list
           return loadSuppRecords();
         })
         .catch(err => {
@@ -3783,14 +3826,12 @@ function renderFeedingProgramsModule(label) {
           alert('❌ Error saving record: ' + (err.message || err));
         })
         .finally(() => {
-          // Clear busy state
           saveBtnEl.dataset.busy = '0';
           saveBtnEl.disabled = false;
           saveBtnEl.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
         });
       };
- 
-      // Bind once
+
       saveBtnEl.addEventListener('click', onSaveClick);
       saveBtnEl.__handlerRef = onSaveClick;
     }
@@ -3799,6 +3840,7 @@ function renderFeedingProgramsModule(label) {
     loadSuppRecords();
   }, 50);
 }
+
 function renderNutritionCalendarModule(label) {
   showLoading(label);
   
