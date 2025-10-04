@@ -2226,6 +2226,7 @@ function clearChildInfo() {
 }
 
 // Clear previous records display
+// Clear previous records display - consistent with your UI
 function clearPreviousRecords() {
   const container = document.getElementById('previousRecordsContainer');
   container.innerHTML = `
@@ -3966,6 +3967,7 @@ function handleWeightHeightChange() {
 }
 
 // Updated form rendering with consistent UI
+// Updated weighing module that loads all records initially
 function renderWeighingModule(label) {
   showLoading(label);
   setTimeout(() => {
@@ -4032,7 +4034,6 @@ function renderWeighingModule(label) {
             </div>
             <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Record new measurement data for the selected child</p>
             
-            <!-- Weighing Form Grid -->
             <div class="form-grid">
               <div class="form-group">
                 <label class="form-label">Date of Weighing *</label>
@@ -4064,7 +4065,6 @@ function renderWeighingModule(label) {
               </div>
             </div>
 
-            <!-- Add Record Button -->
             <div class="d-flex justify-content-end mt-3">
               <button class="btn btn-success" id="saveNutritionRecord" 
                       style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
@@ -4073,20 +4073,56 @@ function renderWeighingModule(label) {
             </div>
           </div>
 
-          <!-- Previous Records Section -->
+          <!-- All Previous Records Section - Load immediately -->
           <div class="form-section">
             <div class="form-section-header">
               <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;">
                 <i class="bi bi-clipboard-data"></i>
               </div>
-              <h3 class="form-section-title">📋 Previous Weighing Records</h3>
+              <h3 class="form-section-title">📋 All Weighing Records</h3>
             </div>
-            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Historical measurement data for the selected child</p>
+            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">All nutrition measurement records in the system</p>
             
-            <div class="table-responsive" id="previousRecordsContainer">
-              <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
-                <i class="bi bi-person-check" style="font-size:2rem;opacity:0.3;"></i>
-                <p style="margin:.5rem 0 0;">Select a child to view their weighing history</p>
+            <!-- Search and Filter -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <div class="position-relative">
+                  <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
+                  <input type="text" class="form-control" id="recordsSearchInput" 
+                         placeholder="Search child name..." 
+                         style="font-size:.7rem;padding:.6rem .8rem .6rem 2.2rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="statusFilter" 
+                        style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                  <option value="">All Status</option>
+                  <option value="NOR">Normal (NOR)</option>
+                  <option value="MAM">MAM</option>
+                  <option value="SAM">SAM</option>
+                  <option value="UW">Underweight</option>
+                  <option value="OW">Overweight</option>
+                  <option value="OB">Obese</option>
+                  <option value="ST">Stunted</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <input type="date" class="form-control" id="dateFilter" 
+                       placeholder="Filter by date"
+                       style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+              </div>
+              <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" onclick="clearFilters()" 
+                        style="font-size:.65rem;font-weight:600;padding:.6rem;border-radius:8px;">
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+            
+            <div class="table-responsive" id="allRecordsContainer">
+              <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+                <div class="spinner-border spinner-border-sm me-2" role="status" style="width:1rem;height:1rem;border-width:2px;"></div>
+                Loading all weighing records...
               </div>
             </div>
           </div>
@@ -4133,6 +4169,9 @@ function renderWeighingModule(label) {
 
     // Initialize functionality
     initializeNutritionDataEntry();
+    
+    // Load all records immediately when page loads
+    loadAllWeighingRecords();
   }, 100);
 }
 
@@ -4173,6 +4212,273 @@ function testAutoCalculation() {
     autoCalculateWFLAssessment();
   } else {
     console.error('Could not find weight/height inputs for testing');
+  }
+}
+
+// Load previous records for selected child - Updated to fetch real data from nutrition_records
+function loadPreviousRecords(childId) {
+  const container = document.getElementById('previousRecordsContainer');
+  
+  // Show loading state with consistent UI styling
+  container.innerHTML = `
+    <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+      <div class="spinner-border spinner-border-sm me-2" role="status" style="width:1rem;height:1rem;border-width:2px;"></div>
+      Loading previous records...
+    </div>
+  `;
+  
+  // Fetch actual nutrition records for this child from the API
+  fetch(`${api.nutrition}?child_records=1&child_id=${childId}`, {
+    method: 'GET',
+    headers: {
+      'X-CSRF-Token': window.__BNS_CSRF,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('Previous records data:', data);
+    
+    if (data.success && data.records && data.records.length > 0) {
+      const records = data.records;
+      
+      // Render table with consistent UI styling
+      container.innerHTML = `
+        <table class="table table-hover mb-0" style="font-size:.7rem;">
+          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+            <tr>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Weight (kg)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Height (cm)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map(record => renderPreviousRecordRow(record)).join('')}
+          </tbody>
+        </table>
+      `;
+    } else {
+      // No records found - consistent with your UI
+      container.innerHTML = `
+        <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+          <i class="bi bi-clipboard-x" style="font-size:2rem;opacity:0.3;"></i>
+          <p style="margin:.5rem 0 0;">No previous records found for this child</p>
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('Error loading previous records:', error);
+    
+    // Error state - consistent with your error styling
+    container.innerHTML = `
+      <div class="text-center py-4" style="color:#dc3545;font-size:.65rem;">
+        <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:0.5;color:#dc3545;"></i>
+        <p style="margin:.5rem 0 0;color:#dc3545;">Error loading previous records</p>
+      </div>
+    `;
+  });
+}
+
+// Helper function to render individual record rows with consistent UI
+function renderPreviousRecordRow(record) {
+  // Format date to be consistent with your UI
+  const weighingDate = record.weighing_date ? 
+    new Date(record.weighing_date).toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    }) : 'N/A';
+  
+  // Get status badge with consistent styling
+  const statusBadge = record.status_code ? 
+    `<span class="badge-status badge-${record.status_code}" style="font-size:.55rem;font-weight:600;padding:.25rem .5rem;border-radius:8px;">${record.status_code}</span>` : 
+    '<span style="color:var(--muted);font-size:.6rem;">N/A</span>';
+  
+  return `
+    <tr style="border-bottom:1px solid #f0f4f1;">
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${weighingDate}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${record.age_in_months || 'N/A'}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${record.weight_kg || 'N/A'}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${record.length_height_cm || 'N/A'}</td>
+      <td style="padding:.8rem;border:none;">${statusBadge}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-size:.6rem;">${record.remarks || '-'}</td>
+    </tr>
+  `;
+}
+
+// Load all weighing records immediately when page loads - consistent with UI
+function loadAllWeighingRecords() {
+  const container = document.getElementById('allRecordsContainer');
+  
+  // Show loading state
+  container.innerHTML = `
+    <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+      <div class="spinner-border spinner-border-sm me-2" role="status" style="width:1rem;height:1rem;border-width:2px;"></div>
+      Loading all weighing records...
+    </div>
+  `;
+  
+  // Fetch all nutrition records
+  fetch(`${api.nutrition}?recent=1`, {
+    method: 'GET',
+    headers: {
+      'X-CSRF-Token': window.__BNS_CSRF,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('All records data:', data);
+    
+    if (data.success && data.records && data.records.length > 0) {
+      const records = data.records;
+      
+      // Store records globally for filtering
+      window.allWeighingRecords = records;
+      
+      // Render table with consistent UI styling
+      renderAllRecordsTable(records);
+      
+      // Setup search and filter functionality
+      setupRecordsFiltering();
+      
+    } else {
+      // No records found - consistent with your UI
+      container.innerHTML = `
+        <div class="text-center py-5" style="color:var(--muted);font-size:.65rem;">
+          <i class="bi bi-clipboard-x" style="font-size:3rem;opacity:0.3;"></i>
+          <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Weighing Records Found</h6>
+          <p class="text-muted small mb-0" style="font-size:.65rem;">No nutrition records have been created yet.</p>
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('Error loading all records:', error);
+    
+    // Error state - consistent with your error styling
+    container.innerHTML = `
+      <div class="text-center py-4" style="color:#dc3545;font-size:.65rem;">
+        <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:0.5;color:#dc3545;"></i>
+        <p style="margin:.5rem 0 0;color:#dc3545;">Error loading weighing records</p>
+      </div>
+    `;
+  });
+}
+
+// Render all records table with consistent UI styling
+function renderAllRecordsTable(records) {
+  const container = document.getElementById('allRecordsContainer');
+  
+  container.innerHTML = `
+    <table class="table table-hover mb-0" style="font-size:.7rem;">
+      <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+        <tr>
+          <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
+          <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date</th>
+          <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
+          <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Weight (kg)</th>
+          <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Height (cm)</th>
+          <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+          <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${records.map(record => renderWeighingRecordRow(record)).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// Helper function to render individual weighing record rows
+function renderWeighingRecordRow(record) {
+  // Format date consistently
+  const weighingDate = record.weighing_date ? 
+    new Date(record.weighing_date).toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    }) : 'N/A';
+  
+  // Get status badge with consistent styling
+  const statusBadge = record.status_code ? 
+    `<span class="badge-status badge-${record.status_code}" style="font-size:.55rem;font-weight:600;padding:.25rem .5rem;border-radius:8px;">${record.status_code}</span>` : 
+    '<span style="color:var(--muted);font-size:.6rem;">N/A</span>';
+  
+  return `
+    <tr style="border-bottom:1px solid #f0f4f1;">
+      <td style="padding:.8rem;border:none;">
+        <div style="font-weight:600;color:#1e3e27;font-size:.7rem;">${escapeHtml(record.child_name || 'Unknown')}</div>
+      </td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${weighingDate}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${record.age_in_months || 'N/A'}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${record.weight_kg || 'N/A'}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-weight:500;">${record.length_height_cm || 'N/A'}</td>
+      <td style="padding:.8rem;border:none;">${statusBadge}</td>
+      <td style="padding:.8rem;border:none;color:#586c5d;font-size:.6rem;">${escapeHtml(record.remarks || '-')}</td>
+    </tr>
+  `;
+}
+
+// Setup search and filter functionality
+function setupRecordsFiltering() {
+  const searchInput = document.getElementById('recordsSearchInput');
+  const statusFilter = document.getElementById('statusFilter');
+  const dateFilter = document.getElementById('dateFilter');
+  
+  function filterRecords() {
+    if (!window.allWeighingRecords) return;
+    
+    const searchTerm = searchInput.value.toLowerCase();
+    const statusValue = statusFilter.value;
+    const dateValue = dateFilter.value;
+    
+    const filteredRecords = window.allWeighingRecords.filter(record => {
+      const matchesSearch = !searchTerm || 
+        (record.child_name && record.child_name.toLowerCase().includes(searchTerm));
+      
+      const matchesStatus = !statusValue || record.status_code === statusValue;
+      
+      const matchesDate = !dateValue || 
+        (record.weighing_date && record.weighing_date.startsWith(dateValue));
+      
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+    
+    renderAllRecordsTable(filteredRecords);
+  }
+  
+  searchInput.addEventListener('input', filterRecords);
+  statusFilter.addEventListener('change', filterRecords);
+  dateFilter.addEventListener('change', filterRecords);
+}
+
+// Clear filters function
+function clearFilters() {
+  document.getElementById('recordsSearchInput').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('dateFilter').value = '';
+  
+  if (window.allWeighingRecords) {
+    renderAllRecordsTable(window.allWeighingRecords);
   }
 }
 

@@ -107,6 +107,64 @@ if ($method==='GET') {
         echo json_encode(['success'=>true,'records'=>$rows]); exit;
     }
 
+    // Fetch nutrition records for a specific child
+if (isset($_GET['child_records'])) {
+    $child_id = isset($_GET['child_id']) ? (int)$_GET['child_id'] : 0;
+    
+    if ($child_id <= 0) {
+        echo json_encode(['success' => false, 'error' => 'Invalid child ID']);
+        exit;
+    }
+    
+    try {
+        $sql = "
+            SELECT nr.record_id, 
+                   nr.weighing_date, 
+                   nr.age_in_months, 
+                   nr.weight_kg,
+                   nr.length_height_cm, 
+                   nr.remarks,
+                   nr.created_at,
+                   s.status_code, 
+                   s.status_description
+            FROM nutrition_records nr
+            LEFT JOIN wfl_ht_status_types s ON s.status_id = nr.wfl_ht_status_id
+            WHERE nr.child_id = ?
+            ORDER BY nr.weighing_date DESC, nr.created_at DESC
+            LIMIT 50
+        ";
+        
+        $stmt = $mysqli->prepare($sql);
+        if (!$stmt) {
+            throw new Exception('Database prepare failed');
+        }
+        
+        $stmt->bind_param('i', $child_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $records = [];
+        while ($row = $result->fetch_assoc()) {
+            $records[] = $row;
+        }
+        
+        $stmt->close();
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'records' => $records,
+            'total_records' => count($records)
+        ]);
+        exit;
+        
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => 'Failed to fetch records: ' . $e->getMessage()]);
+        exit;
+    }
+}
+
     // 3) Recent records feed
     if (isset($_GET['recent'])) {
         $sql = "
