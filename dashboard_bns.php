@@ -4374,8 +4374,1036 @@ function renderNutritionCalendarModule(label) {
     `;
   }
 }
+
 function renderMothersModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Mothers Module</h5><p class="small-note">Placeholder.</p></div>'; }
-function renderReportModule(label){ renderNutritionClassificationModule(label); }
+
+
+
+/* Replace the entire renderReportModule(...) function with this updated version. */
+
+function renderReportModule(label) {
+  showLoading(label);
+
+  // State
+  let allChildren = [];
+  let recentRecords = [];
+  let suppRecords = [];
+  let selectedYM = toYM(new Date()); // 'YYYY-MM' (PH time)
+  let monthsList = buildMonthList(12); // last 12 months
+
+  // Load data
+  Promise.all([
+    fetchJSON(api.children + '?action=list').catch(() => ({children: []})),
+    fetchJSON(api.nutrition + '?recent=1').catch(() => ({records: []})),
+    fetchJSON(api.supplementation + '?list=1').catch(() => ({records: []}))
+  ]).then(([childRes, recentRes, suppRes]) => {
+    allChildren = childRes.children || [];
+    recentRecords = recentRes.records || [];
+    suppRecords = suppRes.records || [];
+    renderShell(); // initial render
+    wireEvents();  // interactions
+  }).catch(err => {
+    console.error('Nutrition Reports error:', err);
+    moduleContent.innerHTML = `
+      <div class="alert alert-danger" style="font-size:.7rem;">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Failed to load Nutrition Reports:</strong> ${escapeHtml(err.message||String(err))}
+      </div>
+    `;
+  });
+
+  // ---------- Renderers ----------
+
+  function renderShell() {
+    const meta = computeSummary(allChildren, recentRecords, selectedYM);
+    const purokAgg = aggregateByPurok(allChildren, selectedYM);
+
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <!-- Page header -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
+              Nutrition Reports
+            </h1>
+            <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Comprehensive nutrition monitoring reports and analytics</p>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div>
+              <select id="nrMonthSelect" class="form-select" style="font-size:.7rem;border-radius:10px;">
+                ${monthsList.map(m => `
+                  <option value="${m.value}" ${m.value===selectedYM?'selected':''}>${m.label}</option>
+                `).join('')}
+              </select>
+            </div>
+            <button id="nrExportAllBtn" class="btn btn-outline-success" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+              <i class="bi bi-download me-1"></i> Export All Reports
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="stat-grid" style="margin-top:.2rem;">
+          ${summaryCard('Total Children', String(meta.totalChildren), 'In monitoring program', 'bi-people-fill')}
+          ${summaryCard('Normal Rate', meta.normalRateText, 'Healthy nutrition status', 'bi-graph-up')}
+          ${summaryCard('Intervention Cases', String(meta.interventionCases), 'Under intervention', 'bi-clipboard-pulse')}
+          ${summaryCard('Recovery Rate', meta.recoveryRateText, 'Successful interventions', 'bi-graph-up-arrow')}
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-3">
+          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
+            <li class="nav-item">
+              <a class="nav-link active nr-tab" href="#" data-tab="growth" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
+                Growth Monitoring
+              </a>
+            </li>
+            <li class="nav-item"><a class="nav-link nr-tab" href="#" data-tab="status" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Nutrition Status</a></li>
+            <li class="nav-item"><a class="nav-link nr-tab" href="#" data-tab="supp" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Supplementation</a></li>
+            <li class="nav-item"><a class="nav-link nr-tab" href="#" data-tab="interv" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Interventions</a></li>
+          </ul>
+        </div>
+
+        <!-- Tab content -->
+        <div id="nrTabContent">
+          ${renderGrowthTab(purokAgg)}
+        </div>
+      </div>
+    `;
+
+    // Bind growth export on initial render
+    document.getElementById('nrExportChartBtn')?.addEventListener('click', () => {
+      printSection(document.getElementById('growthResultsTile'));
+    });
+    document.getElementById('nrExportAllBtn')?.addEventListener('click', () => {
+      printSection(document.querySelector('#moduleContent'));
+    });
+  }
+
+  function renderGrowthTab(purokAgg) {
+    const chartHtml = buildGroupedBarChart(purokAgg);
+    const tableHtml = buildPurokTable(purokAgg);
+
+    return `
+      <div class="tile" id="growthResultsTile">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <div class="tile-header">
+              <h5><i class="bi bi-bar-chart-line text-success"></i> Growth Monitoring Results</h5>
+            </div>
+            <p class="tile-sub">Aggregated child development data by purok</p>
+          </div>
+          <button id="nrExportChartBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+            <i class="bi bi-file-earmark-arrow-down me-1"></i> Export PDF
+          </button>
+        </div>
+
+        ${chartHtml}
+
+        <div class="mt-3">${legendRow()}</div>
+
+        <div class="mt-3">${tableHtml}</div>
+      </div>
+    `;
+  }
+
+  // NEW: Nutrition Status tab (donut + detailed breakdown + insights)
+  function renderStatusTab(dist) {
+    const hasData = dist.total > 0;
+    const donut = hasData ? buildDonutChart(dist) : `<div class="chart-placeholder">No data available</div>`;
+    const breakdown = hasData ? buildStatusBreakdown(dist) : '';
+    const insights = buildStatusInsights(dist);
+
+    return `
+      <div class="tile" id="statusDistributionTile">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <div class="tile-header">
+              <h5><i class="bi bi-activity text-success"></i> Nutrition Status Distribution</h5>
+            </div>
+            <p class="tile-sub">Classification breakdown for monitored children</p>
+          </div>
+          <button id="nrStatusExportBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+            <i class="bi bi-download me-1"></i> Export CSV
+          </button>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-lg-6">
+            <div class="tile-sub" style="margin-bottom:.4rem;">Visual Distribution</div>
+            ${donut}
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="tile-sub" style="margin-bottom:.4rem;">Detailed Breakdown</div>
+            ${breakdown}
+          </div>
+        </div>
+
+        <div class="mt-3">
+          ${insights}
+        </div>
+      </div>
+    `;
+  }
+
+  // UPDATED: Supplementation tab (KPIs + donut by type + breakdown only; removed monthly table)
+  function renderSuppTab(sAgg) {
+    const dist = {
+      total: sAgg.total,
+      items: [
+        { label: 'Vitamin A', color: '#f4a400', count: sAgg.byType['Vitamin A'] || 0 },
+        { label: 'Iron',      color: '#d23d3d', count: sAgg.byType['Iron'] || 0 },
+        { label: 'Deworming', color: '#077a44', count: sAgg.byType['Deworming'] || 0 }
+      ]
+    };
+    dist.items.forEach(i => i.pct = dist.total ? i.count / dist.total : 0);
+
+    const donut = dist.total ? buildDonutChart(dist) : `<div class="chart-placeholder">No supplementation data for this month</div>`;
+
+    const kpiCard = (title, val, sub='') => `
+      <div class="col-6 col-lg-3">
+        <div class="tile" style="min-height:110px;">
+          <div style="font-size:.62rem;color:#5f7464;font-weight:800;letter-spacing:.06em;text-transform:uppercase;">${escapeHtml(title)}</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#0b7a43;line-height:1;margin-top:.25rem;">${escapeHtml(val)}</div>
+          ${sub?`<div style="font-size:.62rem;color:#586c5d;margin-top:.28rem;">${escapeHtml(sub)}</div>`:''}
+        </div>
+      </div>
+    `;
+
+    return `
+      <div>
+        <div class="row g-3">
+          ${kpiCard('Total Given', String(sAgg.total), monthsList.find(m=>m.value===selectedYM)?.label || '')}
+          ${kpiCard('Unique Children', String(sAgg.uniqueChildren))}
+          ${kpiCard('Overdue', String(sAgg.overdue), 'Follow-up needed')}
+          ${kpiCard('Upcoming (≤30d)', String(sAgg.upcomingWithin30), 'Next due soon')}
+        </div>
+
+        <div class="tile mt-3" id="suppOverviewTile">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <div class="tile-header">
+                <h5><i class="bi bi-capsule text-success"></i> Supplementation Overview</h5>
+              </div>
+              <p class="tile-sub">Distribution by supplement type</p>
+            </div>
+            <div class="d-flex gap-2">
+              <button id="nrSuppPrintBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i> Export PDF
+              </button>
+              <button id="nrSuppExportBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+                <i class="bi bi-download me-1"></i> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">
+              ${donut}
+            </div>
+            <div class="col-12 col-lg-6">
+              ${buildSuppBreakdown(dist)}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // NEW: Interventions tab (KPIs + table + export), follows the reference layout
+  function renderIntervTab(iAgg) {
+    const kpi = (title, value, sub, color) => `
+      <div class="col-12 col-md-4">
+        <div class="tile" style="min-height:110px;">
+          <div style="font-size:.72rem;font-weight:700;color:#18432b;">${escapeHtml(title)}</div>
+          <div style="font-size:1.6rem;font-weight:800;color:${color};line-height:1;margin-top:.25rem;">${value}</div>
+          <div style="font-size:.62rem;color:#586c5d;margin-top:.3rem;">${escapeHtml(sub)}</div>
+        </div>
+      </div>
+    `;
+
+    const badge = (code) => code
+      ? `<span class="badge-status badge-${escapeHtml(code)}" style="font-size:.6rem;">${escapeHtml(prettyStatus(code))}</span>`
+      : '<span class="badge-status" style="font-size:.6rem;">—</span>';
+
+    const progressChip = (p) => {
+      const map = {
+        Recovered: {c:'#0b7a43', bg:'#e8f5ea'},
+        Improved:  {c:'#f4a400', bg:'#fff2cf'},
+        Stable:    {c:'#1c79d0', bg:'#e7f1ff'},
+        Worsened:  {c:'#b02020', bg:'#ffe4e4'}
+      };
+      const cfg = map[p] || {c:'var(--text)', bg:'#f6faf7'};
+      return `<span style="display:inline-block;padding:.25rem .6rem;border-radius:999px;font-size:.6rem;font-weight:700;color:${cfg.c};background:${cfg.bg};border:1px solid ${cfg.c}22;">${p}</span>`;
+    };
+
+    const rowsHtml = (iAgg.rows||[]).map(r => `
+      <tr style="border-bottom:1px solid #f0f4f1;">
+        <td style="padding:.65rem .8rem;border:none;font-weight:600;color:#1e3e27;">${escapeHtml(r.child_name)}</td>
+        <td style="padding:.65rem .8rem;border:none;">${badge(r.initial_status)}</td>
+        <td style="padding:.65rem .8rem;border:none;">${badge(r.current_status)}</td>
+        <td style="padding:.65rem .8rem;border:none;">${progressChip(r.progress)}</td>
+        <td style="padding:.65rem .8rem;border:none;color:#586c5d;">${r.duration_text}</td>
+        <td style="padding:.65rem .8rem;border:none;">
+          <button class="btn btn-sm btn-outline-secondary" style="padding:.3rem .6rem;border-radius:6px;font-size:.6rem;">View Details</button>
+        </td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="tile" id="interventionsTile">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <div>
+            <div class="tile-header">
+              <h5><i class="bi bi-bullseye text-success"></i> Malnutrition Intervention Outcomes</h5>
+            </div>
+            <p class="tile-sub">Improvement tracking and case follow-up</p>
+          </div>
+          <button id="nrIntervExportBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+            <i class="bi bi-download me-1"></i> Export Cases
+          </button>
+        </div>
+
+        <div class="row g-3">
+          ${kpi('Recovered', iAgg.recovered, 'Moved to normal status', '#0b7a43')}
+          ${kpi('Improving', iAgg.improving, 'Positive progress', '#f4a400')}
+          ${kpi('Stable/Ongoing', iAgg.stable, 'Continued intervention needed', '#1c79d0')}
+        </div>
+
+        <div class="table-responsive mt-3">
+          <table class="table table-hover mb-0" style="font-size:.7rem;">
+            <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+              <tr>
+                <th style="padding:.6rem .8rem;border:none;">Child Name</th>
+                <th style="padding:.6rem .8rem;border:none;">Initial Status</th>
+                <th style="padding:.6rem .8rem;border:none;">Current Status</th>
+                <th style="padding:.6rem .8rem;border:none;">Progress</th>
+                <th style="padding:.6rem .8rem;border:none;">Duration</th>
+                <th style="padding:.6rem .8rem;border:none;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml || `<tr><td colspan="6" class="text-center text-muted" style="font-size:.65rem;padding:1rem;">No cases to display</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Event wiring ----------
+
+  function wireEvents() {
+    // Month selector
+    document.getElementById('nrMonthSelect')?.addEventListener('change', (e) => {
+      selectedYM = e.target.value;
+      renderShell();
+      wireEvents();
+    });
+
+    // Tabs
+    document.querySelectorAll('.nr-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nr-tab').forEach(t => {
+          t.classList.remove('active');
+          t.style.color = 'var(--muted)';
+          t.style.borderBottom = 'none';
+        });
+        tab.classList.add('active');
+        tab.style.color = 'var(--green)';
+        tab.style.borderBottom = '2px solid var(--green)';
+
+        const content = document.getElementById('nrTabContent');
+        const which = tab.dataset.tab;
+
+        if (which === 'growth') {
+          const purokAgg = aggregateByPurok(allChildren, selectedYM);
+          content.innerHTML = renderGrowthTab(purokAgg);
+          document.getElementById('nrExportChartBtn')?.addEventListener('click', () => {
+            printSection(document.getElementById('growthResultsTile'));
+          });
+        } else if (which === 'status') {
+          const dist = computeStatusDistribution(allChildren, selectedYM);
+          content.innerHTML = renderStatusTab(dist);
+          wireStatusExport(dist);
+        } else if (which === 'supp') {
+          const sAgg = computeSuppAggregates(suppRecords, selectedYM);
+          content.innerHTML = renderSuppTab(sAgg);
+          wireSuppExports(sAgg);
+        } else if (which === 'interv') {
+          const iAgg = computeInterventions(recentRecords);
+          content.innerHTML = renderIntervTab(iAgg);
+          wireIntervExport(iAgg);
+        } else {
+          content.innerHTML = renderPlaceholder(which);
+        }
+
+        // Top-level export (all)
+        document.getElementById('nrExportAllBtn')?.addEventListener('click', () => {
+          printSection(document.querySelector('#moduleContent'));
+        });
+      });
+    });
+
+    // Export buttons initially (growth default)
+    document.getElementById('nrExportAllBtn')?.addEventListener('click', () => {
+      printSection(document.querySelector('#moduleContent'));
+    });
+    document.getElementById('nrExportChartBtn')?.addEventListener('click', () => {
+      printSection(document.getElementById('growthResultsTile'));
+    });
+  }
+
+  function wireStatusExport(dist){
+    document.getElementById('nrStatusExportBtn')?.addEventListener('click', ()=>{
+      const rows = [['Status','Count','Percent']];
+      dist.items.forEach(it=>{
+        rows.push([it.label, it.count, `${(Math.round(it.pct*1000)/10).toFixed(1)}%`]);
+      });
+      rows.push(['Total', dist.total, '100.0%']);
+      const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nutrition_status_${selectedYM}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  function wireSuppExports(sAgg){
+    // CSV of monthly records (kept on Export button, even if table is hidden)
+    document.getElementById('nrSuppExportBtn')?.addEventListener('click', ()=>{
+      const rows = [['Child Name','Supplement','Date Given','Next Due','Days Until Due','Status','Dosage','Notes']];
+      (sAgg.rows||[]).forEach(r=>{
+        rows.push([
+          r.child_name||'',
+          r.supplement_type||'',
+          r.supplement_date||'',
+          r.next_due_date||'',
+          (r.days_until_due==null?'':r.days_until_due),
+          r.status||'',
+          r.dosage||'',
+          (r.notes||'').replace(/\r?\n/g,' ')
+        ]);
+      });
+      const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `supplementation_${selectedYM}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Print/PDF of overview tile
+    document.getElementById('nrSuppPrintBtn')?.addEventListener('click', ()=>{
+      printSection(document.getElementById('suppOverviewTile'));
+    });
+  }
+
+  function wireIntervExport(iAgg){
+    document.getElementById('nrIntervExportBtn')?.addEventListener('click', ()=>{
+      const rows = [['Child Name','Initial Status','Current Status','Progress','Duration (months)']];
+      (iAgg.rows||[]).forEach(r=>{
+        rows.push([
+          r.child_name,
+          r.initial_status||'',
+          r.current_status||'',
+          r.progress||'',
+          r.duration_months!=null ? r.duration_months : ''
+        ]);
+      });
+      const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `intervention_cases_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // ---------- Helpers (UI pieces) ----------
+
+  function summaryCard(title, value, desc, icon) {
+    return `
+      <div class="stat-card">
+        <div class="stat-title"><i class="bi ${icon}"></i>${escapeHtml(title)}</div>
+        <div class="stat-val">${escapeHtml(value)}</div>
+        <div class="stat-desc">${escapeHtml(desc)}</div>
+      </div>
+    `;
+  }
+
+  function legendRow() {
+    // Order: MAM (orange), Normal (green), SAM (red)
+    return `
+    <div class="d-flex align-items-center gap-3" style="flex-wrap:wrap;font-size:.62rem;font-weight:700;color:#18432b;">
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#f4a400;border-radius:3px;display:inline-block;"></span> MAM
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#0b7a43;border-radius:3px;display:inline-block;"></span> Normal
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#d23d3d;border-radius:3px;display:inline-block;"></span> SAM
+      </span>
+    </div>
+  `;
+  }
+
+  function buildPurokTable(rows) {
+    if (!rows.length) {
+      return `<div class="text-center py-4 text-muted" style="font-size:.65rem;">
+        <i class="bi bi-inbox" style="font-size:2rem;opacity:.35;"></i>
+        <p class="mt-2 mb-0">No data to display for the selected month</p>
+      </div>`;
+    }
+    // colored pills for counts
+    const pill = (val, color) => `
+      <span style="
+        display:inline-block;min-width:28px;text-align:center;
+        padding:.2rem .5rem;border-radius:999px;font-size:.62rem;font-weight:800;
+        color:#fff;background:${color};
+      ">
+        ${val}
+      </span>`;
+    return `
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:.7rem;">
+          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+            <tr>
+              <th style="padding:.6rem .8rem;border:none;">Purok</th>
+              <th style="padding:.6rem .8rem;border:none;">Total Children</th>
+              <th style="padding:.6rem .8rem;border:none;">Normal</th>
+              <th style="padding:.6rem .8rem;border:none;">MAM</th>
+              <th style="padding:.6rem .8rem;border:none;">SAM</th>
+              <th style="padding:.6rem .8rem;border:none;">Normal Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr style="border-bottom:1px solid #f0f4f1;">
+                <td style="padding:.65rem .8rem;border:none;">${escapeHtml(r.purok)}</td>
+                <td style="padding:.65rem .8rem;border:none;">${r.total}</td>
+                <td style="padding:.65rem .8rem;border:none;">${pill(r.normal, '#0b7a43')}</td>
+                <td style="padding:.65rem .8rem;border:none;">${pill(r.mam,    '#f4a400')}</td>
+                <td style="padding:.65rem .8rem;border:none;">${pill(r.sam,    '#d23d3d')}</td>
+                <td style="padding:.65rem .8rem;border:none;">
+                  <div class="d-flex align-items-center gap-2">
+                    <div style="flex:1;height:6px;background:#eef4ef;border-radius:6px;overflow:hidden;">
+                      <span style="display:block;height:100%;background:#0b7a43;width:${r.ratePct}%;"></span>
+                    </div>
+                    <span style="font-size:.66rem;font-weight:700;color:#1e3e27;">${r.ratePctText}</span>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function buildGroupedBarChart(rows) {
+    if (!rows.length) {
+      return `<div class="chart-placeholder">No trend data available</div>`;
+    }
+
+    // Chart dimensions (logical units)
+    const VB = { w: 140, h: 80 };
+    const pad = { l: 10, r: 4, t: 8, b: 18 };
+    const cw = VB.w - pad.l - pad.r;
+    const ch = VB.h - pad.t - pad.b;
+
+    const labels = rows.map(r => r.purok);
+    const series = [
+      { key: 'normal', color: '#0b7a43' },
+      { key: 'mam',    color: '#f4a400' },
+      { key: 'sam',    color: '#d23d3d' }
+    ];
+
+    const maxVal = Math.max(1, ...rows.map(r => Math.max(r.normal, r.mam, r.sam)));
+    const groupWidth = cw / labels.length;
+    const barWidth = groupWidth * 0.18; // each series bar
+    const gapBetweenBars = barWidth * 0.25;
+
+    // Gridlines (y=0..max 4 ticks)
+    let grid = '';
+    const ticks = 4;
+    for (let i = 0; i <= ticks; i++) {
+      const y = pad.t + ch - (i / ticks) * ch;
+      grid += `<line x1="${pad.l}" y1="${y.toFixed(2)}" x2="${(VB.w - pad.r).toFixed(2)}" y2="${y.toFixed(2)}" stroke="#e6ede9" stroke-width="0.4" vector-effect="non-scaling-stroke"></line>`;
+    }
+
+    // Bars
+    let bars = '';
+    labels.forEach((lab, i) => {
+      const xBase = pad.l + i * groupWidth + groupWidth * 0.15;
+      const vals = rows[i];
+      series.forEach((s, k) => {
+        const val = vals[s.key] || 0;
+        const h = (val / maxVal) * ch;
+        const x = xBase + k * (barWidth + gapBetweenBars);
+        const y = pad.t + ch - h;
+        const title = `${s.key.toUpperCase()} ${val} (${lab})`;
+        bars += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" fill="${s.color}" rx="1" ry="1"><title>${title}</title></rect>`;
+      });
+    });
+
+    // X labels
+    const xlabels = labels.map((lab, i) => {
+      const x = pad.l + i * groupWidth + groupWidth * 0.3;
+      const y = VB.h - 4;
+      return `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="2.6" fill="#637668">${escapeHtml(lab)}</text>`;
+    }).join('');
+
+    return `
+      <div style="width:100%;position:relative;">
+        <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+             style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+          ${grid}
+          ${bars}
+          ${xlabels}
+        </svg>
+      </div>
+    `;
+  }
+
+  function renderPlaceholder(which) {
+    const titles = {
+      status: 'Nutrition Status',
+      supp: 'Supplementation',
+      interv: 'Interventions'
+    };
+    const icons = {
+      status: 'bi-activity',
+      supp: 'bi-capsule-pill',
+      interv: 'bi-heart-pulse'
+    };
+    return `
+      <div class="tile">
+        <div class="tile-header">
+          <h5><i class="bi ${icons[which]||'bi-info-circle'} text-success"></i> ${titles[which]||'Section'}</h5>
+        </div>
+        <div class="text-center py-5" style="color:var(--muted);font-size:.7rem;">
+          <i class="bi bi-hourglass-split" style="font-size:2rem;opacity:.35;"></i>
+          <div class="mt-2">This section will be available in the next update.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Helpers (data/logic) ----------
+
+  function toYM(d) {
+    const ph = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const y = ph.getFullYear();
+    const m = String(ph.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  function buildMonthList(n = 12) {
+    const out = [];
+    const now = new Date();
+    for (let i = 0; i < n; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = toYM(d);
+      const label = d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
+      out.push({ value, label });
+    }
+    return out;
+  }
+
+  function isInSelectedMonth(child, ym) {
+    const d = child.last_weighing_date;
+    if (!d || d === 'Never') return false;
+    try { return String(d).slice(0, 7) === ym; } catch { return false; }
+  }
+
+  function aggregateByPurok(children, ym) {
+    // filter to records weighed in selected month; if none match, fall back to latest status
+    const filtered = children.filter(c => isInSelectedMonth(c, ym));
+    const arr = (filtered.length ? filtered : children).slice();
+
+    const byPurok = new Map();
+    arr.forEach(c => {
+      const purok = c.purok_name || 'Not Set';
+      const bucket = byPurok.get(purok) || { purok, total: 0, normal: 0, mam: 0, sam: 0 };
+      bucket.total += 1;
+      const s = c.nutrition_status || '';
+      if (s === 'NOR') bucket.normal += 1;
+      else if (s === 'MAM') bucket.mam += 1;
+      else if (s === 'SAM') bucket.sam += 1;
+      byPurok.set(purok, bucket);
+    });
+
+    const out = Array.from(byPurok.values()).sort((a, b) => a.purok.localeCompare(b.purok));
+    out.forEach(r => {
+      const rate = r.total ? (r.normal / r.total) * 100 : 0;
+      r.ratePct = Math.round(rate);
+      r.ratePctText = `${r.ratePct.toFixed(0)}%`;
+    });
+    return out;
+  }
+
+  function computeSummary(children, recent, ym) {
+    const totalChildren = children.length;
+
+    const inMonth = children.filter(c => isInSelectedMonth(c, ym));
+    const base = (inMonth.length ? inMonth : children);
+
+    const normal = base.filter(c => c.nutrition_status === 'NOR').length;
+    const mam = base.filter(c => c.nutrition_status === 'MAM').length;
+    const sam = base.filter(c => c.nutrition_status === 'SAM').length;
+    const uw  = base.filter(c => c.nutrition_status === 'UW').length;
+
+    const denom = base.length || 1;
+    const normalRate = (normal / denom) * 100;
+    const interventionCases = mam + sam + uw;
+
+    // Recovery Rate: among children whose latest record is in selected month
+    const { improved, pairs } = computeImprovementForMonth(recent || [], ym);
+    const recoveryRate = pairs ? (improved / pairs) * 100 : null;
+
+    return {
+      totalChildren,
+      normalRateText: `${(Math.round(normalRate * 10) / 10).toFixed(1)}%`,
+      interventionCases,
+      recoveryRateText: recoveryRate == null ? '—' : `${(Math.round(recoveryRate * 10) / 10).toFixed(1)}%`
+    };
+  }
+
+  function computeImprovementForMonth(recent, ym) {
+    const byChild = new Map();
+    (recent || []).forEach(r => {
+      const k = r.child_name; if (!k) return;
+      if (!byChild.has(k)) byChild.set(k, []);
+      const arr = byChild.get(k);
+      if (arr.length < 2) arr.push(r); // recent feed is DESC
+    });
+
+    let improved = 0, pairs = 0;
+    const mal = new Set(['SAM', 'MAM', 'UW']);
+    byChild.forEach(arr => {
+      if (arr.length < 2) return;
+      const [latest, prev] = arr; // latest first
+      if (!latest.weighing_date) return;
+      const latestYM = String(latest.weighing_date).slice(0, 7);
+      if (latestYM !== ym) return;
+      if (latest.status_code && prev.status_code) {
+        pairs++;
+        if (mal.has(prev.status_code) && latest.status_code === 'NOR') improved++;
+      }
+    });
+    return { improved, pairs };
+  }
+
+  // Compute status distribution (like screenshot)
+  function computeStatusDistribution(children, ym){
+    const inMonth = children.filter(c => isInSelectedMonth(c, ym));
+    const base = (inMonth.length ? inMonth : children).slice();
+
+    let NOR=0, MAM=0, SAM=0, UW=0, ST=0, OW=0, OB=0;
+    base.forEach(c=>{
+      switch(c.nutrition_status){
+        case 'NOR': NOR++; break;
+        case 'MAM': MAM++; break;
+        case 'SAM': SAM++; break;
+        case 'UW':  UW++;  break;
+        case 'ST':  ST++;  break;
+        case 'OW':  OW++;  break;
+        case 'OB':  OB++;  break;
+      }
+    });
+    const OVER = OW + OB;
+
+    const items = [
+      { code:'NOR', label:'Normal',      color:'#0b7a43', count:NOR },
+      { code:'MAM', label:'MAM',         color:'#f4a400', count:MAM },
+      { code:'SAM', label:'SAM',         color:'#d23d3d', count:SAM },
+      { code:'UW',  label:'Underweight', color:'#ffb84d', count:UW },
+      { code:'ST',  label:'Stunted',     color:'#ff6b6b', count:ST },
+      { code:'OVR', label:'Overweight',  color:'#8e44ad', count:OVER }
+    ];
+    const total = items.reduce((s,i)=>s+i.count,0);
+    items.forEach(i=> i.pct = total? (i.count/total) : 0);
+
+    return { total, items };
+  }
+
+  // Donut chart builder with labels + percents
+  function buildDonutChart(dist){
+    const VB = { w: 120, h: 80 };
+    const cx = 40, cy = 40;
+    const R = 26, r = 15;
+    let angle = -Math.PI/2; // start at top
+    const arcs = [];
+    const labels = [];
+
+    function arcPath(cx,cy,R,r,start,end){
+      const large = (end-start) > Math.PI ? 1 : 0;
+      const x0 = cx + R*Math.cos(start), y0 = cy + R*Math.sin(start);
+      const x1 = cx + R*Math.cos(end),   y1 = cy + R*Math.sin(end);
+      const x2 = cx + r*Math.cos(end),   y2 = cy + r*Math.sin(end);
+      const x3 = cx + r*Math.cos(start), y3 = cy + r*Math.sin(start);
+      return [
+        `M ${x0.toFixed(3)} ${y0.toFixed(3)}`,
+        `A ${R} ${R} 0 ${large} 1 ${x1.toFixed(3)} ${y1.toFixed(3)}`,
+        `L ${x2.toFixed(3)} ${y2.toFixed(3)}`,
+        `A ${r} ${r} 0 ${large} 0 ${x3.toFixed(3)} ${y3.toFixed(3)}`,
+        'Z'
+      ].join(' ');
+    }
+
+    dist.items.filter(i=>i.count>0).forEach(i=>{
+      const sweep = i.pct * Math.PI*2;
+      const start = angle;
+      const end = angle + sweep;
+      angle = end;
+
+      arcs.push(`<path d="${arcPath(cx,cy,R,r,start,end)}" fill="${i.color}"><title>${i.label}: ${(i.pct*100).toFixed(1)}%</title></path>`);
+
+      // label on ring centroid
+      const mid = (start+end)/2;
+      const lx = cx + (R+10)*Math.cos(mid);
+      const ly = cy + (R+10)*Math.sin(mid);
+      const anchor = (Math.cos(mid) >= 0) ? 'start' : 'end';
+      labels.push(`<text x="${lx.toFixed(2)}" y="${ly.toFixed(2)}" font-size="3" fill="${i.color}" text-anchor="${anchor}" dominant-baseline="middle">${escapeHtml(i.label)} ${(i.pct*100).toFixed(0)}%</text>`);
+    });
+
+    // Center text (largest slice label)
+    const top = dist.items.slice().sort((a,b)=>b.count-a.count)[0] || {label:'—', pct:0};
+    const centerText = `
+      <text x="${cx}" y="${cy-2}" font-size="4.8" text-anchor="middle" fill="#0b7a43" font-weight="700">${(top.pct*100).toFixed(0)}%</text>
+      <text x="${cx}" y="${cy+4.2}" font-size="3" text-anchor="middle" fill="#5f7464">${escapeHtml(top.label)}</text>
+    `;
+
+    return `
+      <div style="width:100%;position:relative;">
+        <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+             style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+          ${arcs.join('')}
+          ${centerText}
+          ${labels.join('')}
+        </svg>
+      </div>
+    `;
+  }
+
+  // Right-side detailed rows with progress bars
+  function buildStatusBreakdown(dist){
+    const rows = dist.items.filter(i=>i.count>0);
+    if (!rows.length) return `<div class="text-muted" style="font-size:.65rem;">No data available</div>`;
+
+    const barRow = (it)=>{
+      const pct100 = (it.pct*100);
+      return `
+        <div class="mb-2" role="group" aria-label="${escapeHtml(it.label)}">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <div class="d-flex align-items-center gap-2">
+              <span style="width:10px;height:10px;border-radius:3px;background:${it.color};display:inline-block;"></span>
+              <span style="font-size:.72rem;font-weight:700;color:#18432b;">${escapeHtml(it.label)}</span>
+            </div>
+            <div style="font-size:.62rem;color:#6a7a6d;">${it.count} ${it.count===1?'child':'children'}</div>
+          </div>
+          <div style="height:8px;background:#ecf3ee;border-radius:10px;overflow:hidden;">
+            <span style="display:block;height:100%;background:${it.color};width:${pct100.toFixed(1)}%;"></span>
+          </div>
+          <div style="font-size:.58rem;color:#6a7a6d;margin-top:.25rem;">${pct100.toFixed(1)}% of total</div>
+        </div>
+      `;
+    };
+
+    return rows.map(barRow).join('');
+  }
+
+  // Supplementation breakdown (re-uses the same style)
+  function buildSuppBreakdown(dist){
+    return buildStatusBreakdown(dist);
+  }
+
+  // Supplementation aggregations for selected month
+  function computeSuppAggregates(all, ym){
+    const norm = (t) => {
+      const s = String(t||'').toLowerCase();
+      if (s.includes('vit')) return 'Vitamin A';
+      if (s.includes('iron')) return 'Iron';
+      if (s.includes('deworm')) return 'Deworming';
+      return (t||'');
+    };
+    const rows = (all||[]).filter(r => {
+      const d = r.supplement_date ? String(r.supplement_date).slice(0,7) : '';
+      return d === ym;
+    }).sort((a,b)=>String(b.supplement_date||'').localeCompare(String(a.supplement_date||'')));
+
+    const byType = {'Vitamin A':0,'Iron':0,'Deworming':0};
+    let overdue = 0;
+    let upcomingWithin30 = 0;
+    const childSet = new Set();
+
+    rows.forEach(r=>{
+      const t = norm(r.supplement_type);
+      if (byType[t]!=null) byType[t] += 1;
+      if (r.status === 'overdue') overdue++;
+      if (Number.isFinite(r.days_until_due) && r.days_until_due >= 0 && r.days_until_due <= 30) upcomingWithin30++;
+      if (r.child_id) childSet.add(r.child_id);
+    });
+
+    return {
+      total: rows.length,
+      rows,
+      byType,
+      overdue,
+      upcomingWithin30,
+      uniqueChildren: childSet.size
+    };
+  }
+
+  // Compute Interventions aggregates from the recent feed (desc by date)
+  function computeInterventions(recent){
+    const mal = new Set(['SAM','MAM','UW']);
+    const sevRank = code => (code==='SAM'?3:(code==='MAM'?2:(code==='UW'?1:(code==='NOR'?0:-1))));
+
+    const map = new Map(); // child -> [latest, prev]
+    (recent||[]).forEach(r=>{
+      const k = r.child_name || `#${r.child_id||0}`;
+      if(!map.has(k)) map.set(k, []);
+      const arr = map.get(k);
+      if (arr.length < 2) arr.push(r);
+    });
+
+    const rows = [];
+    let recovered=0, improving=0, stable=0;
+    map.forEach((arr, child)=>{
+      if (arr.length < 2) return;
+      const latest = arr[0], prev = arr[1];
+      const a = latest.status_code || '';
+      const b = prev.status_code || '';
+
+      // we only consider those involved in malnutrition pathway
+      if (!(mal.has(a) || mal.has(b) || a==='NOR' || b==='NOR')) return;
+
+      let progress = 'Stable';
+      if (mal.has(b) && a === 'NOR') progress = 'Recovered';
+      else if (mal.has(b) && mal.has(a)) {
+        const prevSev = sevRank(b), curSev = sevRank(a);
+        if (curSev < prevSev) progress = 'Improved';
+        else if (curSev > prevSev) progress = 'Worsened';
+        else progress = 'Stable';
+      } else if (b==='NOR' && mal.has(a)) {
+        progress = 'Worsened';
+      }
+
+      if (progress === 'Recovered') recovered++;
+      else if (progress === 'Improved') improving++;
+      else if (progress === 'Stable') stable++;
+
+      const dur = monthsBetween(prev.weighing_date, latest.weighing_date);
+      rows.push({
+        child_name: child,
+        initial_status: b || '',
+        current_status: a || '',
+        progress,
+        duration_months: dur,
+        duration_text: dur != null ? `${dur} month${dur===1?'':'s'}` : '—'
+      });
+    });
+
+    // Sort: Recovered -> Improved -> Stable -> Worsened
+    const pOrder = {Recovered:0, Improved:1, Stable:2, Worsened:3};
+    rows.sort((x,y)=>{
+      const dx = (x.progress in pOrder)?pOrder[x.progress]:9;
+      const dy = (y.progress in pOrder)?pOrder[y.progress]:9;
+      if (dx!==dy) return dx-dy;
+      return x.child_name.localeCompare(y.child_name);
+    });
+
+    return { recovered, improving, stable, rows };
+  }
+
+  function monthsBetween(d1, d2){
+    if (!d1 || !d2) return null;
+    try{
+      const a = new Date(d1+'T00:00:00');
+      const b = new Date(d2+'T00:00:00');
+      let months = (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth());
+      if (b.getDate() < a.getDate()) months--;
+      return Math.max(0, months);
+    }catch{ return null; }
+  }
+
+  function prettyStatus(code){
+    const map = {
+      NOR: 'Normal',
+      MAM: 'MAM',
+      SAM: 'SAM',
+      UW:  'Underweight',
+      OW:  'Overweight',
+      OB:  'Obese',
+      ST:  'Stunted',
+      UNSET:'Not Set'
+    };
+    return map[code] || code || '—';
+  }
+
+  // Key insights box (status)
+  function buildStatusInsights(dist){
+    const find = codeOrLabel => {
+      return dist.items.find(i => i.code===codeOrLabel || i.label===codeOrLabel) || {count:0,pct:0};
+    };
+    const nor = find('NOR');
+    const mam = find('MAM');
+    const sam = find('SAM');
+    const uw  = find('UW');
+    const st  = find('ST');
+    const atRiskCount = mam.count + sam.count + uw.count + st.count;
+
+    return `
+      <div style="background:#eaf5ee;border:1px solid #d3e8d9;border-radius:12px;padding:.8rem 1rem;">
+        <div style="font-size:.72rem;font-weight:800;color:#18432b;margin-bottom:.35rem;">Key Insights</div>
+        <ul style="margin:0;padding-left:1rem;font-size:.65rem;color:#1e3e27;">
+          <li><span style="color:#0b7a43;">${(nor.pct*100).toFixed(1)}%</span> of children have normal nutrition status</li>
+          <li><span style="color:#f4a400;">${(mam.pct*100).toFixed(1)}%</span> classified as MAM - moderate acute malnutrition</li>
+          <li><span style="color:#d23d3d;">${(sam.pct*100).toFixed(1)}%</span> classified as SAM - severe acute malnutrition</li>
+          <li>Intervention focus needed for <strong>${atRiskCount}</strong> children total</li>
+        </ul>
+      </div>
+    `;
+  }
+
+  // Print a specific section (basic PDF via print dialog)
+  function printSection(el) {
+    if (!el) return;
+    const win = window.open('', '_blank', 'width=1024,height=768');
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(s => s.outerHTML).join('\n');
+    win.document.write(`
+      <html>
+        <head>
+          <title>Nutrition Reports</title>
+          ${styles}
+          <style>
+            body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 16px; }
+            .tile { box-shadow:none !important; }
+            .svg-chart { width:100%; height:auto; }
+          </style>
+        </head>
+        <body>${el.outerHTML}</body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 350);
+  }
+}
+
+
 
 // Fixed auto-calculation that actually works
 // Fixed auto-calculation consistent with UI and database structure
