@@ -3734,48 +3734,66 @@ function renderFeedingProgramsModule(label) {
     });
 
     // Save handler
-    document.getElementById('saveSuppRecordBtn')?.addEventListener('click', () => {
-      const payload = {
-        child_id: parseInt(document.getElementById('suppChildSelect').value || '0', 10),
-        supplement_type: document.getElementById('suppType').value,
-        supplement_date: document.getElementById('suppDate').value,
-        dosage: document.getElementById('suppDosage').value || null,
-        next_due_date: document.getElementById('suppNextDue').value || null,
-        notes: document.getElementById('suppNotes').value || null
-      };
+    // Save handler (single-bind + busy guard to prevent duplicate POSTs)
+    const saveBtnEl = document.getElementById('saveSuppRecordBtn');
+    if (saveBtnEl) {
+      // Remove previously bound handler (if any) to avoid duplicates after re-render
+      if (saveBtnEl.__handlerRef) {
+        saveBtnEl.removeEventListener('click', saveBtnEl.__handlerRef);
+      }
+ 
+      const onSaveClick = () => {
+        // Busy guard
+        if (saveBtnEl.dataset.busy === '1') return;
+ 
+        const payload = {
+          child_id: parseInt(document.getElementById('suppChildSelect').value || '0', 10),
+          supplement_type: document.getElementById('suppType').value,
+          supplement_date: document.getElementById('suppDate').value,
+          dosage: document.getElementById('suppDosage').value || null,
+          next_due_date: document.getElementById('suppNextDue').value || null,
+          notes: document.getElementById('suppNotes').value || null
+        };
 
       const missing = [];
-      if (!payload.child_id) missing.push('Child');
-      if (!payload.supplement_type) missing.push('Supplement Type');
-      if (!payload.supplement_date) missing.push('Date Given');
-      if (missing.length) { alert('Please fill in: '+missing.join(', ')); return; }
+        if (!payload.child_id) missing.push('Child');
+        if (!payload.supplement_type) missing.push('Supplement Type');
+        if (!payload.supplement_date) missing.push('Date Given');
+        if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
 
-      const btn = document.getElementById('saveSuppRecordBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+      saveBtnEl.dataset.busy = '1';
+        saveBtnEl.disabled = true;
+        saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
 
       fetchJSON(api.supplementation, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      })
-      .then(res => {
-        if (!res.success) throw new Error(res.error||'Failed to save');
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'));
-        modal?.hide();
-        // Refresh list
-        return loadSuppRecords();
-      })
-      .catch(err => {
-        console.error(err);
-        alert('❌ Error saving record: '+(err.message||err));
-      })
-      .finally(() => {
-        const b = document.getElementById('saveSuppRecordBtn');
-        if (b) { b.disabled = false; b.innerHTML = '<i class="bi bi-save me-1"></i> Save Record'; }
-      });
-    });
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(res => {
+          if (!res.success) throw new Error(res.error || 'Failed to save');
+          // Close modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'));
+          modal?.hide();
+          // Refresh list
+          return loadSuppRecords();
+        })
+        .catch(err => {
+          console.error(err);
+          alert('❌ Error saving record: ' + (err.message || err));
+        })
+        .finally(() => {
+          // Clear busy state
+          saveBtnEl.dataset.busy = '0';
+          saveBtnEl.disabled = false;
+          saveBtnEl.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
+        });
+      };
+ 
+      // Bind once
+      saveBtnEl.addEventListener('click', onSaveClick);
+      saveBtnEl.__handlerRef = onSaveClick;
+    }
 
     // Initial load
     loadSuppRecords();
