@@ -3624,10 +3624,65 @@ function renderFeedingProgramsModule(label) {
       currentFilters.q = e.target.value;
       applyFilters();
     });
-    document.getElementById('suppTypeFilter').addEventListener('change', e => {
-      currentFilters.type = e.target.value;
+    // --- Supplement Tabs + Type Filter Sync (Inserted) ---
+    // Helper: set active styling sa tabs
+    function setSuppTabActive(key){
+      const mapKey = key; // 'all' | 'vitamin-a' | 'iron' | 'deworming'
+      document.querySelectorAll('.supplement-tab').forEach(t=>{
+        t.classList.remove('active');
+        t.style.color = 'var(--muted)';
+        t.style.borderBottom = 'none';
+      });
+      const el = document.querySelector(`.supplement-tab[data-tab="${mapKey}"]`);
+      if (el) {
+        el.classList.add('active');
+        el.style.color = 'var(--green)';
+        el.style.borderBottom = '2px solid var(--green)';
+      }
+    }
+
+    // Helper: apply type filter + sync dropdown + tab visuals
+    function setTypeAndFilter(typeLabel){
+      // typeLabel: '' | 'Vitamin A' | 'Iron' | 'Deworming'
+      currentFilters.type = typeLabel;
+      const sel = document.getElementById('suppTypeFilter');
+      if (sel) sel.value = typeLabel;
+
+      const reverseMap = {
+        '': 'all',
+        'Vitamin A': 'vitamin-a',
+        'Iron': 'iron',
+        'Deworming': 'deworming'
+      };
+      setSuppTabActive(reverseMap[typeLabel] || 'all');
       applyFilters();
+    }
+
+    // Wire: tab clicks -> filter
+    document.querySelectorAll('.supplement-tab').forEach(tab=>{
+      tab.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const which = tab.dataset.tab; // 'all' | 'vitamin-a' | 'iron' | 'deworming' | 'schedule'
+        if (which === 'schedule') {
+          // Placeholder: schedule view could be implemented here
+          return;
+        }
+        const map = {
+          'all': '',
+          'vitamin-a': 'Vitamin A',
+          'iron': 'Iron',
+          'deworming': 'Deworming'
+        };
+        setTypeAndFilter(map[which] ?? '');
+      });
     });
+
+    // Sync: kapag nagbago ang dropdown, i-highlight din ang tamang tab
+    document.getElementById('suppTypeFilter')?.addEventListener('change', e=>{
+      const typeLabel = e.target.value; // '' | 'Vitamin A' | 'Iron' | 'Deworming'
+      setTypeAndFilter(typeLabel);
+    });
+    // --- End Supplement Tabs + Type Filter Sync ---
     document.getElementById('suppStatusFilter').addEventListener('change', e => {
       currentFilters.status = e.target.value;
       applyFilters();
