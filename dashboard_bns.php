@@ -892,6 +892,11 @@ h1.page-title{
   background: #ffecc7;
   color: #f4a400;
 }
+
+/* Responsive SVG charts (keeps aspect ratio, no stretching) */
+.svg-chart{width:100%;height:auto;display:block;aspect-ratio:16/9;}
+.svg-chart.sm{aspect-ratio:25/14;} /* for smaller sparkline-style charts */
+
 </style>
 </head>
 <body class="font-lg">
@@ -2701,81 +2706,77 @@ function renderPopulationPanel(summary, recent, children){
   }
  
   // 100% stacked bars (percent)
-  function buildStackedBarChart(data){
-    if(!data.labels.length){
-      return `<div class="chart-placeholder">No trend data available</div>`;
-    }
- 
-    const labels = data.labels;
-    const series = [
-      { key:'normal', label:'Normal',       color:'#0b7a43', values:data.normal },
-      { key:'below',  label:'Below Normal', color:'#f4a400', values:data.below  },
-      { key:'above',  label:'Above Normal', color:'#8e44ad', values:data.above  }
-    ];
- 
-    // Compute percent per month
-    const percents = labels.map((_,i)=>{
-      const total = series.reduce((s,sv)=>s+(sv.values[i]||0),0);
-      const pct = total ? series.map(sv => (sv.values[i]||0)/total) : series.map(()=>0);
-      return { total, pct };
-    });
- 
-    // SVG dims
-    const VB = { w: 100, h: 70 };
-    const pad = { l: 10, r: 4, t: 6, b: 16 };
-    const chartW = VB.w - pad.l - pad.r;
-    const chartH = VB.h - pad.t - pad.b;
- 
-    const groupCount = labels.length;
-    const barWidth = chartW / groupCount * 0.6;
-    const step = chartW / groupCount;
- 
-    // Y axis ticks (0..100%)
-    const ticks = [0,25,50,75,100];
- 
-    function yForPct(p){ // p in [0..1]
-      return pad.t + chartH * (1 - p);
-    }
- 
-    // Build bars
-    let bars = '';
-    labels.forEach((lab, i)=>{
-      const x = pad.l + i*step + (step - barWidth)/2;
-      let yCursor = pad.t + chartH; // bottom
-      // Order bottom -> top: Normal, Below, Above
-      series.forEach((sv, sIdx)=>{
-        const h = chartH * (percents[i].pct[sIdx] || 0);
-        const y = yCursor - h;
-        const title = `${sv.label}: ${formatPct(percents[i].pct[sIdx]*100)} (${lab})`;
-        bars += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" fill="${sv.color}" rx="1" ry="1"><title>${title}</title></rect>`;
-        yCursor = y;
-      });
-    });
- 
-    // Grid + Y labels
-    const grids = ticks.map(t=>{
-      const y = yForPct(t/100).toFixed(2);
-      return `<line x1="${pad.l}" y1="${y}" x2="${VB.w-pad.r}" y2="${y}" stroke="#e6ede9" stroke-width="0.4" />
-              <text x="${pad.l-1.8}" y="${(+y)+1.8}" font-size="2.6" fill="#637668" text-anchor="end">${t}%</text>`;
-    }).join('');
- 
-    // X labels
-    const xlabels = labels.map((lab,i)=>{
-      const x = (pad.l + i*step + step/2).toFixed(2);
-      const y = (VB.h - 2.5).toFixed(2);
-      return `<text x="${x}" y="${y}" font-size="2.6" fill="#637668" text-anchor="middle">${lab}</text>`;
-    }).join('');
- 
-    return `
-      <div style="width:100%;position:relative;">
-        <svg viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="none" style="width:100%;height:240px;border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
-          ${grids}
-          ${bars}
-          ${xlabels}
-        </svg>
-      </div>
-    `;
+// REPLACE the whole buildStackedBarChart(data) inside renderPopulationPanel(...)
+function buildStackedBarChart(data){
+  if(!data.labels.length){
+    return `<div class="chart-placeholder">No trend data available</div>`;
   }
+
+  const labels = data.labels;
+  const series = [
+    { key:'normal', label:'Normal',       color:'#0b7a43', values:data.normal },
+    { key:'below',  label:'Below Normal', color:'#f4a400', values:data.below  },
+    { key:'above',  label:'Above Normal', color:'#8e44ad', values:data.above  }
+  ];
+
+  const percents = labels.map((_,i)=>{
+    const total = series.reduce((s,sv)=>s+(sv.values[i]||0),0);
+    const pct = total ? series.map(sv => (sv.values[i]||0)/total) : series.map(()=>0);
+    return { total, pct };
+  });
+
+  // ViewBox keeps a stable coordinate system; we let the browser scale uniformly
+  const VB = { w: 120, h: 70 };
+  const pad = { l: 10, r: 4, t: 6, b: 16 };
+  const chartW = VB.w - pad.l - pad.r;
+  const chartH = VB.h - pad.t - pad.b;
+
+  const groupCount = labels.length;
+  const barWidth = chartW / groupCount * 0.6;
+  const step = chartW / groupCount;
+
+  const ticks = [0,25,50,75,100];
+  const yForPct = (p)=> pad.t + chartH * (1 - p);
+
+  let bars = '';
+  labels.forEach((lab, i)=>{
+    const x = pad.l + i*step + (step - barWidth)/2;
+    let yCursor = pad.t + chartH; // bottom
+    // bottom -> top order
+    series.forEach((sv, idx)=>{
+      const h = chartH * (percents[i].pct[idx] || 0);
+      const y = yCursor - h;
+      const title = `${sv.label}: ${((percents[i].pct[idx]||0)*100).toFixed(1)}% (${lab})`;
+      bars += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}"
+                 fill="${sv.color}" rx="1" ry="1"><title>${title}</title></rect>`;
+      yCursor = y;
+    });
+  });
+
+  const grids = ticks.map(t=>{
+    const y = yForPct(t/100).toFixed(2);
+    return `<line x1="${pad.l}" y1="${y}" x2="${VB.w-pad.r}" y2="${y}" stroke="#e6ede9" stroke-width="0.4"
+                 vector-effect="non-scaling-stroke" />
+            <text x="${pad.l-1.8}" y="${(+y)+1.8}" font-size="2.6" fill="#637668" text-anchor="end">${t}%</text>`;
+  }).join('');
+
+  const xlabels = labels.map((lab,i)=>{
+    const x = (pad.l + i*step + step/2).toFixed(2);
+    const y = (VB.h - 2.5).toFixed(2);
+    return `<text x="${x}" y="${y}" font-size="2.6" fill="#637668" text-anchor="middle">${lab}</text>`;
+  }).join('');
+
+  return `
+    <div style="width:100%;position:relative;">
+      <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+           style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+        ${grids}
+        ${bars}
+        ${xlabels}
+      </svg>
+    </div>
+  `;
+}
  
   // KPI computations (unchanged logic)
   function computePopulationKPIs(summary, recentRecords, childrenList){
@@ -2881,52 +2882,52 @@ function renderWFLPanel(summary){
  
   // Horizontal bar chart SVG (clean, ticks, left labels)
   function horizontalBars(items){
-    const maxVal = Math.max(1, ...items.map(i=>i.count));
-    const VB = { w: 120, h: 70 }; // a bit wider for labels
-    const pad = { l: 34, r: 6, t: 8, b: 10 };
-    const chartW = VB.w - pad.l - pad.r;
-    const chartH = VB.h - pad.t - pad.b;
- 
-    const bandH = chartH / items.length;
-    const ticks = 4; // 4 gridlines between 0 and max
- 
-    // Gridlines and x-ticks
-    let grid = '';
-    for(let i=0; i<=ticks; i++){
-      const x = pad.l + (chartW * i / ticks);
-      grid += `<line x1="${x.toFixed(2)}" y1="${pad.t}" x2="${x.toFixed(2)}" y2="${(VB.h-pad.b).toFixed(2)}"
-                 stroke="#e6ede9" stroke-width="0.4" />`;
-    }
- 
-    // Bars + tracks + y labels
-    let rows = '';
-    items.forEach((it, idx)=>{
-      const y = pad.t + idx*bandH + bandH*0.18;
-      const h = bandH*0.64;
- 
-      const w = chartW * (it.count / maxVal);
-      const x = pad.l;
- 
-      // Track background
-      rows += `<rect x="${x}" y="${y}" width="${chartW}" height="${h}" rx="1.5" ry="1.5" fill="#f4f7f5"></rect>`;
-      // Value bar
-      rows += `<rect x="${x}" y="${y}" width="${w.toFixed(2)}" height="${h}" rx="1.5" ry="1.5" fill="${it.color}">
-                 <title>${it.label}\nCount: ${it.count}${total?`\nShare: ${formatPct(it.count/total*100)}`:''}</title>
-               </rect>`;
-      // Left-side labels
-      rows += `<text x="${(pad.l-2)}" y="${(y+h/2+1.2).toFixed(2)}" font-size="2.9" fill="#5e7264" text-anchor="end">${it.label}</text>`;
-    });
- 
-    return `
-      <div style="width:100%;position:relative;">
-        <svg viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="none"
-             style="width:100%;height:240px;border:1px solid var(--border-soft);border-radius:12px;background:#ffffff;">
-          ${grid}
-          ${rows}
-        </svg>
-      </div>
-    `;
+  const maxVal = Math.max(1, ...items.map(i=>i.count));
+  const VB = { w: 120, h: 70 }; // logical canvas
+  const pad = { l: 34, r: 6, t: 8, b: 10 };
+  const chartW = VB.w - pad.l - pad.r;
+  const chartH = VB.h - pad.t - pad.b;
+
+  const bandH = chartH / items.length;
+  const ticks = 4; // 4 gridlines between 0 and max
+
+  // Gridlines and x-ticks
+  let grid = '';
+  for(let i=0; i<=ticks; i++){
+    const x = pad.l + (chartW * i / ticks);
+    grid += `<line x1="${x.toFixed(2)}" y1="${pad.t}" x2="${x.toFixed(2)}" y2="${(VB.h-pad.b).toFixed(2)}"
+               stroke="#e6ede9" stroke-width="0.4" vector-effect="non-scaling-stroke" />`;
   }
+
+  // Bars + tracks + y labels
+  let rows = '';
+  items.forEach((it, idx)=>{
+    const y = pad.t + idx*bandH + bandH*0.18;
+    const h = bandH*0.64;
+
+    const w = chartW * (it.count / maxVal);
+    const x = pad.l;
+
+    // Track background
+    rows += `<rect x="${x}" y="${y}" width="${chartW}" height="${h}" rx="1.5" ry="1.5" fill="#f4f7f5"></rect>`;
+    // Value bar
+    rows += `<rect x="${x}" y="${y}" width="${w.toFixed(2)}" height="${h}" rx="1.5" ry="1.5" fill="${it.color}">
+               <title>${it.label}\nCount: ${it.count}</title>
+             </rect>`;
+    // Left-side labels
+    rows += `<text x="${(pad.l-2)}" y="${(y+h/2+1.2).toFixed(2)}" font-size="2.9" fill="#5e7264" text-anchor="end">${it.label}</text>`;
+  });
+
+  return `
+    <div style="width:100%;position:relative;">
+      <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+           style="border:1px solid var(--border-soft);border-radius:12px;background:#ffffff;">
+        ${grid}
+        ${rows}
+      </svg>
+    </div>
+  `;
+}
  
   // Breakdown list like the screenshot
   function breakdownList(items, total){
