@@ -1334,29 +1334,28 @@ function setupChildrenTabsUpdated() {
       
       switch(tabType) {
         case 'profiles':
-          contentArea.innerHTML = `
-            <div class="tile">
-              <div class="d-flex align-items-center justify-content-center flex-column py-5">
-                <i class="bi bi-person-vcard text-muted" style="font-size:3rem;opacity:0.3;"></i>
-                <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;color:#18432b;">Profile Management</h6>
-                <p class="text-muted small mb-0" style="font-size:.65rem;">Manage individual child profiles and detailed information</p>
-              </div>
-            </div>
-          `;
-          break;
-        default: // database
-          // Re-fetch and display current data
-          fetchJSON(api.children + '?action=list')
-            .then(response => {
-              if (response.success) {
-                contentArea.innerHTML = renderChildrenTable(response.children || []);
-                setupChildrenFilters(response.children || []);
-              }
-            })
-            .catch(error => {
-              console.error('Error refreshing children data:', error);
-            });
-          break;
+  // Render shell first (no Search box)
+  const contentAreaPM = document.getElementById('children-tab-content');
+  contentAreaPM.innerHTML = renderProfileManagementShell();
+
+  // Load children then populate list
+  fetchJSON(api.children + '?action=list')
+    .then(res => {
+      const list = res.children || [];
+      populateProfileList(list);
+    })
+    .catch(err => {
+      console.error('Profile Management load error:', err);
+      contentAreaPM.innerHTML = `
+        <div class="tile">
+          <div class="text-center py-5" style="color:#dc3545;font-size:.7rem;">
+            <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:.5;"></i>
+            <div class="mt-2">Error loading profiles</div>
+          </div>
+        </div>
+      `;
+    });
+  break;
       }
     });
   });
@@ -1596,14 +1595,79 @@ function setupChildrenTabs() {
 }
 
 // Helper functions for child actions
-function viewChild(childId) {
-  console.log('View child:', childId);
-  // Implement view functionality
+// REPLACE: viewChild/editChild placeholders with modal implementations
+async function viewChild(childId) {
+  try {
+    const res = await fetchJSON(`${api.children}?action=get&child_id=${childId}`);
+    if (!res.success || !res.child) throw new Error(res.error || 'Not found');
+    const c = res.child;
+
+    const body = document.querySelector('#childProfileViewModal .modal-body');
+    body.innerHTML = `
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="d-flex align-items-center gap-2" style="margin-bottom:.4rem;">
+            <div style="width:28px;height:28px;border-radius:8px;background:#e8f5ea;display:flex;align-items:center;justify-content:center;">
+              <i class="bi ${c.sex==='male'?'bi-gender-male':'bi-gender-female'}" style="color:${c.sex==='male'?'#1c79d0':'#e91e63'}"></i>
+            </div>
+            <div>
+              <div style="font-weight:800;color:#18432b;">${escapeHtml(c.full_name)}</div>
+              <div class="text-muted" style="font-size:.65rem;">${escapeHtml(c.purok_name||'Not Set')}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="tile-sub">Child</div>
+          <div style="font-size:.7rem;"><strong>Sex:</strong> ${escapeHtml(c.sex)}</div>
+          <div style="font-size:.7rem;"><strong>Birth Date:</strong> ${escapeHtml(c.birth_date||'—')}</div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="tile-sub">Mother/Caregiver</div>
+          <div style="font-size:.7rem;"><strong>Name:</strong> ${escapeHtml(c.mother_name||'—')}</div>
+          <div style="font-size:.7rem;"><strong>Contact:</strong> ${escapeHtml(c.mother_contact||'—')}</div>
+          <div style="font-size:.7rem;"><strong>Address:</strong> ${escapeHtml(c.address_details||'—')}</div>
+        </div>
+      </div>
+    `;
+
+    const modal = new bootstrap.Modal(document.getElementById('childProfileViewModal'));
+    modal.show();
+  } catch (e) {
+    alert('Error loading child: ' + (e.message || e));
+  }
 }
 
-function editChild(childId) {
-  console.log('Edit child:', childId);
-  // Implement edit functionality
+async function editChild(childId) {
+  try {
+    const res = await fetchJSON(`${api.children}?action=get&child_id=${childId}`);
+    if (!res.success || !res.child) throw new Error(res.error || 'Not found');
+    const c = res.child;
+
+    // Prefill form
+    const form = document.getElementById('childProfileEditForm');
+    form.reset();
+    form.querySelector('[name="child_id"]').value = c.child_id;
+    form.querySelector('[name="full_name"]').value = c.full_name || '';
+    form.querySelector('[name="sex"]').value = c.sex || '';
+    form.querySelector('[name="birth_date"]').value = c.birth_date || '';
+    form.querySelector('[name="mother_name"]').value = c.mother_name || '';
+    form.querySelector('[name="mother_contact"]').value = c.mother_contact || '';
+    form.querySelector('[name="address_details"]').value = c.address_details || '';
+    form.querySelector('[name="purok_name"]').value = c.purok_name || '';
+
+    // Disable save for now if no backend update endpoint
+    const saveBtn = document.getElementById('saveChildEditBtn');
+    saveBtn.onclick = async () => {
+      // NOTE: Backend update endpoint not present in this repo.
+      // Keep UI consistent and inform user.
+      alert('Edit Save is not yet wired to backend. Frontend ready — add api_children.php?action=update to enable saving.');
+    };
+
+    const modal = new bootstrap.Modal(document.getElementById('childProfileEditModal'));
+    modal.show();
+  } catch (e) {
+    alert('Error loading child: ' + (e.message || e));
+  }
 }
 
 function exportChildrenData() {
@@ -1898,6 +1962,167 @@ function setupChildSelectionHandler() {
       clearPreviousRecords();
     }
   });
+}
+
+function renderProfileManagementShell() {
+  return `
+    <div class="row g-3 fade-in">
+      <!-- Left: list only (no search) -->
+      <div class="col-12 col-lg-6">
+        <div class="tile" id="pmListTile" style="padding:0;overflow:hidden;">
+          <div class="table-responsive" id="pmListContainer">
+            <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+              <div class="spinner-border spinner-border-sm me-2" role="status" style="width:1rem;height:1rem;border-width:2px;"></div>
+              Loading list...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: profile details -->
+      <div class="col-12 col-lg-6">
+        <div class="tile" id="pmDetailsTile">
+          <div class="tile-header">
+            <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">PROFILE DETAILS</h5>
+          </div>
+          <div class="text-center py-5" id="pmDetailsPlaceholder" style="color:var(--muted);font-size:.7rem;">
+            <i class="bi bi-person-vcard" style="font-size:2.4rem;opacity:.35;"></i>
+            <div class="mt-2">Select a child to view profile</div>
+          </div>
+          <div id="pmDetailsContent" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function populateProfileList(children) {
+  const el = document.getElementById('pmListContainer');
+  if (!children.length) {
+    el.innerHTML = `
+      <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+        <i class="bi bi-people" style="font-size:2rem;opacity:.35;"></i>
+        <div class="mt-2">No children found</div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="table table-hover mb-0" style="font-size:.7rem;">
+      <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+        <tr>
+          <th style="padding:.7rem .8rem;border:none;font-size:.65rem;color:#344f3a;">Child</th>
+          <th style="padding:.7rem .8rem;border:none;font-size:.65rem;color:#344f3a;">Sex</th>
+          <th style="padding:.7rem .8rem;border:none;font-size:.65rem;color:#344f3a;">Age (mo)</th>
+          <th style="padding:.7rem .8rem;border:none;font-size:.65rem;color:#344f3a;">Purok</th>
+          <th style="padding:.7rem .8rem;border:none;font-size:.65rem;color:#344f3a;width:120px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${children.map(c => {
+          const sexIcon = c.sex === 'male' ? 'bi-gender-male' : 'bi-gender-female';
+          const sexColor = c.sex === 'male' ? '#1c79d0' : '#e91e63';
+          return `
+            <tr style="border-bottom:1px solid #f0f4f1;">
+              <td style="padding:.75rem .8rem;border:none;">
+                <div class="d-flex align-items-center gap-2">
+                  <div style="width:22px;height:22px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <i class="bi ${sexIcon}" style="font-size:.65rem;color:${sexColor};"></i>
+                  </div>
+                  <div class="d-flex flex-column">
+                    <button type="button" class="btn p-0 text-start pm-child-link" data-id="${c.child_id}" 
+                            style="line-height:1.1;background:none;border:none;color:#1e3e27;font-weight:700;font-size:.72rem;">
+                      ${escapeHtml(c.full_name)}
+                    </button>
+                    <small style="color:#6a7a6d;">${escapeHtml(c.mother_name || '')}</small>
+                  </div>
+                </div>
+              </td>
+              <td style="padding:.75rem .8rem;border:none;color:#586c5d;">${escapeHtml(c.sex)}</td>
+              <td style="padding:.75rem .8rem;border:none;color:#586c5d;">${c.current_age_months ?? '—'}</td>
+              <td style="padding:.75rem .8rem;border:none;color:#586c5d;">${escapeHtml(c.purok_name || 'Not Set')}</td>
+              <td style="padding:.6rem .8rem;border:none;">
+                <div class="d-flex align-items-center gap-2">
+                  <button class="btn btn-sm btn-outline-success" style="padding:.3rem .6rem;border-radius:8px;font-size:.6rem;"
+                          data-action="pm-edit" data-id="${c.child_id}">
+                    <i class="bi bi-pencil me-1"></i> Edit
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+
+  // Name click -> load details on the right panel
+  el.querySelectorAll('.pm-child-link').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = parseInt(btn.dataset.id, 10);
+      await loadProfileDetails(id);
+      // optional: scroll into view for smaller screens
+      document.getElementById('pmDetailsTile')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Keep only Edit in Actions
+  el.querySelectorAll('button[data-action="pm-edit"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = parseInt(btn.dataset.id, 10);
+      editChild(id);
+    });
+  });
+}
+
+// ADD: Load details to the right panel (read-only)
+async function loadProfileDetails(childId) {
+  const ph = document.getElementById('pmDetailsPlaceholder');
+  const box = document.getElementById('pmDetailsContent');
+  ph.style.display = 'block';
+  box.style.display = 'none';
+  ph.innerHTML = `
+    <div class="py-3" style="color:var(--muted);font-size:.65rem;">
+      <span class="spinner-border spinner-border-sm me-2"></span>Loading profile...
+    </div>
+  `;
+
+  try {
+    const res = await fetchJSON(`${api.children}?action=get&child_id=${childId}`);
+    if (!res.success || !res.child) throw new Error(res.error || 'Failed to load');
+    const c = res.child;
+
+    const field = (label, val) => `
+      <div class="d-flex justify-content-between align-items-center" style="padding:.45rem .65rem;border:1px solid #e9efeb;border-radius:8px;background:#fbfdfb;margin-bottom:.4rem;">
+        <span style="font-size:.62rem;color:#5f7464;font-weight:700;">${label}</span>
+        <span style="font-size:.7rem;color:#1e3e27;font-weight:700;">${escapeHtml(val ?? '—')}</span>
+      </div>
+    `;
+
+    box.innerHTML = `
+      <div class="tile-sub" style="margin-bottom:.5rem;">Child Information</div>
+      ${field('Full Name', c.full_name)}
+      ${field('Sex', c.sex)}
+      ${field('Birth Date', c.birth_date)}
+      ${field('Purok', c.purok_name || 'Not Set')}
+
+      <div class="tile-sub" style="margin:.8rem 0 .5rem;">Mother/Caregiver</div>
+      ${field('Full Name', c.mother_name)}
+      ${field('Contact', c.mother_contact || '—')}
+      ${field('Address', c.address_details || '—')}
+    `;
+
+    ph.style.display = 'none';
+    box.style.display = 'block';
+  } catch (e) {
+    console.error(e);
+    ph.style.display = 'block';
+    box.style.display = 'none';
+    ph.innerHTML = `
+      <div class="py-3" style="color:#dc3545;font-size:.65rem;">
+        <i class="bi bi-exclamation-triangle me-1"></i>Error loading profile
+      </div>`;
+  }
 }
 
 // Updated load children function to ensure data is properly stored
@@ -7145,6 +7370,92 @@ document.addEventListener('DOMContentLoaded', function() {
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;">Cancel</button>
         <button type="button" class="btn btn-success" id="saveSuppRecordBtn" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
           <i class="bi bi-save me-1"></i> Save Record
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Child Modal -->
+<div class="modal fade" id="childProfileViewModal" tabindex="-1" aria-labelledby="childProfileViewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:16px;border:1px solid var(--border-soft);box-shadow:0 10px 40px -10px rgba(15,32,23,.15);">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-soft);padding:1.1rem 1.3rem;">
+        <h5 class="modal-title" id="childProfileViewModalLabel" style="font-size:.9rem;font-weight:700;color:var(--text);">Child Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size:.8rem;"></button>
+      </div>
+      <div class="modal-body" style="padding:1.1rem 1.3rem;">
+        <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+          <div class="spinner-border spinner-border-sm me-2" role="status"></div> Loading...
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--border-soft);padding: .8rem 1.1rem;">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size:.7rem;font-weight:600;border-radius:10px;">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Child Modal (frontend only; backend update not yet wired) -->
+<div class="modal fade" id="childProfileEditModal" tabindex="-1" aria-labelledby="childProfileEditModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:16px;border:1px solid var(--border-soft);box-shadow:0 10px 40px -10px rgba(15,32,23,.15);">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-soft);padding:1.1rem 1.3rem;">
+        <h5 class="modal-title" id="childProfileEditModalLabel" style="font-size:.9rem;font-weight:700;color:var(--text);">Edit Child Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size:.8rem;"></button>
+      </div>
+      <div class="modal-body" style="padding:1.1rem 1.3rem;">
+        <form id="childProfileEditForm">
+          <input type="hidden" name="child_id">
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <div class="tile-sub">Child</div>
+              <div class="mb-2">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="full_name" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Sex</label>
+                <select class="form-select" name="sex">
+                  <option value="">Select sex</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Birth Date</label>
+                <input type="date" class="form-control" name="birth_date" />
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <div class="tile-sub">Mother/Caregiver</div>
+              <div class="mb-2">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="mother_name" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Contact</label>
+                <input type="text" class="form-control" name="mother_contact" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Address</label>
+                <input type="text" class="form-control" name="address_details" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Purok</label>
+                <input type="text" class="form-control" name="purok_name" placeholder="e.g., Purok 1" />
+              </div>
+            </div>
+          </div>
+        </form>
+        <p class="text-muted mt-2 mb-0" style="font-size:.62rem;">Note: Saving requires backend update endpoint (api_children.php?action=update).</p>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--border-soft);padding: .8rem 1.1rem;">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size:.7rem;font-weight:600;border-radius:10px;">Cancel</button>
+        <button type="button" class="btn btn-success" id="saveChildEditBtn" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+          <i class="bi bi-save me-1"></i> Save Changes
         </button>
       </div>
     </div>
