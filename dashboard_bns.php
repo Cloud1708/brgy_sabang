@@ -897,6 +897,27 @@ h1.page-title{
 .svg-chart{width:100%;height:auto;display:block;aspect-ratio:16/9;}
 .svg-chart.sm{aspect-ratio:25/14;} /* for smaller sparkline-style charts */
 
+/* Event status pill */
+.status-pill{
+  font-size:.6rem;
+  font-weight:700;
+  padding:.28rem .6rem;
+  border-radius:999px;
+  border:1px solid transparent;
+  line-height:1;
+  white-space:nowrap;
+}
+.status-pill.scheduled{
+  background:#e8f5ea;      /* light green */
+  color:#077a44;           /* green */
+  border-color:#077a4422;
+}
+.status-pill.completed{
+  background:#e7f0ff;      /* light blue */
+  color:#1c79d0;           /* blue */
+  border-color:#1c79d022;
+}
+
 </style>
 </head>
 <body class="font-lg">
@@ -4333,6 +4354,9 @@ function renderNutritionCalendarModule(label) {
       }
       
       const events = response.events || [];
+
+      window.__eventsById = new Map();
+events.forEach(ev => window.__eventsById.set(ev.event_id, ev));
       
       moduleContent.innerHTML = `
         <div class="fade-in">
@@ -4732,8 +4756,9 @@ function renderNutritionCalendarModule(label) {
   `;
   document.head.appendChild(style);
 
-  // Helper function to render individual event items (same as before)
-  function renderEventItem(event) {
+// REPLACE the existing renderEventItem(event) function with this version.
+
+function renderEventItem(event) {
   const eventDate = new Date(event.event_date);
   const formattedDate = eventDate.toLocaleDateString('en-PH', {
     timeZone: 'Asia/Manila',
@@ -4751,45 +4776,51 @@ function renderNutritionCalendarModule(label) {
     : 'Time TBD';
 
   const eventTypeConfig = {
-    'health':    { icon: 'bi-clipboard-data', color: '#077a44', bg: '#e8f5ea', badge: 'Health' },
-    'nutrition': { icon: 'bi-book',           color: '#a259c6', bg: '#f3e8ff', badge: 'Nutrition Education' },
-    'feeding':   { icon: 'bi-cup-hot',        color: '#f4a400', bg: '#ffecc7', badge: 'Feeding Program' },
-    'weighing':  { icon: 'bi-clipboard2-data',color: '#1c79d0', bg: '#e1f1ff', badge: 'Weighing' }
+    'health':    { icon: 'bi-clipboard-data',  color: '#077a44', bg: '#e8f5ea', badge: 'Health' },
+    'nutrition': { icon: 'bi-book',            color: '#a259c6', bg: '#f3e8ff', badge: 'Nutrition Education' },
+    'feeding':   { icon: 'bi-cup-hot',         color: '#f4a400', bg: '#ffecc7', badge: 'Feeding Program' },
+    'weighing':  { icon: 'bi-clipboard2-data', color: '#1c79d0', bg: '#e1f1ff', badge: 'Weighing' }
   };
 
-  const config = eventTypeConfig[event.event_type] || eventTypeConfig['health'];
+  const cfg = eventTypeConfig[event.event_type] || eventTypeConfig['health'];
   const completed = Number(event.is_completed || 0) === 1;
 
+  const statusPill = `<span class="status-pill ${completed ? 'completed' : 'scheduled'}">${completed ? 'Completed' : 'Scheduled'}</span>`;
+
+  // NEW: Edit button added; existing delegated handler already supports data-ev-action="edit"
   const actions = `
     <div class="d-flex align-items-center gap-2">
-      ${completed
-        ? `<span class="badge-status" style="background:#e7f1e9;color:#0b7a43;">Completed</span>`
-        : `<button class="btn btn-sm btn-outline-success btn-mark-complete" 
-                    data-ev-action="complete" data-ev-id="${event.event_id}" 
-                    style="font-size:.6rem;border-radius:8px;">
-              <i class="bi bi-check2-circle me-1"></i> Mark as Completed
-           </button>`}
-      <button class="btn btn-sm btn-outline-secondary btn-edit-event" 
-              data-ev-action="edit" data-ev-id="${event.event_id}" 
+      <button class="btn btn-sm btn-outline-primary"
+              data-ev-action="edit" data-ev-id="${event.event_id}"
               style="font-size:.6rem;border-radius:8px;">
-        <i class="bi bi-pencil-square me-1"></i> Edit
+        <i class="bi bi-pencil me-1"></i> Edit
       </button>
-      <button class="btn btn-sm btn-outline-primary btn-resched-event" 
-              data-ev-action="reschedule" data-ev-id="${event.event_id}" 
+      <button class="btn btn-sm btn-outline-secondary"
+              data-ev-action="reschedule" data-ev-id="${event.event_id}"
               style="font-size:.6rem;border-radius:8px;">
         <i class="bi bi-calendar2-event me-1"></i> Reschedule
       </button>
+      ${completed ? '' : `
+        <button class="btn btn-sm btn-success"
+                data-ev-action="complete" data-ev-id="${event.event_id}"
+                style="font-size:.6rem;border-radius:8px;">
+          <i class="bi bi-check2-circle me-1"></i> Mark as Complete
+        </button>
+      `}
     </div>
   `;
 
   return `
     <div class="event-item" data-ev="${event.event_id}">
       <div class="d-flex align-items-center gap-3">
-        <div class="event-icon" style="background:${config.bg};">
-          <i class="${config.icon}" style="color:${config.color};"></i>
+        <div class="event-icon" style="background:${cfg.bg};">
+          <i class="${cfg.icon}" style="color:${cfg.color};"></i>
         </div>
         <div class="flex-grow-1">
-          <h6 class="event-title">${escapeHtml(event.event_title)}</h6>
+          <h6 class="event-title" style="display:flex;align-items:center;gap:.5rem;">
+            ${escapeHtml(event.event_title)}
+            ${statusPill}
+          </h6>
           <div class="event-details">
             <span><i class="bi bi-calendar3"></i> ${formattedDate}</span>
             <span><i class="bi bi-clock"></i> ${eventTime}</span>
@@ -4797,14 +4828,13 @@ function renderNutritionCalendarModule(label) {
           </div>
         </div>
         <div class="d-flex align-items-center" style="gap:.5rem;">
-          <span class="event-badge" style="background:${config.bg};color:${config.color};">${config.badge}</span>
+          <span class="event-badge" style="background:${cfg.bg};color:${cfg.color};">${cfg.badge}</span>
           ${actions}
         </div>
       </div>
     </div>
   `;
 }
-
 /* --- 2) ADD this delegated click handler inside renderNutritionCalendarModule(...), right after we render the shell the first time --- */
 // Ensure we can prefill modal from list memory
 window.__eventsById = window.__eventsById || new Map();
@@ -4848,35 +4878,39 @@ if (!window.__eventActionsWired) {
 }
 
 /* --- 3) REPLACE the "Schedule Event Modal functionality" DOMContentLoaded block at the bottom with this version --- */
-document.addEventListener('DOMContentLoaded', function() {
+(function wireEventModal(){
   const scheduleEventModal = document.getElementById('scheduleEventModal');
   const saveEventBtn = document.getElementById('saveEventBtn');
   const scheduleEventForm = document.getElementById('scheduleEventForm');
 
-  // Inputs
-  const titleInput   = scheduleEventForm?.querySelector('input[name="event_title"]');
-  const typeSelect   = scheduleEventForm?.querySelector('select[name="event_type"]');
-  const descInput    = scheduleEventForm?.querySelector('textarea[name="event_description"]');
-  const dateInput    = scheduleEventForm?.querySelector('input[name="event_date"]');
-  const timeInput    = scheduleEventForm?.querySelector('input[name="event_time"]');
-  const locInput     = scheduleEventForm?.querySelector('input[name="location"]');
-  const audInput     = scheduleEventForm?.querySelector('input[name="target_audience"]');
-  const pubSelect    = scheduleEventForm?.querySelector('select[name="is_published"]');
+  if (!scheduleEventModal || !saveEventBtn || !scheduleEventForm) return;
 
-  // Set minimum date to today
+  // Flag so the legacy wiring at the bottom won’t attach again
+  window.__eventModalEnhanced = true;
+
+  // Inputs
+  const titleInput   = scheduleEventForm.querySelector('input[name="event_title"]');
+  const typeSelect   = scheduleEventForm.querySelector('select[name="event_type"]');
+  const descInput    = scheduleEventForm.querySelector('textarea[name="event_description"]');
+  const dateInput    = scheduleEventForm.querySelector('input[name="event_date"]');
+  const timeInput    = scheduleEventForm.querySelector('input[name="event_time"]');
+  const locInput     = scheduleEventForm.querySelector('input[name="location"]');
+  const audInput     = scheduleEventForm.querySelector('input[name="target_audience"]');
+  const pubSelect    = scheduleEventForm.querySelector('select[name="is_published"]');
+
+  // Min date = today
   if (dateInput) {
     const today = new Date().toISOString().split('T')[0];
     dateInput.setAttribute('min', today);
   }
 
-  // Global open function for Edit/Reschedule/Create
+  // Global open function for Create/Edit/Reschedule
   window.openEventModal = function(mode, eventData) {
-    // Default mode is "create"
     const m = mode || 'create';
     scheduleEventModal.dataset.mode = m;
     scheduleEventModal.dataset.eventId = eventData?.event_id || '';
 
-    // Title
+    // Header title
     const header = document.getElementById('scheduleEventModalLabel');
     if (header) {
       header.textContent =
@@ -4885,12 +4919,11 @@ document.addEventListener('DOMContentLoaded', function() {
                            : 'Schedule New Event';
     }
 
-    // Prefill fields
+    // Prefill
     if (m === 'create') {
       scheduleEventForm.reset();
       if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
     } else {
-      // fill from eventData (if provided)
       if (titleInput) titleInput.value = eventData.event_title || '';
       if (typeSelect) typeSelect.value = eventData.event_type || '';
       if (descInput)  descInput.value  = eventData.event_description || '';
@@ -4901,16 +4934,24 @@ document.addEventListener('DOMContentLoaded', function() {
       if (pubSelect)  pubSelect.value  = String(eventData.is_published ?? 1);
     }
 
-    // Enable/disable fields for reschedule mode
-    const disableNonSchedule = (disabled) => {
-      [titleInput, typeSelect, descInput, locInput, audInput, pubSelect].forEach(el => { if (el) el.disabled = disabled; });
-      if (dateInput) dateInput.disabled = false;
-      if (timeInput) timeInput.disabled = false;
-    };
-    if (m === 'reschedule') {
-      disableNonSchedule(true);
+    // NEW: Mode-based enable/disable
+    const setDisabled = (els, disabled) => els.forEach(el => el && (el.disabled = disabled));
+    const scheduleEls = [dateInput, timeInput, locInput];                // Schedule Information
+    const infoEls     = [titleInput, typeSelect, descInput, audInput, pubSelect]; // Event Details + Additional Info
+
+    if (m === 'edit') {
+      // In EDIT mode: schedule info cannot be edited
+      setDisabled(scheduleEls, true);    // disable Event Date, Event Time, Location
+      setDisabled(infoEls, false);       // allow editing of title, type, description, audience, publish status
+    } else if (m === 'reschedule') {
+      // In RESCHEDULE mode: only date/time can be changed
+      setDisabled([locInput], true);     // Location stays locked
+      setDisabled(infoEls, true);        // Other details locked
+      setDisabled([dateInput, timeInput], false); // Date & Time editable
     } else {
-      disableNonSchedule(false);
+      // In CREATE mode: everything editable
+      setDisabled(scheduleEls, false);
+      setDisabled(infoEls, false);
     }
 
     // Button label
@@ -4935,14 +4976,15 @@ document.addEventListener('DOMContentLoaded', function() {
       const mode = scheduleEventModal?.dataset.mode || 'create';
       const eid  = parseInt(scheduleEventModal?.dataset.eventId || '0', 10);
 
-      // Basic validation
+      // Validate
       const missing = [];
-      if (!titleInput.value && mode !== 'reschedule') missing.push('Event Title');
-      if (!typeSelect.value && mode !== 'reschedule') missing.push('Event Type');
       if (!dateInput.value) missing.push('Event Date');
       if (!timeInput.value) missing.push('Event Time');
-      if (!locInput.value && mode !== 'reschedule') missing.push('Location');
-
+      if (mode !== 'reschedule') {
+        if (!titleInput.value) missing.push('Event Title');
+        if (!typeSelect.value) missing.push('Event Type');
+        if (!locInput.value)   missing.push('Location');
+      }
       if (missing.length) {
         alert('Please fill in: ' + missing.join(', '));
         return;
@@ -4976,9 +5018,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Narrow payload for reschedule
       const finalPayload = (mode === 'reschedule')
         ? { event_id: eid, event_date: payload.event_date, event_time: payload.event_time }
-        : (mode === 'edit')
-          ? payload
-          : payload;
+        : payload;
 
       makeBusy(true, mode==='edit' ? 'Saving...' : (mode==='reschedule' ? 'Rescheduling...' : 'Scheduling...'));
 
@@ -4989,10 +5029,9 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .then(res => {
         if (!res.success) throw new Error(res.error || 'Failed');
-        // Close modal
+        // Close modal and refresh
         const modal = bootstrap.Modal.getInstance(scheduleEventModal);
         modal?.hide();
-        // Refresh current view
         loadModule('nutrition_calendar','Event Scheduling');
       })
       .catch(err => {
@@ -5009,7 +5048,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if (scheduleEventModal) {
     scheduleEventModal.addEventListener('hidden.bs.modal', function() {
       scheduleEventForm.reset();
-      [ 'mode', 'eventId' ].forEach(k => delete scheduleEventModal.dataset[k]);
+      delete scheduleEventModal.dataset.mode;
+      delete scheduleEventModal.dataset.eventId;
       if (saveEventBtn) {
         saveEventBtn.disabled = false;
         saveEventBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
@@ -5019,28 +5059,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Auto-populate event title based on event type selection (only when creating)
-  const eventTypeSelect = typeSelect;
-  const eventTitleInput = titleInput;
-  if (eventTypeSelect && eventTitleInput) {
-    eventTypeSelect.addEventListener('change', function() {
+  // Auto-populate title when creating
+  if (typeSelect && titleInput) {
+    typeSelect.addEventListener('change', function() {
       if ((scheduleEventModal?.dataset.mode || 'create') !== 'create') return;
-      const eventType = this.value;
-      const currentTitle = eventTitleInput.value.trim();
-      if (!currentTitle && eventType) {
-        const suggestions = {
-          'health': 'Health Consultation Session',
-          'nutrition': 'Nutrition Education Seminar',
-          'feeding': 'Supplementary Feeding Program',
-          'weighing': 'Monthly Weighing Session',
-          'general': 'Community Health Meeting',
-          'other': 'Special Health Activity'
-        };
-        if (suggestions[eventType]) eventTitleInput.value = suggestions[eventType];
+      const map = {
+        'health': 'Health Consultation Session',
+        'nutrition': 'Nutrition Education Seminar',
+        'feeding': 'Supplementary Feeding Program',
+        'weighing': 'Monthly Weighing Session',
+        'general': 'Community Health Meeting',
+        'other': 'Special Health Activity'
+      };
+      if (!titleInput.value.trim() && this.value && map[this.value]) {
+        titleInput.value = map[this.value];
       }
     });
   }
-});
+})();
 
   // Helper function to setup tab switching (same as before but with updated function signature)
   function setupCalendarTabs(events, currentDate) {
@@ -7132,155 +7168,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
-// Schedule Event Modal functionality
-document.addEventListener('DOMContentLoaded', function() {
-  const scheduleEventModal = document.getElementById('scheduleEventModal');
-  const saveEventBtn = document.getElementById('saveEventBtn');
-  const scheduleEventForm = document.getElementById('scheduleEventForm');
 
-  // Set minimum date to today
-  const eventDateInput = document.querySelector('input[name="event_date"]');
-  if (eventDateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    eventDateInput.setAttribute('min', today);
-  }
-
-  // Handle save button click
-  if (saveEventBtn) {
-    saveEventBtn.addEventListener('click', function() {
-      // Get form data
-      const formData = new FormData(scheduleEventForm);
-      const eventData = Object.fromEntries(formData.entries());
-
-      console.log('Event form data collected:', eventData); // Debug log
-
-      // Validation
-      if (!eventData.event_title || !eventData.event_type || !eventData.event_date || 
-          !eventData.event_time || !eventData.location) {
-        
-        const missingFields = [];
-        if (!eventData.event_title) missingFields.push('Event Title');
-        if (!eventData.event_type) missingFields.push('Event Type');
-        if (!eventData.event_date) missingFields.push('Event Date');
-        if (!eventData.event_time) missingFields.push('Event Time');
-        if (!eventData.location) missingFields.push('Location');
-        
-        alert(`Please fill in the following required fields:\n• ${missingFields.join('\n• ')}`);
-        return;
-      }
-
-      // Validate that event date is not in the past
-      const eventDateTime = new Date(`${eventData.event_date}T${eventData.event_time}`);
-      const now = new Date();
-      
-      if (eventDateTime <= now) {
-        alert('Event date and time must be in the future.');
-        return;
-      }
-
-      // Show loading state
-      saveEventBtn.disabled = true;
-      saveEventBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Scheduling...';
-
-      // Prepare data for API
-      const submitData = {
-        event_title: eventData.event_title,
-        event_description: eventData.event_description || '',
-        event_type: eventData.event_type,
-        event_date: eventData.event_date,
-        event_time: eventData.event_time,
-        location: eventData.location,
-        target_audience: eventData.target_audience || '',
-        is_published: parseInt(eventData.is_published) || 1
-      };
-
-      console.log('Submitting event data:', submitData); // Debug log
-
-      // Submit to API endpoint
-      fetchJSON('bns_modules/api_events.php?action=create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submitData)
-      })
-      .then(response => {
-        console.log('API Response:', response); // Debug log
-        
-        if (response.success) {
-          // Format date and time for display
-          const eventDate = new Date(eventDateTime);
-          const dateStr = eventDate.toLocaleDateString();
-          const timeStr = eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-          
-          // Success message
-          const successMessage = `✅ Event scheduled successfully!\n\nEvent: ${eventData.event_title}\nDate: ${dateStr}\nTime: ${timeStr}\nLocation: ${eventData.location}`;
-          alert(successMessage);
-          
-          // Reset form
-          scheduleEventForm.reset();
-          
-          // Close modal
-          const modal = bootstrap.Modal.getInstance(scheduleEventModal);
-          modal.hide();
-          
-          // Refresh the calendar/event list if we're on the event scheduling page
-          if (titleEl.textContent === 'Event Scheduling') {
-            renderNutritionCalendarModule('Event Scheduling');
-          }
-        } else {
-          throw new Error(response.error || 'Failed to schedule event');
-        }
-      })
-      .catch(error => {
-        console.error('Event scheduling error:', error);
-        alert('❌ Error scheduling event: ' + error.message);
-      })
-      .finally(() => {
-        // Reset button
-        saveEventBtn.disabled = false;
-        saveEventBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
-      });
-    });
-  }
-
-  // Reset form when modal is closed
-  if (scheduleEventModal) {
-    scheduleEventModal.addEventListener('hidden.bs.modal', function() {
-      scheduleEventForm.reset();
-      saveEventBtn.disabled = false;
-      saveEventBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
-    });
-  }
-
-  // Auto-populate event title based on event type selection
-  const eventTypeSelect = document.querySelector('select[name="event_type"]');
-  const eventTitleInput = document.querySelector('input[name="event_title"]');
-  
-  if (eventTypeSelect && eventTitleInput) {
-    eventTypeSelect.addEventListener('change', function() {
-      const eventType = this.value;
-      const currentTitle = eventTitleInput.value.trim();
-      
-      // Only auto-populate if title is empty
-      if (!currentTitle && eventType) {
-        const suggestions = {
-          'health': 'Health Consultation Session',
-          'nutrition': 'Nutrition Education Seminar',
-          'vaccination': 'Vaccination Drive',
-          'feeding': 'Supplementary Feeding Program',
-          'weighing': 'Monthly Weighing Session',
-          'general': 'Community Health Meeting',
-          'other': 'Special Health Activity'
-        };
-        
-        if (suggestions[eventType]) {
-          eventTitleInput.value = suggestions[eventType];
-        }
-      }
-    });
-  }
-});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
