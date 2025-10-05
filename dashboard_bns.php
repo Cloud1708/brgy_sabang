@@ -1637,6 +1637,7 @@ async function viewChild(childId) {
   }
 }
 
+// REPLACE the entire editChild(childId) function with this version
 async function editChild(childId) {
   try {
     const res = await fetchJSON(`${api.children}?action=get&child_id=${childId}`);
@@ -1655,13 +1656,78 @@ async function editChild(childId) {
     form.querySelector('[name="address_details"]').value = c.address_details || '';
     form.querySelector('[name="purok_name"]').value = c.purok_name || '';
 
-    // Disable save for now if no backend update endpoint
     const saveBtn = document.getElementById('saveChildEditBtn');
-    saveBtn.onclick = async () => {
-      // NOTE: Backend update endpoint not present in this repo.
-      // Keep UI consistent and inform user.
-      alert('Edit Save is not yet wired to backend. Frontend ready — add api_children.php?action=update to enable saving.');
+    // Guard against multiple bindings
+    if (saveBtn.__handlerRef) {
+      saveBtn.removeEventListener('click', saveBtn.__handlerRef);
+    }
+
+    const onSave = async () => {
+      const payload = {
+        child_id: Number(form.querySelector('[name="child_id"]').value),
+        full_name: form.querySelector('[name="full_name"]').value.trim(),
+        sex: form.querySelector('[name="sex"]').value,
+        birth_date: form.querySelector('[name="birth_date"]').value,
+        mother_name: form.querySelector('[name="mother_name"]').value.trim(),
+        mother_contact: form.querySelector('[name="mother_contact"]').value.trim(),
+        address_details: form.querySelector('[name="address_details"]').value.trim(),
+        purok_name: form.querySelector('[name="purok_name"]').value.trim()
+      };
+
+      // Simple validation
+      const missing = [];
+      if (!payload.full_name) missing.push('Child: Full Name');
+      if (!payload.sex) missing.push('Child: Sex');
+      if (!payload.birth_date) missing.push('Child: Birth Date');
+      if (missing.length) {
+        alert('Please fill in: \n• ' + missing.join('\n• '));
+        return;
+      }
+
+      // Busy state
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+      try {
+        const up = await fetchJSON(`${api.children}?action=update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!up.success) throw new Error(up.error || 'Update failed');
+
+        // Success UX
+        alert('✅ Profile updated successfully.');
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('childProfileEditModal'));
+        modal?.hide();
+
+        // Refresh UI panels consistently
+        try {
+          // a) If details panel is visible, refresh it
+          await loadProfileDetails(payload.child_id);
+        } catch (e) {}
+
+        // b) If Children Management module is open, re-render list
+        if (document.getElementById('children-tab-content')) {
+          renderChildrenModule('Children Management');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error: ' + (err.message || err));
+      } finally {
+        // Reset button safely (modal might be closed already)
+        const btn = document.getElementById('saveChildEditBtn');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-save me-1"></i> Save Changes';
+        }
+      }
     };
+
+    saveBtn.addEventListener('click', onSave);
+    saveBtn.__handlerRef = onSave;
 
     const modal = new bootstrap.Modal(document.getElementById('childProfileEditModal'));
     modal.show();

@@ -74,6 +74,27 @@ try {
             ]);
             break;
 
+        // ADD: update action to save edits from the modal
+        case 'update':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('POST method required');
+            }
+            $raw = file_get_contents('php://input');
+            $data = json_decode($raw, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Invalid JSON data');
+            }
+
+            $updated = updateChildAndMother($data);
+            $child = getChildDetails((int)$data['child_id']);
+
+            echo json_encode([
+                'success' => true,
+                'updated' => $updated,
+                'child' => $child
+            ]);
+            break;
+
         default:
             throw new Exception('Invalid action');
     }
@@ -291,4 +312,132 @@ function registerNewChild($data) {
         error_log("Error in registerNewChild (mysqli): ".$e->getMessage());
         throw $e;
     }
+}
+
+/* NEW: helper + updater for edit modal */
+
+function updateChildAndMother(array $data): bool {
+    global $mysqli;
+
+    $child_id = (int)($data['child_id'] ?? 0);
+    if ($child_id <= 0) {
+        throw new Exception('Missing child_id');
+    }
+
+    // Validate child fields
+    $full_name  = trim((string)($data['full_name'] ?? ''));
+    $sex        = trim((string)($data['sex'] ?? ''));
+    $birth_date = trim((string)($data['birth_date'] ?? ''));
+
+    if ($full_name === '' || ($sex !== 'male' && $sex !== 'female')) {
+        throw new Exception('Invalid child name or sex');
+    }
+    if ($birth_date === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birth_date)) {
+        throw new Exception('Invalid birth date');
+    }
+
+    // Validate mother fields (optional pero recommended)
+    $mother_name    = isset($data['mother_name'])    ? trim((string)$data['mother_name'])    : null;
+    $mother_contact = isset($data['mother_contact']) ? trim((string)$data['mother_contact']) : null;
+    $address        = isset($data['address_details'])? trim((string)$data['address_details']): null;
+    $purok_name     = isset($data['purok_name'])     ? trim((string)$data['purok_name'])     : null;
+
+    // Get mother_id via child
+    $stmt = $mysqli->prepare("SELECT mother_id FROM children WHERE child_id=? LIMIT 1");
+    if (!$stmt) throw new Exception('DB prepare failed');
+    $stmt->bind_param('i', $child_id);
+    $stmt->execute();
+    $stmt->bind_result($mother_id);
+    if (!$stmt->fetch()) {
+        $stmt->close();
+        throw new Exception('Child not found');
+    }
+    $stmt->close();
+
+    $mysqli->begin_transaction();
+
+    try {
+        // Update child
+        $stmt = $mysqli->prepare("UPDATE children SET full_name=?, sex=?, birth_date=?, updated_at=NOW() WHERE child_id=? LIMIT 1");
+        if (!$stmt) throw new Exception('DB prepare failed (child)');
+        $stmt->bind_param('sssi', $full_name, $sex, $birth_date, $child_id);
+        if (!$stmt->execute()) throw new Exception('Child update failed: '.$stmt->error);
+        $stmt->close();
+
+        // Update mother details if provided
+        $sets = [];
+        $vals = [];
+        $types = '';
+
+        if ($mother_name !== null)    { $sets[] = 'full_name = ?';       $vals[] = $mother_name;    $types.='s'; }
+        if ($mother_contact !== null) { $sets[] = 'contact_number = ?';  $vals[] = $mother_contact; $types.='s'; }
+        if ($address !== null)        { $sets[] = 'address_details = ?'; $vals[] = $address;        $types.='s'; }
+
+        // Resolve or create purok if name provided
+        if ($purok_name !== null && $purok_name !== '') {
+            $current_user_id = (int)($_SESSION['user_id'] ?? 0);
+            $purok_id = resolveOrCreatePurokId($purok_name, $current_user_id);
+            if ($purok_id) {
+                $sets[] = 'purok_id = ?';
+                $vals[] = $purok_id;
+                $types .= 'i';
+            }
+        }
+
+        if ($sets) {
+            $sql = "UPDATE mothers_caregivers SET ".implode(',', $sets)." WHERE mother_id=? LIMIT 1";
+            $stmt = $mysqli->prepare($sql);
+            if (!$stmt) throw new Exception('DB prepare failed (mother)');
+            $types .= 'i';
+            $vals[] = $mother_id;
+            $stmt->bind_param($types, ...$vals);
+            if (!$stmt->execute()) throw new Exception('Mother update failed: '.$stmt->error);
+            $stmt->close();
+        }
+
+        $mysqli->commit();
+        return true;
+
+    } catch (Throwable $e) {
+        try { $mysqli->rollback(); } catch (Throwable $ignored) {}
+        throw $e;
+    }
+}
+
+function resolveOrCreatePurokId(string $purok_name, int $user_id): ?int {
+    global $mysqli;
+    if ($purok_name === '') return null;
+
+    // Try find existing purok (case-insensitive)
+    $stmt = $mysqli->prepare("SELECT purok_id FROM puroks WHERE LOWER(purok_name)=LOWER(?) LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param('s', $purok_name);
+        $stmt->execute();
+        $stmt->bind_result($pid);
+        if ($stmt->fetch()) {
+            $stmt->close();
+            return (int)$pid;
+        }
+        $stmt->close();
+    }
+
+    // Determine barangay from current user
+    $barangay = 'Barangay';
+    $qb = $mysqli->prepare("SELECT barangay FROM users WHERE user_id=? LIMIT 1");
+    if ($qb) {
+        $qb->bind_param('i', $user_id);
+        $qb->execute();
+        $qb->bind_result($bgy);
+        if ($qb->fetch() && $bgy) $barangay = $bgy;
+        $qb->close();
+    }
+
+    // Create new purok
+    $ins = $mysqli->prepare("INSERT INTO puroks (purok_name, barangay) VALUES (?,?)");
+    if (!$ins) return null;
+    $ins->bind_param('ss', $purok_name, $barangay);
+    if (!$ins->execute()) { $ins->close(); return null; }
+    $newId = (int)$ins->insert_id;
+    $ins->close();
+    return $newId;
 }
