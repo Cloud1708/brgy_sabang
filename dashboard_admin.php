@@ -2,6 +2,7 @@
 date_default_timezone_set('Asia/Manila');
 require_once __DIR__ . '/inc/db.php';
 require_once __DIR__ . '/inc/auth.php';
+require_once __DIR__ . '/inc/mail.php';
 require_role(['Admin']);
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -13,12 +14,97 @@ if (empty($_SESSION['csrf_token'])) {
 $csrf = $_SESSION['csrf_token'];
 
 /* ------------------------------------------------------------------
-   Section routing (top-level only, like in the screenshot)
+   Section routing
 -------------------------------------------------------------------*/
-$validSections = ['control-panel', 'accounts', 'reports', 'events'];
+$validSections = [
+    'control-panel', 'accounts', 'reports', 'events',
+    'health_records', 'immunization', 'maternal_patients', 'parent_accounts'
+];
 $section = $_GET['section'] ?? ($_SESSION['active_section'] ?? 'control-panel');
 if (!in_array($section, $validSections)) $section = 'control-panel';
 $_SESSION['active_section'] = $section;
+
+/* ------------------------------------------------------------------
+   Helper Functions
+-------------------------------------------------------------------*/
+function fail($m, $c = 400) {
+    http_response_code($c);
+    echo json_encode(['success' => false, 'error' => $m]);
+    exit;
+}
+
+function ok($d = []) {
+    echo json_encode(array_merge(['success' => true], $d));
+    exit;
+}
+
+function nz($s) {
+    $s = trim((string)$s);
+    return $s === '' ? null : $s;
+}
+
+function rand_password($len = 10) {
+    $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    $out = '';
+    for ($i = 0; $i < $len; $i++) {
+        $out .= $chars[random_int(0, strlen($chars) - 1)];
+    }
+    return $out;
+}
+
+function log_parent_activity(mysqli $mysqli, int $parent_user_id, string $action_code, ?int $child_id = null, array $meta = []) {
+    if ($parent_user_id <= 0 || $action_code === '') return;
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 250);
+    $j = $meta ? json_encode($meta, JSON_UNESCAPED_UNICODE) : null;
+    $stmt = $mysqli->prepare("INSERT INTO parent_audit_log
+        (parent_user_id,action_code,child_id,meta_json,ip_address,user_agent)
+        VALUES (?,?,?,?,?,?)");
+    $stmt->bind_param('isisss', $parent_user_id, $action_code, $child_id, $j, $ip, $ua);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function has_column(mysqli $mysqli, string $table, string $col): bool {
+    static $cache = [];
+    $key = $table . '|' . $col;
+    if (isset($cache[$key])) return $cache[$key];
+
+    $sql = "SELECT COUNT(*) AS c
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME = ?";
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) return $cache[$key] = false;
+    $stmt->bind_param('ss', $table, $col);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $exists = false;
+    if ($res && ($row = $res->fetch_assoc())) $exists = ((int)$row['c']) > 0;
+    $stmt->close();
+    return $cache[$key] = $exists;
+}
+
+function rel_time($ts) {
+    $dt = new DateTime($ts, new DateTimeZone('UTC'));
+    $now = new DateTime('now', new DateTimeZone('UTC'));
+    $interval = $now->diff($dt);
+
+    if ($interval->invert === 0) {
+        $secs = $interval->s + ($interval->i * 60) + ($interval->h * 3600) + ($interval->d * 86400);
+        if ($secs < 60) return $secs . 's ago';
+        if ($secs < 3600) return floor($secs / 60) . ' min ago';
+        if ($secs < 86400) return floor($secs / 3600) . ' hr ago';
+        return $dt->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, H:i');
+    } else {
+        $secs = $interval->s + ($interval->i * 60) + ($interval->h * 3600) + ($interval->d * 86400);
+        if ($secs < 60) return $secs . 's ago';
+        if ($secs < 3600) return floor($secs / 60) . ' min ago';
+        if ($secs < 86400) return floor($secs / 3600) . ' hr ago';
+        return $dt->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, H:i');
+    }
+}
 
 /* ------------------------------------------------------------------
    Data fetching for Accounts section
@@ -157,26 +243,24 @@ if ($section === 'events') {
    Data fetching for Reports section
 -------------------------------------------------------------------*/
 if ($section === 'reports') {
-    // Fixed: Use child_immunizations for vaccination coverage
     $vaccination_coverage = ['completed' => 0, 'pending' => 0];
     $completed = (int)($mysqli->query("SELECT COUNT(DISTINCT child_id) FROM child_immunizations WHERE vaccination_date IS NOT NULL")->fetch_row()[0] ?? 0);
     $total_children = (int)($mysqli->query("SELECT COUNT(*) FROM children")->fetch_row()[0] ?? 0);
     $vaccination_coverage['completed'] = $completed;
     $vaccination_coverage['pending'] = $total_children - $completed;
 
-    // Fixed: Use health_records for prenatal, postnatal_visits for postnatal
     $maternal_stats = [
         'prenatal_checkups' => 0,
-        'prenatal_delta' => '+5%', // Placeholder delta
+        'prenatal_delta' => '+5%',
         'postnatal_visits' => 0,
-        'postnatal_delta' => '+3%' // Placeholder delta
+        'postnatal_delta' => '+3%'
     ];
     $maternal_stats['prenatal_checkups'] = (int)($mysqli->query("SELECT COUNT(*) FROM health_records")->fetch_row()[0] ?? 0);
     $maternal_stats['postnatal_visits'] = (int)($mysqli->query("SELECT COUNT(*) FROM postnatal_visits")->fetch_row()[0] ?? 0);
 }
 
 /* ------------------------------------------------------------------
-   Fake / sample data for Control Panel (replace with real queries)
+   Data for Control Panel
 -------------------------------------------------------------------*/
 if ($section === 'control-panel') {
     $activeUsers = (int)($mysqli->query("SELECT COUNT(*) FROM users WHERE is_active=1")->fetch_row()[0] ?? 0);
@@ -193,7 +277,7 @@ if ($section === 'control-panel') {
         FROM account_creation_log l
         JOIN users u ON u.user_id = l.created_by_user_id
         ORDER BY l.created_at DESC
-        LIMIT 4
+        LIMIT 9
     ");
     if ($stmt === false) {
         $msg = "<div class='alert alert-danger'>Database error: Unable to fetch activity logs.</div>";
@@ -210,29 +294,13 @@ if ($section === 'control-panel') {
         }
         $stmt->close();
     }
-
-    function rel_time($ts) {
-        $dt = new DateTime($ts, new DateTimeZone('UTC'));
-        $now = new DateTime('now', new DateTimeZone('UTC'));
-        $interval = $now->diff($dt);
-
-        if ($interval->invert === 0) {
-            $secs = $interval->s + ($interval->i * 60) + ($interval->h * 3600) + ($interval->d * 86400);
-            if ($secs < 60) return $secs . 's ago';
-            if ($secs < 3600) return floor($secs / 60) . ' min ago';
-            if ($secs < 86400) return floor($secs / 3600) . ' hr ago';
-            return $dt->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, H:i');
-        } else {
-            $secs = $interval->s + ($interval->i * 60) + ($interval->h * 3600) + ($interval->d * 86400);
-            if ($secs < 60) return $secs . 's ago';
-            if ($secs < 3600) return floor($secs / 60) . ' min ago';
-            if ($secs < 86400) return floor($secs / 3600) . ' hr ago';
-            return $dt->setTimezone(new DateTimeZone('Asia/Manila'))->format('M j, H:i');
-        }
-    }
 }
 
 $msg = '';
+
+/* ------------------------------------------------------------------
+   POST Request Handling
+-------------------------------------------------------------------*/
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $msg = "<div class='alert alert-danger'>Invalid request. Please try again.</div>";
@@ -311,6 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+        
         // EDIT ACCOUNT
         if ($section === 'accounts' && isset($_POST['edit_account'])) {
             $uid = intval($_POST['user_id']);
@@ -334,6 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             }
         }
+        
         // TOGGLE ACTIVE
         if ($section === 'accounts' && isset($_POST['toggle_active'])) {
             $uid = intval($_POST['user_id']);
@@ -352,6 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit(json_encode(['ok' => true]));
             }
         }
+        
         // ADD EVENT
         if ($section === 'events' && isset($_POST['add_event'])) {
             $title = $mysqli->real_escape_string($_POST['event_title']);
@@ -378,6 +449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             }
         }
+        
         // EDIT EVENT
         if ($section === 'events' && isset($_POST['edit_event'])) {
             $eid = intval($_POST['event_id']);
@@ -404,10 +476,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             }
         }
+        
         // Regenerate CSRF token for next request
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 }
+
 // CSV EXPORT
 if ($section === 'reports' && isset($_GET['action']) && $_GET['action'] == 'export_csv') {
     header('Content-Type: text/csv');
@@ -428,25 +502,36 @@ if ($section === 'reports' && isset($_GET['action']) && $_GET['action'] == 'expo
 
 $currentUsername = $_SESSION['username'] ?? 'Admin User';
 $currentRoleName = $_SESSION['role'] ?? 'System Administrator';
+
 function initials($name) {
     $p = preg_split('/\s+/', $name);
     if (!$p) return 'AD';
     if (count($p) === 1) return strtoupper(substr($p[0], 0, 2));
     return strtoupper(substr($p[0], 0, 1) . substr(end($p), 0, 1));
 }
+
 $initials = initials($currentUsername);
 
 $titles = [
     'control-panel' => 'Control Panel',
     'accounts' => 'Account Management',
     'reports' => 'System Reports',
-    'events' => 'Event Management'
+    'events' => 'Event Management',
+    'health_records' => 'Health Records',
+    'immunization' => 'Immunization Management',
+    'maternal_patients' => 'Maternal Patients',
+    'parent_accounts' => 'Parent Account Management'
 ];
+
 $descs = [
     'control-panel' => 'Monitor system performance and user activity',
     'accounts' => 'Manage BHW / BNS user accounts',
     'reports' => 'View health and nutrition statistics',
-    'events' => 'Schedule and manage community events'
+    'events' => 'Schedule and manage community events',
+    'health_records' => 'Manage maternal health records',
+    'immunization' => 'Track child immunizations',
+    'maternal_patients' => 'Manage maternal patient records',
+    'parent_accounts' => 'Manage parent portal accounts'
 ];
 ?>
 <!DOCTYPE html>
@@ -459,7 +544,6 @@ $descs = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        /* Layout + Theme */
         :root {
             --sidebar-width: 220px;
             --green: #047857;
@@ -497,7 +581,7 @@ $descs = [
             top: 0;
             bottom: 0;
             height: 100vh;
-            overflow: hidden;
+            overflow-y: auto;
         }
         .brand {
             padding: .85rem 1rem .65rem;
@@ -800,6 +884,7 @@ $descs = [
             border-radius: var(--radius-sm);
             font-weight: 500;
             color: var(--text-soft);
+            cursor: pointer;
         }
         .tab-btn.active {
             background: var(--green);
@@ -877,6 +962,8 @@ $descs = [
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
         .alert-reminder {
             background: var(--surface);
@@ -935,6 +1022,50 @@ $descs = [
             color: #dc3545;
             margin-left: 0.2rem;
         }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .data-table th, .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table th {
+            background: var(--surface-alt);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .data-table tbody tr:hover {
+            background: var(--surface-alt);
+        }
+        .btn-action {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+        /* Additional UI Enhancements for dynamic modules */
+        .loading-placeholder {
+            display:flex; align-items:center; gap:.75rem;
+            font-size:.85rem; color:#5c6872;
+        }
+        .loading-placeholder .spinner-border {
+            width:1rem; height:1rem;
+        }
+        .mini-badge {
+            display:inline-block;
+            background:#edf2f6;
+            padding:.2rem .5rem;
+            font-size:.6rem;
+            border-radius:10px;
+            font-weight:600;
+            letter-spacing:.05em;
+            text-transform:uppercase;
+        }
+        .mini-badge.danger { background:#ffe5e5; color:#a40000; }
+        .mini-badge.warn { background:#fff4d6; color:#7d5a00; }
+        .mini-badge.ok { background:#e3f9ec; color:#036635; }
         @media (max-width: 900px) {
             .sidebar {
                 position: fixed;
@@ -973,15 +1104,25 @@ $descs = [
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="brand">
-                <h1>Barangay San Isidro</h1>
+                <h1>Barangay Sabang</h1>
                 <small>Health &amp; Nutrition Management System</small>
             </div>
             <div class="nav-section">
+                <small class="text-muted d-block mb-2" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">Admin Navigation</small>
                 <ul class="nav-list">
                     <li><a class="<?php echo $section === 'control-panel' ? 'active' : ''; ?>" href="?section=control-panel"><i class="bi bi-grid"></i><span>Control Panel</span></a></li>
                     <li><a class="<?php echo $section === 'accounts' ? 'active' : ''; ?>" href="?section=accounts"><i class="bi bi-people"></i><span>Account Management</span></a></li>
                     <li><a class="<?php echo $section === 'reports' ? 'active' : ''; ?>" href="?section=reports"><i class="bi bi-file-bar-graph"></i><span>System Reports</span></a></li>
                     <li><a class="<?php echo $section === 'events' ? 'active' : ''; ?>" href="?section=events"><i class="bi bi-calendar-event"></i><span>Event Management</span></a></li>
+                </ul>
+            </div>
+            <div class="nav-section">
+                <small class="text-muted d-block mb-2" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BHW Functions</small>
+                <ul class="nav-list">
+                    <li><a class="<?php echo $section === 'health_records' ? 'active' : ''; ?>" href="?section=health_records"><i class="bi bi-heart-pulse"></i><span>Health Records</span></a></li>
+                    <li><a class="<?php echo $section === 'immunization' ? 'active' : ''; ?>" href="?section=immunization"><i class="bi bi-shield-check"></i><span>Immunization</span></a></li>
+                    <li><a class="<?php echo $section === 'maternal_patients' ? 'active' : ''; ?>" href="?section=maternal_patients"><i class="bi bi-person-heart"></i><span>Maternal Patients</span></a></li>
+                    <li><a class="<?php echo $section === 'parent_accounts' ? 'active' : ''; ?>" href="?section=parent_accounts"><i class="bi bi-person-badge"></i><span>Parent Accounts</span></a></li>
                 </ul>
             </div>
             <div class="sidebar-footer">
@@ -993,6 +1134,7 @@ $descs = [
                 </a>
             </div>
         </aside>
+        
         <!-- Main -->
         <div class="main">
             <div class="topbar">
@@ -1017,6 +1159,7 @@ $descs = [
                     </div>
                 </div>
             </div>
+            
             <div class="main-inner">
                 <div class="mb-4">
                     <p class="mb-1" style="font-size:.8rem; font-weight:600; color:#0a583c;">
@@ -1026,7 +1169,9 @@ $descs = [
                         <?php echo htmlspecialchars($descs[$section]); ?>
                     </p>
                 </div>
+                
                 <?php echo $msg; ?>
+                
                 <?php if ($section === 'accounts') : ?>
                     <div class="row mb-4">
                         <div class="col-md-6 col-lg-4">
@@ -1048,11 +1193,13 @@ $descs = [
                             </button>
                         </div>
                     </div>
+                    
                     <div class="tabs-bar mb-3">
                         <button class="tab-btn <?php echo !isset($_GET['tab']) || $_GET['tab'] == 'user' ? 'active' : ''; ?>" onclick="location.href='?section=accounts&tab=user'">User Management</button>
                         <button class="tab-btn <?php echo isset($_GET['tab']) && $_GET['tab'] == 'audit' ? 'active' : ''; ?>" onclick="location.href='?section=accounts&tab=audit'">Audit Log</button>
                         <button class="tab-btn <?php echo isset($_GET['tab']) && $_GET['tab'] == 'role' ? 'active' : ''; ?>" onclick="location.href='?section=accounts&tab=role'">Role Permissions</button>
                     </div>
+                    
                     <?php if (!isset($_GET['tab']) || $_GET['tab'] == 'user') : ?>
                         <div class="panel">
                             <div class="panel-header mb-2">
@@ -1100,6 +1247,7 @@ $descs = [
                                 </table>
                             </div>
                         </div>
+                        
                         <?php if ($edit_account) : ?>
                           <div class="modal fade show" id="editAccountModal" tabindex="-1" style="display:block" aria-modal="true" role="dialog">
                               <div class="modal-dialog">
@@ -1192,6 +1340,7 @@ $descs = [
                             </div>
                         </div>
                     <?php endif; ?>
+                    
                     <div class="modal fade" id="createAccountModal" tabindex="-1">
                         <div class="modal-dialog">
                             <form method="POST" action="?section=accounts">
@@ -1221,18 +1370,21 @@ $descs = [
                             </form>
                         </div>
                     </div>
+                    
                 <?php elseif ($section === 'reports') : ?>
                     <div class="reports-card mb-4">
                         <div class="reports-tools-bar">
                             <div style="font-weight:600;font-size:1.08em;">Data Export Tools</div>
-                            <a href="?section=reports&action=export_csv" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
-                            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
-                            <button class="btn btn-success btn-sm"><i class="bi bi-bar-chart"></i> Full Report</button>
+                            <div class="d-flex gap-2">
+                                <a href="?section=reports&action=export_csv" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
+                                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
+                                <button class="btn btn-success btn-sm"><i class="bi bi-bar-chart"></i> Full Report</button>
+                            </div>
                         </div>
                         <div>
                             <div style="font-weight:600;font-size:1.01em;">Nutrition Status Overview</div>
                             <div style="font-size:.98em;color:#5c6872;">Monthly trends of nutritional status across the barangay</div>
-                            <canvas id="nutritionChart" style="max-width:550px;height:220px;margin-top:.7em;"></canvas>
+                            <canvas id="nutritionChart" style="max-width:100%;max-height:385px;margin-top:.7em;"></canvas>
                             <div class="mt-2">
                                 <span style="color:#047857;font-weight:600;">Normal</span>
                                 <span style="color:#1aa09c;font-weight:600;margin-left:.9em;">Overweight</span>
@@ -1263,6 +1415,7 @@ $descs = [
                             </div>
                         </div>
                     </div>
+                    
                 <?php elseif ($section === 'events') : ?>
                     <div class="alert-reminder">
                         <strong>Reminder: Complete Vaccination Records</strong>
@@ -1349,6 +1502,7 @@ $descs = [
                             </ul>
                         </div>
                     </div>
+                    
                     <div class="modal fade" id="addEventModal" tabindex="-1">
                         <div class="modal-dialog">
                             <form method="POST" action="?section=events">
@@ -1387,6 +1541,7 @@ $descs = [
                             </form>
                         </div>
                     </div>
+                    
                     <?php if ($edit_event) : ?>
                         <div class="modal fade show" id="editEventModal" tabindex="-1" style="display:block" aria-modal="true" role="dialog">
                             <div class="modal-dialog">
@@ -1431,6 +1586,17 @@ $descs = [
                             document.body.style.overflow = 'hidden';
                         </script>
                     <?php endif; ?>
+                    
+                <?php elseif ($section === 'health_records' || $section === 'immunization' || 
+                              $section === 'maternal_patients' || $section === 'parent_accounts') : ?>
+
+                    <div class="panel" id="dynamicSectionPanel">
+                        <div class="panel-header mb-3">
+                            <h6><?php echo htmlspecialchars($titles[$section]); ?></h6>
+                            <p>Dynamic management interface (loaded via JavaScript)</p>
+                        </div>
+                    </div>
+                    
                 <?php else : ?>
                     <div class="mb-4">
                         <h6 class="mb-3" style="font-size:.75rem; font-weight:600; color:#162630;">System Overview</h6>
@@ -1461,6 +1627,7 @@ $descs = [
                             </div>
                         </div>
                     </div>
+                    
                     <div class="panel mb-4">
                         <div class="panel-header mb-2">
                             <h6>User Activity Monitoring</h6>
@@ -1498,16 +1665,40 @@ $descs = [
             </div>
         </div>
     </div>
+
+    <script src="admin_access/admin_utils.js"></script>
+
+        <?php if ($section === 'health_records'): ?>
+            <script src="admin_access/health_records.js"></script>
+        <?php endif; ?>
+        <?php if ($section === 'immunization'): ?>
+            <script src="admin_access/immunization.js"></script>
+        <?php endif; ?>
+        <?php if ($section === 'maternal_patients'): ?>
+            <script src="admin_access/maternal_patients.js"></script>
+        <?php endif; ?>
+        <?php if ($section === 'parent_accounts'): ?>
+            <script src="admin_access/parent_accounts.js"></script>
+        <?php endif; ?>
+            
     <script>
+
         window.__ADMIN_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
+
+        if (window.AdminAPI && window.__ADMIN_CSRF) {
+            AdminAPI.setCSRF(window.__ADMIN_CSRF);
+        }
+        
         document.getElementById('sidebarToggle')?.addEventListener('click', function() {
             document.getElementById('sidebar').classList.toggle('show');
         });
+        
         document.querySelectorAll('[data-bs-target="#createAccountModal"]').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.getElementById('modalRole').value = this.getAttribute('data-role');
             });
         });
+        
         function toggleActive(userId, isChecked) {
             fetch('?section=accounts', {
                 method: 'POST',
@@ -1528,6 +1719,7 @@ $descs = [
                     location.reload();
                 });
         }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const ctx = document.getElementById('nutritionChart')?.getContext('2d');
             if (ctx) {
@@ -1578,6 +1770,48 @@ $descs = [
             }
         });
     </script>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- LIGHT RUNTIME BRIDGE (Optional small enhancements) -->
+<script>
+(function(){
+    const section = "<?php echo $section; ?>";
+    function onClick(id, handler){
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('click', handler);
+    }
+    if(section==='health_records'){
+        onClick('hrQuickAdd', ()=>{ if(window.HealthRecordsApp) HealthRecordsApp.showAddRecordModal(); });
+        onClick('hrQuickAll', ()=>{ if(window.HealthRecordsApp) HealthRecordsApp.loadAllRecords(); });
+        onClick('hrQuickRisk', ()=>{ if(window.HealthRecordsApp) HealthRecordsApp.loadRiskSummary(); });
+    }
+    if(section==='immunization'){
+        onClick('immuQuickAddDose', ()=>{ if(window.ImmunizationApp) ImmunizationApp.openAddImmunizationModal(); });
+        onClick('immuQuickChildren', ()=>{ if(window.ImmunizationApp){ ImmunizationApp.state.tab='children'; ImmunizationApp.refreshCurrentTab(); }});
+        onClick('immuQuickOverdue', ()=>{ if(window.ImmunizationApp){ ImmunizationApp.state.tab='overdue'; ImmunizationApp.refreshCurrentTab(); }});
+        onClick('immuQuickVaccines', ()=>{ if(window.ImmunizationApp){ ImmunizationApp.state.tab='vaccines'; ImmunizationApp.refreshCurrentTab(); }});
+    }
+    if(section==='maternal_patients'){
+        onClick('mpQuickAdd', ()=>{ if(window.MaternalPatientsApp) MaternalPatientsApp.showAddModal(); });
+        onClick('mpQuickList', ()=>{ if(window.MaternalPatientsApp) MaternalPatientsApp.loadList(); });
+        onClick('mpQuickSearch', ()=>{ 
+            const s=prompt('Enter search term (name/purok):','');
+            if(s!==null && window.MaternalPatientsApp){
+                const f=document.getElementById('mpSearch');
+                if(f) f.value=s;
+                MaternalPatientsApp.state.search=s;
+                MaternalPatientsApp.loadList();
+            }
+        });
+    }
+    if(section==='parent_accounts'){
+        onClick('paQuickCreate', ()=>{ if(window.ParentAccountsApp) ParentAccountsApp.showCreateModal(); });
+        onClick('paQuickList', ()=>{ if(window.ParentAccountsApp){ ParentAccountsApp.state.tab='parents'; ParentAccountsApp.loadTab(); } });
+        onClick('paQuickActivity', ()=>{ if(window.ParentAccountsApp){ ParentAccountsApp.state.tab='activity'; ParentAccountsApp.loadTab(); } });
+        onClick('paQuickLink', ()=>{ if(window.ParentAccountsApp){ alert('Use Link Child inside a parent row.'); } });
+    }
+})();
+</script>
 </body>
 </html>
