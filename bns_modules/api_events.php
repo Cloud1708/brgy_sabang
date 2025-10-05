@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 ob_start();
 
 try {
-    // Verify CSRF token
+    // Verify CSRF token (for both GET and write ops in this app)
     $headers = function_exists('getallheaders') ? getallheaders() : [];
     $csrf_token = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? $_POST['csrf_token'] ?? '';
 
@@ -32,18 +32,15 @@ try {
     // Check authentication and role
     require_role(['BNS', 'BHW', 'Admin']);
 
+    // Ensure events table has fields for completion tracking
+    ensure_events_schema();
+
     $action = $_GET['action'] ?? 'list';
 
     switch ($action) {
         case 'create':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('POST method required');
-            }
-            $raw = file_get_contents('php://input');
-            $data = json_decode($raw, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception('Invalid JSON data');
-            }
+            assert_method('POST');
+            $data = read_json();
             $event_id = createEvent($data);
             echo json_encode([
                 'success' => true,
@@ -52,11 +49,80 @@ try {
             ]);
             break;
 
+        case 'update':
+            assert_method('POST');
+            $data = read_json();
+            $id = (int)($data['event_id'] ?? 0);
+            if ($id <= 0) throw new Exception('Missing event_id');
+
+            // Allowed fields to update
+            $allowed = ['event_title','event_description','event_type','event_date','event_time','location','target_audience','is_published'];
+            $set = [];
+            $vals = [];
+            $types = '';
+
+            foreach ($allowed as $f) {
+                if (array_key_exists($f, $data)) {
+                    $set[] = "$f = ?";
+                    $vals[] = $data[$f];
+                    $types .= ($f === 'is_published') ? 'i' : 's';
+                }
+            }
+            if (!$set) throw new Exception('No fields to update');
+
+            global $mysqli;
+            $sql = "UPDATE events SET ".implode(',', $set).", updated_at = NOW() WHERE event_id = ? LIMIT 1";
+            $stmt = $mysqli->prepare($sql);
+            if (!$stmt) throw new Exception('DB prepare failed');
+            $types .= 'i';
+            $vals[] = $id;
+            $stmt->bind_param($types, ...$vals);
+            if (!$stmt->execute()) throw new Exception('Update failed: '.$stmt->error);
+            $stmt->close();
+            echo json_encode(['success'=>true,'updated'=>true]);
+            break;
+
+        case 'reschedule':
+            assert_method('POST');
+            $data = read_json();
+            $id = (int)($data['event_id'] ?? 0);
+            $date = trim($data['event_date'] ?? '');
+            $time = trim($data['event_time'] ?? '');
+            if ($id <= 0 || !$date || !$time) throw new Exception('Missing event_id, event_date or event_time');
+
+            global $mysqli;
+            $stmt = $mysqli->prepare("UPDATE events SET event_date = ?, event_time = ?, updated_at = NOW() WHERE event_id = ? LIMIT 1");
+            if (!$stmt) throw new Exception('DB prepare failed');
+            $stmt->bind_param('ssi', $date, $time, $id);
+            if (!$stmt->execute()) throw new Exception('Reschedule failed: '.$stmt->error);
+            $stmt->close();
+            echo json_encode(['success'=>true,'rescheduled'=>true]);
+            break;
+
+        case 'complete':
+            assert_method('POST');
+            $data = read_json();
+            $id = (int)($data['event_id'] ?? 0);
+            if ($id <= 0) throw new Exception('Missing event_id');
+
+            global $mysqli;
+            $stmt = $mysqli->prepare("UPDATE events SET is_completed = 1, completed_at = NOW(), updated_at = NOW() WHERE event_id = ? LIMIT 1");
+            if (!$stmt) throw new Exception('DB prepare failed');
+            $stmt->bind_param('i', $id);
+            if (!$stmt->execute()) throw new Exception('Mark completed failed: '.$stmt->error);
+            $stmt->close();
+            echo json_encode(['success'=>true,'completed'=>true]);
+            break;
+
         case 'list':
-            $events = getEventsList();
+            // Optional filters
+            $include_completed = isset($_GET['include_completed']) ? (int)$_GET['include_completed'] : 0;
+            $status = $_GET['status'] ?? ''; // '', 'completed', 'upcoming'
+            $type   = $_GET['type'] ?? '';   // 'health' | 'weighing' | 'feeding' | 'nutrition'
+
             echo json_encode([
                 'success' => true,
-                'events' => $events
+                'events'  => getEventsList($include_completed, $status, $type)
             ]);
             break;
 
@@ -73,6 +139,54 @@ try {
     ]);
 } finally {
     ob_end_flush();
+}
+
+/* Helpers */
+
+function assert_method($method) {
+    if ($_SERVER['REQUEST_METHOD'] !== $method) {
+        throw new Exception("$method method required");
+    }
+}
+
+function read_json() {
+    $raw = file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Invalid JSON data');
+    }
+    return $data;
+}
+
+function ensure_events_schema() {
+    global $mysqli;
+    try {
+        $db = $mysqli->query("SELECT DATABASE() AS dbname")->fetch_assoc()['dbname'] ?? '';
+        if (!$db) return;
+
+        $col = $mysqli->prepare("
+            SELECT COUNT(*) 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'events' AND COLUMN_NAME = 'is_completed'
+        ");
+        $col->bind_param('s', $db);
+        $col->execute();
+        $col->bind_result($cnt);
+        $col->fetch();
+        $col->close();
+
+        if ((int)$cnt === 0) {
+            // Add columns for completion tracking
+            $mysqli->query("ALTER TABLE events 
+                ADD COLUMN is_completed TINYINT(1) NOT NULL DEFAULT 0 AFTER is_published,
+                ADD COLUMN completed_at DATETIME NULL DEFAULT NULL AFTER is_completed
+            ");
+        }
+    } catch (Throwable $e) {
+        // If we fail schema migration, continue without fatal error (feature will be disabled)
+        // But log for admins
+        error_log('ensure_events_schema: '.$e->getMessage());
+    }
 }
 
 function createEvent($data) {
@@ -96,8 +210,8 @@ function createEvent($data) {
 
     $sql = "INSERT INTO events 
             (event_title, event_description, event_type, event_date, event_time, 
-             location, target_audience, is_published, created_by, created_at, updated_at) 
-            VALUES (?,?,?,?,?,?,?,?,?,NOW(),NOW())";
+             location, target_audience, is_published, is_completed, completed_at, created_by, created_at, updated_at) 
+            VALUES (?,?,?,?,?,?,?,?,0,NULL,?,NOW(),NOW())";
 
     $stmt = $mysqli->prepare($sql);
     $desc = $data['event_description'] ?? '';
@@ -123,23 +237,55 @@ function createEvent($data) {
     return $id;
 }
 
-function getEventsList() {
+function getEventsList($include_completed = 0, $status = '', $type = '') {
     global $mysqli;
+
+    $where = [];
+    $params = [];
+    $types  = '';
+
+    // Only future events by default (same behavior)
+    if ($status !== 'completed') {
+        $where[] = "e.event_date >= CURDATE()";
+    }
+
+    if (!$include_completed && $status !== 'completed') {
+        $where[] = "COALESCE(e.is_completed,0) = 0";
+    }
+
+    if ($status === 'completed') {
+        $where[] = "COALESCE(e.is_completed,0) = 1";
+    }
+
+    if ($type !== '') {
+        $where[] = "e.event_type = ?";
+        $params[] = $type;
+        $types   .= 's';
+    }
 
     $sql = "SELECT 
                 e.*,
                 u.first_name,
                 u.last_name
             FROM events e
-            LEFT JOIN users u ON e.created_by = u.user_id
-            WHERE e.event_date >= CURDATE()
-            ORDER BY e.event_date ASC, e.event_time ASC
-            LIMIT 100";
+            LEFT JOIN users u ON e.created_by = u.user_id";
 
-    $res = $mysqli->query($sql);
+    if ($where) {
+        $sql .= " WHERE ".implode(' AND ', $where);
+    }
+
+    $sql .= " ORDER BY e.event_date ASC, e.event_time ASC
+              LIMIT 200";
+
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) throw new Exception('DB prepare failed');
+    if ($params) $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $res = $stmt->get_result();
     $rows = [];
     while ($row = $res->fetch_assoc()) {
         $rows[] = $row;
     }
+    $stmt->close();
     return $rows;
 }

@@ -1371,7 +1371,7 @@ function renderChildrenTable(children) {
         <div class="text-center py-5">
           <i class="bi bi-people text-muted" style="font-size:3rem;opacity:0.3;"></i>
           <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Children Found</h6>
-          <p class="text-muted small mb-3" style="font-size:.65rem;">No children have been registered yet.</p>
+          <p class="text-muted small mb-0" style="font-size:.65rem;">No children have been registered yet.</p>
           <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#registerChildModal">
             <i class="bi bi-plus-lg me-1"></i> Register First Child
           </button>
@@ -1405,7 +1405,58 @@ function renderChildrenTable(children) {
               <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Mother/Caregiver</th>
               <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Nutrition Status</th>
               <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Last Weighing</th>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${children.map(child => renderChildRow(child)).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}function renderChildrenTable(children) {
+  const totalChildren = children.length;
+  
+  if (totalChildren === 0) {
+    return `
+      <div class="tile">
+        <div class="text-center py-5">
+          <i class="bi bi-people text-muted" style="font-size:3rem;opacity:0.3;"></i>
+          <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Children Found</h6>
+          <p class="text-muted small mb-0" style="font-size:.65rem;">No children have been registered yet.</p>
+          <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#registerChildModal">
+            <i class="bi bi-plus-lg me-1"></i> Register First Child
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  return `
+    <!-- Child Registry Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Child Registry</h6>
+        <p class="text-muted mb-0" style="font-size:.65rem;">${totalChildren} children found</p>
+      </div>
+      <div class="text-muted" style="font-size:.65rem;font-weight:600;">
+        ${totalChildren} Total
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="tile" style="padding:0;overflow:hidden;">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:.7rem;">
+          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+            <tr>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Sex</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Birth Date</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Purok</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Mother/Caregiver</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Nutrition Status</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Last Weighing</th>
             </tr>
           </thead>
           <tbody>
@@ -1445,16 +1496,6 @@ function renderChildRow(child) {
         ${statusBadge}
       </td>
       <td style="padding:.8rem;border:none;color:#586c5d;">${child.last_weighing_formatted}</td>
-      <td style="padding:.8rem;border:none;">
-        <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-outline-primary" onclick="viewChild(${child.child_id})" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;" title="View">
-            <i class="bi bi-eye" style="font-size:.7rem;"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="editChild(${child.child_id})" style="padding:.3rem .6rem;border:1px solid #6c757d;background:#fff;border-radius:6px;font-size:.6rem;color:#6c757d;" title="Edit">
-            <i class="bi bi-pencil" style="font-size:.7rem;"></i>
-          </button>
-        </div>
-      </td>
     </tr>
   `;
 }
@@ -4258,48 +4299,313 @@ function renderNutritionCalendarModule(label) {
 
   // Helper function to render individual event items (same as before)
   function renderEventItem(event) {
-    const eventDate = new Date(event.event_date);
-    const formattedDate = eventDate.toLocaleDateString('en-PH', { 
-      timeZone: 'Asia/Manila',
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-    
-    const eventTime = event.event_time ? new Date(`2000-01-01T${event.event_time}`).toLocaleTimeString('en-PH', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }) : 'Time TBD';
+  const eventDate = new Date(event.event_date);
+  const formattedDate = eventDate.toLocaleDateString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
-    const eventTypeConfig = {
-      'health': { icon: 'bi-clipboard-data', color: '#077a44', bg: '#e8f5ea', badge: 'Health' },
-      'nutrition': { icon: 'bi-book', color: '#a259c6', bg: '#f3e8ff', badge: 'Nutrition Education' },
-      'feeding': { icon: 'bi-cup-hot', color: '#f4a400', bg: '#ffecc7', badge: 'Feeding Program' },
-      'weighing': { icon: 'bi-clipboard2-data', color: '#1c79d0', bg: '#e1f1ff', badge: 'Weighing' }
-    };
+  const eventTime = event.event_time
+    ? new Date(`2000-01-01T${event.event_time}`).toLocaleTimeString('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    : 'Time TBD';
 
-    const config = eventTypeConfig[event.event_type] || eventTypeConfig['health'];
+  const eventTypeConfig = {
+    'health':    { icon: 'bi-clipboard-data', color: '#077a44', bg: '#e8f5ea', badge: 'Health' },
+    'nutrition': { icon: 'bi-book',           color: '#a259c6', bg: '#f3e8ff', badge: 'Nutrition Education' },
+    'feeding':   { icon: 'bi-cup-hot',        color: '#f4a400', bg: '#ffecc7', badge: 'Feeding Program' },
+    'weighing':  { icon: 'bi-clipboard2-data',color: '#1c79d0', bg: '#e1f1ff', badge: 'Weighing' }
+  };
 
-    return `
-      <div class="event-item">
-        <div class="d-flex align-items-center gap-3">
-          <div class="event-icon" style="background:${config.bg};">
-            <i class="${config.icon}" style="color:${config.color};"></i>
+  const config = eventTypeConfig[event.event_type] || eventTypeConfig['health'];
+  const completed = Number(event.is_completed || 0) === 1;
+
+  const actions = `
+    <div class="d-flex align-items-center gap-2">
+      ${completed
+        ? `<span class="badge-status" style="background:#e7f1e9;color:#0b7a43;">Completed</span>`
+        : `<button class="btn btn-sm btn-outline-success btn-mark-complete" 
+                    data-ev-action="complete" data-ev-id="${event.event_id}" 
+                    style="font-size:.6rem;border-radius:8px;">
+              <i class="bi bi-check2-circle me-1"></i> Mark as Completed
+           </button>`}
+      <button class="btn btn-sm btn-outline-secondary btn-edit-event" 
+              data-ev-action="edit" data-ev-id="${event.event_id}" 
+              style="font-size:.6rem;border-radius:8px;">
+        <i class="bi bi-pencil-square me-1"></i> Edit
+      </button>
+      <button class="btn btn-sm btn-outline-primary btn-resched-event" 
+              data-ev-action="reschedule" data-ev-id="${event.event_id}" 
+              style="font-size:.6rem;border-radius:8px;">
+        <i class="bi bi-calendar2-event me-1"></i> Reschedule
+      </button>
+    </div>
+  `;
+
+  return `
+    <div class="event-item" data-ev="${event.event_id}">
+      <div class="d-flex align-items-center gap-3">
+        <div class="event-icon" style="background:${config.bg};">
+          <i class="${config.icon}" style="color:${config.color};"></i>
+        </div>
+        <div class="flex-grow-1">
+          <h6 class="event-title">${escapeHtml(event.event_title)}</h6>
+          <div class="event-details">
+            <span><i class="bi bi-calendar3"></i> ${formattedDate}</span>
+            <span><i class="bi bi-clock"></i> ${eventTime}</span>
+            <span><i class="bi bi-geo-alt"></i> ${escapeHtml(event.location || 'Location TBD')}</span>
           </div>
-          <div class="flex-grow-1">
-            <h6 class="event-title">${escapeHtml(event.event_title)}</h6>
-            <div class="event-details">
-              <span><i class="bi bi-calendar3"></i> ${formattedDate}</span>
-              <span><i class="bi bi-clock"></i> ${eventTime}</span>
-              <span><i class="bi bi-geo-alt"></i> ${escapeHtml(event.location || 'Location TBD')}</span>
-            </div>
-          </div>
+        </div>
+        <div class="d-flex align-items-center" style="gap:.5rem;">
           <span class="event-badge" style="background:${config.bg};color:${config.color};">${config.badge}</span>
+          ${actions}
         </div>
       </div>
-    `;
+    </div>
+  `;
+}
+
+/* --- 2) ADD this delegated click handler inside renderNutritionCalendarModule(...), right after we render the shell the first time --- */
+// Ensure we can prefill modal from list memory
+window.__eventsById = window.__eventsById || new Map();
+
+// Wire once per page lifetime
+if (!window.__eventActionsWired) {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-ev-action]');
+    if (!btn) return;
+    const id = parseInt(btn.getAttribute('data-ev-id') || '0', 10);
+    const action = btn.getAttribute('data-ev-action');
+
+    if (!id || !action) return;
+
+    if (action === 'complete') {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Completing...';
+      fetchJSON('bns_modules/api_events.php?action=complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: id })
+      })
+      .then(res => {
+        if (!res.success) throw new Error(res.error || 'Failed');
+        // Reload the module view
+        loadModule('nutrition_calendar','Event Scheduling');
+      })
+      .catch(err => {
+        alert('Error: ' + (err.message || err));
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Mark as Completed';
+      });
+    }
+
+    if (action === 'edit' || action === 'reschedule') {
+      const ev = window.__eventsById.get(id);
+      openEventModal(action === 'edit' ? 'edit' : 'reschedule', ev || { event_id: id });
+    }
+  });
+  window.__eventActionsWired = true;
+}
+
+/* --- 3) REPLACE the "Schedule Event Modal functionality" DOMContentLoaded block at the bottom with this version --- */
+document.addEventListener('DOMContentLoaded', function() {
+  const scheduleEventModal = document.getElementById('scheduleEventModal');
+  const saveEventBtn = document.getElementById('saveEventBtn');
+  const scheduleEventForm = document.getElementById('scheduleEventForm');
+
+  // Inputs
+  const titleInput   = scheduleEventForm?.querySelector('input[name="event_title"]');
+  const typeSelect   = scheduleEventForm?.querySelector('select[name="event_type"]');
+  const descInput    = scheduleEventForm?.querySelector('textarea[name="event_description"]');
+  const dateInput    = scheduleEventForm?.querySelector('input[name="event_date"]');
+  const timeInput    = scheduleEventForm?.querySelector('input[name="event_time"]');
+  const locInput     = scheduleEventForm?.querySelector('input[name="location"]');
+  const audInput     = scheduleEventForm?.querySelector('input[name="target_audience"]');
+  const pubSelect    = scheduleEventForm?.querySelector('select[name="is_published"]');
+
+  // Set minimum date to today
+  if (dateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
   }
+
+  // Global open function for Edit/Reschedule/Create
+  window.openEventModal = function(mode, eventData) {
+    // Default mode is "create"
+    const m = mode || 'create';
+    scheduleEventModal.dataset.mode = m;
+    scheduleEventModal.dataset.eventId = eventData?.event_id || '';
+
+    // Title
+    const header = document.getElementById('scheduleEventModalLabel');
+    if (header) {
+      header.textContent =
+        m === 'edit'       ? 'Edit Event'
+      : m === 'reschedule' ? 'Reschedule Event'
+                           : 'Schedule New Event';
+    }
+
+    // Prefill fields
+    if (m === 'create') {
+      scheduleEventForm.reset();
+      if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    } else {
+      // fill from eventData (if provided)
+      if (titleInput) titleInput.value = eventData.event_title || '';
+      if (typeSelect) typeSelect.value = eventData.event_type || '';
+      if (descInput)  descInput.value  = eventData.event_description || '';
+      if (dateInput)  dateInput.value  = eventData.event_date || '';
+      if (timeInput)  timeInput.value  = eventData.event_time || '';
+      if (locInput)   locInput.value   = eventData.location || '';
+      if (audInput)   audInput.value   = eventData.target_audience || '';
+      if (pubSelect)  pubSelect.value  = String(eventData.is_published ?? 1);
+    }
+
+    // Enable/disable fields for reschedule mode
+    const disableNonSchedule = (disabled) => {
+      [titleInput, typeSelect, descInput, locInput, audInput, pubSelect].forEach(el => { if (el) el.disabled = disabled; });
+      if (dateInput) dateInput.disabled = false;
+      if (timeInput) timeInput.disabled = false;
+    };
+    if (m === 'reschedule') {
+      disableNonSchedule(true);
+    } else {
+      disableNonSchedule(false);
+    }
+
+    // Button label
+    if (saveEventBtn) {
+      saveEventBtn.textContent =
+        m === 'edit'       ? 'Save Changes'
+      : m === 'reschedule' ? 'Save New Schedule'
+                           : 'Schedule Event';
+    }
+
+    // Show modal
+    const modal = new bootstrap.Modal(scheduleEventModal);
+    modal.show();
+  };
+
+  // Save handler (Create/Edit/Reschedule)
+  if (saveEventBtn) {
+    if (saveEventBtn.__handlerRef) {
+      saveEventBtn.removeEventListener('click', saveEventBtn.__handlerRef);
+    }
+    const onSave = () => {
+      const mode = scheduleEventModal?.dataset.mode || 'create';
+      const eid  = parseInt(scheduleEventModal?.dataset.eventId || '0', 10);
+
+      // Basic validation
+      const missing = [];
+      if (!titleInput.value && mode !== 'reschedule') missing.push('Event Title');
+      if (!typeSelect.value && mode !== 'reschedule') missing.push('Event Type');
+      if (!dateInput.value) missing.push('Event Date');
+      if (!timeInput.value) missing.push('Event Time');
+      if (!locInput.value && mode !== 'reschedule') missing.push('Location');
+
+      if (missing.length) {
+        alert('Please fill in: ' + missing.join(', '));
+        return;
+      }
+
+      const makeBusy = (b, label) => {
+        saveEventBtn.disabled = b;
+        saveEventBtn.innerHTML = b
+          ? `<span class="spinner-border spinner-border-sm me-2"></span>${label}`
+          : (mode==='edit' ? '<i class="bi bi-save me-1"></i> Save Changes'
+            : mode==='reschedule' ? '<i class="bi bi-calendar2-event me-1"></i> Save New Schedule'
+            : '<i class="bi bi-calendar-plus me-1"></i> Schedule Event');
+      };
+
+      const payload = {
+        event_id: eid,
+        event_title: titleInput.value,
+        event_type: typeSelect.value,
+        event_description: descInput.value,
+        event_date: dateInput.value,
+        event_time: timeInput.value,
+        location: locInput.value,
+        target_audience: audInput.value,
+        is_published: parseInt(pubSelect.value || '1', 10)
+      };
+
+      let url = 'bns_modules/api_events.php?action=create';
+      if (mode === 'edit') url = 'bns_modules/api_events.php?action=update';
+      if (mode === 'reschedule') url = 'bns_modules/api_events.php?action=reschedule';
+
+      // Narrow payload for reschedule
+      const finalPayload = (mode === 'reschedule')
+        ? { event_id: eid, event_date: payload.event_date, event_time: payload.event_time }
+        : (mode === 'edit')
+          ? payload
+          : payload;
+
+      makeBusy(true, mode==='edit' ? 'Saving...' : (mode==='reschedule' ? 'Rescheduling...' : 'Scheduling...'));
+
+      fetchJSON(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalPayload)
+      })
+      .then(res => {
+        if (!res.success) throw new Error(res.error || 'Failed');
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(scheduleEventModal);
+        modal?.hide();
+        // Refresh current view
+        loadModule('nutrition_calendar','Event Scheduling');
+      })
+      .catch(err => {
+        console.error(err);
+        alert('❌ ' + (err.message || err));
+      })
+      .finally(() => makeBusy(false));
+    };
+    saveEventBtn.addEventListener('click', onSave);
+    saveEventBtn.__handlerRef = onSave;
+  }
+
+  // Reset form when modal is closed
+  if (scheduleEventModal) {
+    scheduleEventModal.addEventListener('hidden.bs.modal', function() {
+      scheduleEventForm.reset();
+      [ 'mode', 'eventId' ].forEach(k => delete scheduleEventModal.dataset[k]);
+      if (saveEventBtn) {
+        saveEventBtn.disabled = false;
+        saveEventBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
+      }
+      // Re-enable all fields by default
+      scheduleEventForm.querySelectorAll('input, select, textarea').forEach(el => el.disabled = false);
+    });
+  }
+
+  // Auto-populate event title based on event type selection (only when creating)
+  const eventTypeSelect = typeSelect;
+  const eventTitleInput = titleInput;
+  if (eventTypeSelect && eventTitleInput) {
+    eventTypeSelect.addEventListener('change', function() {
+      if ((scheduleEventModal?.dataset.mode || 'create') !== 'create') return;
+      const eventType = this.value;
+      const currentTitle = eventTitleInput.value.trim();
+      if (!currentTitle && eventType) {
+        const suggestions = {
+          'health': 'Health Consultation Session',
+          'nutrition': 'Nutrition Education Seminar',
+          'feeding': 'Supplementary Feeding Program',
+          'weighing': 'Monthly Weighing Session',
+          'general': 'Community Health Meeting',
+          'other': 'Special Health Activity'
+        };
+        if (suggestions[eventType]) eventTitleInput.value = suggestions[eventType];
+      }
+    });
+  }
+});
 
   // Helper function to setup tab switching (same as before but with updated function signature)
   function setupCalendarTabs(events, currentDate) {
