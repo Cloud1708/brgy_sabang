@@ -3751,6 +3751,8 @@ function attachProgressHandlersProgress(){
 }
 
 // REPLACE the whole renderFeedingProgramsModule(...) with this version
+// REPLACE the whole renderFeedingProgramsModule(...) with this version
+// REPLACE the whole renderFeedingProgramsModule(...) with this version
 function renderFeedingProgramsModule(label) {
   showLoading(label);
 
@@ -3790,12 +3792,14 @@ function renderFeedingProgramsModule(label) {
                 <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Next Due Date</th>
                 <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Days Until Due</th>
                 <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;min-width:180px;">Notes</th>
                 <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Actions</th>
               </tr>
             </thead>
             <tbody>
               ${records.map(r => {
                 const ico = typeIcon(r.supplement_type || '');
+                const safeNotes = r.notes ? escapeHtml(r.notes) : '';
                 return `
                   <tr style="border-bottom:1px solid #f0f4f1;">
                     <td style="padding:.8rem;border:none;">
@@ -3816,6 +3820,11 @@ function renderFeedingProgramsModule(label) {
                     <td style="padding:.8rem;border:none;color:#586c5d;">${formatDate(r.next_due_date)}</td>
                     <td style="padding:.8rem;border:none;">${daysDisplay(r.days_until_due)}</td>
                     <td style="padding:.8rem;border:none;">${statusBadge(r.status)}</td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">
+                      ${safeNotes
+                        ? `<div title="${safeNotes}" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;line-height:1.2;">${safeNotes}</div>`
+                        : '—'}
+                    </td>
                     <td style="padding:.8rem;border:none;">
                       <button class="btn btn-sm btn-outline-primary" data-supp-id="${r.supplement_id}" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
                         Update
@@ -3851,9 +3860,8 @@ function renderFeedingProgramsModule(label) {
       </div>`;
   }
 
-  // NEW: Schedule view renderer
+  // Schedule view (unchanged from previous version)
   function renderSchedulePanel() {
-    // Only include records with a next_due_date
     const items = (allSuppRecords || [])
       .filter(r => r.next_due_date)
       .sort((a,b) => new Date(a.next_due_date) - new Date(b.next_due_date));
@@ -3989,7 +3997,7 @@ function renderFeedingProgramsModule(label) {
         <!-- Records -->
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div>
-            <h6 style="font-size:.8rem;font-weight:700;color:#18432b;margin:0;">Distribution Records</h6>
+            <h6 style="font-size:.8rem;font-weight:700;color:var(--green);margin:0;">Distribution Records</h6>
             <p class="text-muted mb-0" id="suppRecordsCount" style="font-size:.65rem;">—</p>
           </div>
           <div class="text-muted" style="font-size:.65rem;"><i class="bi bi-download me-1"></i></div>
@@ -4071,9 +4079,12 @@ function renderFeedingProgramsModule(label) {
       applyFilters();
     });
 
-    // Prepare modal each time it opens
+    // Prepare modal each time it opens (Create mode)
     const modalEl = document.getElementById('supplementationRecordModal');
     modalEl?.addEventListener('show.bs.modal', () => {
+      const mode = modalEl.dataset.mode || 'create';
+      if (mode === 'edit') return; // huwag i-reset kapag edit
+
       fetchJSON(api.children+'?action=list')
         .then(res => {
           const sel = document.getElementById('suppChildSelect');
@@ -4090,6 +4101,15 @@ function renderFeedingProgramsModule(label) {
           document.getElementById('suppDosage').value = '';
           document.getElementById('suppNotes').value = '';
           document.getElementById('suppType').value = '';
+          // Enable fields for Create
+          ['suppChildSelect','suppType','suppDate'].forEach(id=>{
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+          });
+          const title = document.getElementById('supplementationRecordModalLabel');
+          if (title) title.textContent = 'Add Supplementation Record';
+          const saveBtn = document.getElementById('saveSuppRecordBtn');
+          if (saveBtn) saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
         })
         .catch(()=>{});
     });
@@ -4113,7 +4133,7 @@ function renderFeedingProgramsModule(label) {
       }
     });
 
-    // Save handler (single-bind + busy guard)
+    // SAVE (Create or Update) — single handler with mode check
     const saveBtnEl = document.getElementById('saveSuppRecordBtn');
     if (saveBtnEl) {
       if (saveBtnEl.__handlerRef) {
@@ -4121,15 +4141,58 @@ function renderFeedingProgramsModule(label) {
       }
 
       const onSaveClick = () => {
+        const modal = document.getElementById('supplementationRecordModal');
+        const mode = modal?.dataset.mode || 'create';
+
         if (saveBtnEl.dataset.busy === '1') return;
 
+        // Common fields
+        const dosage   = document.getElementById('suppDosage').value || null;
+        const nextDue  = document.getElementById('suppNextDue').value || null;
+        const notes    = document.getElementById('suppNotes').value || null;
+
+        if (mode === 'edit') {
+          // UPDATE (PUT) — dosage/next_due_date/notes lang ang ina-allow ng API
+          const id = parseInt(modal.dataset.suppId || '0', 10);
+          if (!id) { alert('Invalid record'); return; }
+
+          saveBtnEl.dataset.busy = '1';
+          saveBtnEl.disabled = true;
+          saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+
+          const payload = { dosage, next_due_date: nextDue, notes };
+          fetchJSON(api.supplementation + '?id=' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+          .then(res => {
+            if (!res.success) throw new Error(res.error || 'Failed to update');
+            const bs = bootstrap.Modal.getInstance(modal);
+            bs?.hide();
+            return loadSuppRecords();
+          })
+          .catch(err => {
+            console.error(err);
+            alert('❌ Error updating record: ' + (err.message || err));
+          })
+          .finally(() => {
+            saveBtnEl.dataset.busy = '0';
+            saveBtnEl.disabled = false;
+            saveBtnEl.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
+          });
+
+          return;
+        }
+
+        // CREATE (POST)
         const payload = {
           child_id: parseInt(document.getElementById('suppChildSelect').value || '0', 10),
           supplement_type: document.getElementById('suppType').value,
           supplement_date: document.getElementById('suppDate').value,
-          dosage: document.getElementById('suppDosage').value || null,
-          next_due_date: document.getElementById('suppNextDue').value || null,
-          notes: document.getElementById('suppNotes').value || null
+          dosage,
+          next_due_date: nextDue,
+          notes
         };
 
         const missing = [];
@@ -4149,8 +4212,8 @@ function renderFeedingProgramsModule(label) {
         })
         .then(res => {
           if (!res.success) throw new Error(res.error || 'Failed to save');
-          const modal = bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'));
-          modal?.hide();
+          const bs = bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'));
+          bs?.hide();
           return loadSuppRecords();
         })
         .catch(err => {
@@ -4168,9 +4231,90 @@ function renderFeedingProgramsModule(label) {
       saveBtnEl.__handlerRef = onSaveClick;
     }
 
+    // Reset modal state after close (so consistent sa UI kapag Create ulit)
+    const supModal = document.getElementById('supplementationRecordModal');
+    supModal?.addEventListener('hidden.bs.modal', ()=>{
+      supModal.dataset.mode = 'create';
+      supModal.dataset.suppId = '';
+      ['suppChildSelect','suppType','suppDate'].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.disabled = false;
+      });
+      const title = document.getElementById('supplementationRecordModalLabel');
+      if (title) title.textContent = 'Add Supplementation Record';
+      const saveBtn = document.getElementById('saveSuppRecordBtn');
+      if (saveBtn) saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
+    });
+
+    // Global delegated click for Update buttons (bind once)
+    if (!document.__suppUpdateHandlerBound) {
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button[data-supp-id]');
+        if (!btn) return;
+        const id = parseInt(btn.getAttribute('data-supp-id')||'0',10);
+        const rec = (allSuppRecords || []).find(r => Number(r.supplement_id) === id);
+        if (!rec) { alert('Record not found.'); return; }
+        openSuppEditModal(rec);
+      });
+      document.__suppUpdateHandlerBound = true;
+    }
+
     // Initial load
     loadSuppRecords();
   }, 50);
+
+  // Open modal in EDIT mode, prefill fields, at i-disable ang hindi puwedeng baguhin
+  function openSuppEditModal(rec){
+    const modal = document.getElementById('supplementationRecordModal');
+    modal.dataset.mode = 'edit';
+    modal.dataset.suppId = String(rec.supplement_id);
+
+    // Title at Save label
+    const title = document.getElementById('supplementationRecordModalLabel');
+    if (title) title.textContent = 'Update Supplementation Record';
+    const saveBtn = document.getElementById('saveSuppRecordBtn');
+    if (saveBtn) saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Update Record';
+
+    // Load children list then set value, pero disabled ang child/type/date
+    fetchJSON(api.children+'?action=list')
+      .then(res=>{
+        const sel = document.getElementById('suppChildSelect');
+        sel.innerHTML = '<option value="">Select child</option>';
+        (res.children||[]).forEach(c=>{
+          const opt = document.createElement('option');
+          opt.value = c.child_id;
+          opt.textContent = c.full_name;
+          sel.appendChild(opt);
+        });
+        sel.value = String(rec.child_id);
+        ['suppChildSelect','suppType','suppDate'].forEach(id=>{
+          const el = document.getElementById(id);
+          if (el) el.disabled = true;
+        });
+        document.getElementById('suppType').value = rec.supplement_type || '';
+        document.getElementById('suppDate').value = rec.supplement_date || '';
+        document.getElementById('suppDosage').value = rec.dosage || '';
+        document.getElementById('suppNextDue').value = rec.next_due_date || '';
+        document.getElementById('suppNotes').value = rec.notes || '';
+        const bs = new bootstrap.Modal(modal);
+        bs.show();
+      })
+      .catch(()=>{
+        // Fallback kahit hindi ma-load ang list, still show modal
+        document.getElementById('suppChildSelect').innerHTML = `<option value="${rec.child_id}">${escapeHtml(rec.child_name||'Child')}</option>`;
+        ['suppChildSelect','suppType','suppDate'].forEach(id=>{
+          const el = document.getElementById(id);
+          if (el) el.disabled = true;
+        });
+        document.getElementById('suppType').value = rec.supplement_type || '';
+        document.getElementById('suppDate').value = rec.supplement_date || '';
+        document.getElementById('suppDosage').value = rec.dosage || '';
+        document.getElementById('suppNextDue').value = rec.next_due_date || '';
+        document.getElementById('suppNotes').value = rec.notes || '';
+        const bs = new bootstrap.Modal(modal);
+        bs.show();
+      });
+  }
 }
 
 function renderNutritionCalendarModule(label) {
