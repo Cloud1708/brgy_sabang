@@ -18,8 +18,16 @@ function age_months($birth){
     return (int)floor($diff/30.4375);
 }
 function require_csrf(){
-    if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token'])
-        || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $postToken = $_POST['csrf_token'] ?? '';
+    $hdrToken = '';
+    if (function_exists('getallheaders')) {
+        foreach (getallheaders() as $k=>$v){
+            if (strcasecmp($k,'X-CSRF-Token')===0){ $hdrToken=$v; break; }
+        }
+    }
+    $token = $postToken ?: $hdrToken;
+    if (empty($_SESSION['csrf_token']) || $token==='' || !hash_equals($_SESSION['csrf_token'],$token)) {
         fail('CSRF failed',419);
     }
 }
@@ -58,15 +66,13 @@ function standard_vaccines(){ return [
   ['code'=>'HPV','name'=>'Human Papillomavirus Vaccine (HPV)','category'=>'booster','doses_required'=>2,'schedule'=>[['dose'=>1,'age'=>132],['dose'=>2,'age'=>138]]]
 ]; }
 
-/* ===================== GET ===================== */
+/* ===================== GET (READ ONLY) ===================== */
 if ($method === 'GET') {
 
-    /* Children list (ENHANCED: includes address and created_at if present) */
+    /* Children list */
     if (isset($_GET['children'])) {
         $rows=[];
-        // Dynamic created_at column support
         $createdCol = has_column($mysqli,'children','created_at') ? ', c.created_at' : '';
-        // Include mother's address_details and purok info if available
         $sql = "
           SELECT
             c.child_id, c.full_name, c.sex, c.birth_date,
@@ -167,38 +173,18 @@ if ($method === 'GET') {
         ok(['child'=>$child,'vaccines'=>array_values($vaccines)]);
     }
 
-    // Ensure overdue_notifications table exists (used by overdue/dismiss/restore)
-    $mysqli->query("
-        CREATE TABLE IF NOT EXISTS overdue_notifications (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            child_id INT NOT NULL,
-            vaccine_id INT NOT NULL,
-            dose_number INT NOT NULL,
-            status ENUM('active', 'dismissed', 'expired') DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            dismissed_at TIMESTAMP NULL,
-            expires_at TIMESTAMP NULL,
-            INDEX idx_child_vaccine_dose (child_id, vaccine_id, dose_number),
-            INDEX idx_status (status),
-            INDEX idx_expires (expires_at)
-        )
-    ");
-
-    /* Overdue with pagination */
+    /**
+     * Overdue (READ-ONLY version)
+     * Removed automatic INSERT/UPDATE side-effects. 
+     * We compute overdue / dueSoon in-memory without modifying DB.
+     */
     if (isset($_GET['overdue'])) {
-        // auto-expire > 1 week
-        $mysqli->query("
-            UPDATE overdue_notifications 
-            SET status = 'expired', expires_at = NOW() 
-            WHERE status = 'active' 
-            AND created_at < DATE_SUB(NOW(), INTERVAL 1 WEEK)
-        ");
-
         $page = max(1, (int)($_GET['page'] ?? 1));
         $pageSize = max(5, min(50, (int)($_GET['page_size'] ?? 10)));
         $offset = ($page - 1) * $pageSize;
         $showType = $_GET['show'] ?? 'active'; // active|recycle|all
 
+        // Children
         $children=[];
         $res=$mysqli->query("
           SELECT c.child_id,c.full_name,c.birth_date,
@@ -208,20 +194,16 @@ if ($method === 'GET') {
           LEFT JOIN mothers_caregivers m ON m.mother_id=c.mother_id
         ");
         while($r=$res->fetch_assoc()) $children[$r['child_id']]=$r;
-        if(!$children) ok(['overdue'=>[],'dueSoon'=>[],'pagination'=>['page'=>$page,'pageSize'=>$pageSize,'total'=>0,'totalPages'=>0]]);
+        if(!$children) ok(['overdue'=>[],'dueSoon'=>[],'pagination'=>['page'=>$page,'pageSize'=>$pageSize,'total'=>0,'totalPages'=>0,'showType'=>$showType]]);
 
+        // Existing immunization doses
         $existing=[];
         $res=$mysqli->query("SELECT child_id,vaccine_id,dose_number FROM child_immunizations");
         while($r=$res->fetch_assoc()){
             $existing[$r['child_id']][$r['vaccine_id']][$r['dose_number']]=true;
         }
 
-        $notifications = [];
-        $res = $mysqli->query("SELECT child_id, vaccine_id, dose_number, status, created_at, dismissed_at, expires_at FROM overdue_notifications");
-        while($r = $res->fetch_assoc()) {
-            $notifications[$r['child_id']][$r['vaccine_id']][$r['dose_number']] = $r;
-        }
-
+        // Load schedule
         $sched=[];
         $res=$mysqli->query("
           SELECT s.vaccine_id,s.dose_number,s.recommended_age_months,
@@ -232,21 +214,36 @@ if ($method === 'GET') {
         ");
         while($r=$res->fetch_assoc()) $sched[]=$r;
 
+        // Existing notification statuses (if table present)
+        $notifications=[];
+        $tbl = $mysqli->query("SHOW TABLES LIKE 'overdue_notifications'");
+        if($tbl && $tbl->num_rows){
+            $res=$mysqli->query("SELECT child_id,vaccine_id,dose_number,status,created_at,dismissed_at,expires_at FROM overdue_notifications");
+            while($res && ($r=$res->fetch_assoc())){
+                $notifications[$r['child_id']][$r['vaccine_id']][$r['dose_number']] = $r;
+            }
+        }
+
         $allOverdue=[]; $dueSoon=[];
         $today = new DateTime('today');
+
         foreach($children as $c){
             foreach($sched as $sc){
                 if(isset($existing[$c['child_id']][$sc['vaccine_id']][$sc['dose_number']])) continue;
                 $age = (int)$c['age_months'];
                 $target=(int)$sc['recommended_age_months'];
-                $dueDate = null;
+
+                $dueDate=null;
                 if($c['birth_date']){
-                    $dt = DateTime::createFromFormat('Y-m-d',$c['birth_date']);
+                    $dt=DateTime::createFromFormat('Y-m-d',$c['birth_date']);
                     if($dt){ $dt->modify('+'.$target.' months'); $dueDate = $dt->format('Y-m-d'); }
                 }
+
                 $isOver = ($age > $target + 1);
                 $isSoon = (!$isOver && ($age >= ($target - 1) && $age <= $target));
                 if(!$isOver && !$isSoon) continue;
+
+                $notif = $notifications[$c['child_id']][$sc['vaccine_id']][$sc['dose_number']] ?? null;
 
                 $base = [
                   'child_id'=>$c['child_id'],
@@ -260,34 +257,23 @@ if ($method === 'GET') {
                   'target_age_months'=>$target,
                   'due_date'=>$dueDate,
                   'mother_name'=>$c['mother_name'],
-                  'parent_contact'=>$c['mother_contact']
+                  'parent_contact'=>$c['mother_contact'],
+                  'notification_status'=>$notif['status'] ?? null,
+                  'notification_created'=>$notif['created_at'] ?? null,
+                  'notification_dismissed'=>$notif['dismissed_at'] ?? null,
+                  'notification_expires'=>$notif['expires_at'] ?? null
                 ];
 
-                $notif = $notifications[$c['child_id']][$sc['vaccine_id']][$sc['dose_number']] ?? null;
-                $base['notification_status'] = $notif ? $notif['status'] : null;
-                $base['notification_created'] = $notif ? $notif['created_at'] : null;
-                $base['notification_dismissed'] = $notif ? $notif['dismissed_at'] : null;
-                $base['notification_expires'] = $notif ? $notif['expires_at'] : null;
-
                 if($isOver){
-                    $daysOverdue = null;
+                    $daysOverdue=null;
                     if($dueDate){
-                        $dd = DateTime::createFromFormat('Y-m-d',$dueDate);
-                        if($dd){
-                            $diff = $today->diff($dd)->days;
-                            if($dd < $today) $daysOverdue = $diff;
+                        $dd=DateTime::createFromFormat('Y-m-d',$dueDate);
+                        if($dd && $dd < $today){
+                            $diff=$today->diff($dd)->days;
+                            $daysOverdue=$diff;
                         }
                     }
                     $base['days_overdue']=$daysOverdue;
-
-                    if (!$notif) {
-                        $mysqli->query("
-                            INSERT INTO overdue_notifications (child_id, vaccine_id, dose_number) 
-                            VALUES ({$c['child_id']}, {$sc['vaccine_id']}, {$sc['dose_number']})
-                        ");
-                        $base['notification_status'] = 'active';
-                        $base['notification_created'] = date('Y-m-d H:i:s');
-                    }
                     $allOverdue[]=$base;
                 } else {
                     $dueSoon[]=$base;
@@ -295,28 +281,30 @@ if ($method === 'GET') {
             }
         }
 
-        $filteredOverdue = array_filter($allOverdue, function($item) use ($showType) {
-            if ($showType === 'active') {
-                return !$item['notification_status'] || $item['notification_status'] === 'active';
-            } elseif ($showType === 'recycle') {
-                return $item['notification_status'] === 'dismissed' || $item['notification_status'] === 'expired';
+        // Filter according to showType (status is only meaningful if notifications existed)
+        $filtered = array_filter($allOverdue,function($item) use ($showType){
+            $status = $item['notification_status'];
+            if ($showType==='active') {
+                return !$status || $status==='active';
+            } elseif ($showType==='recycle') {
+                return $status==='dismissed' || $status==='expired';
             }
             return true;
         });
 
-        $total = count($filteredOverdue);
+        $total = count($filtered);
         $totalPages = (int)ceil($total / $pageSize);
-        $pagedOverdue = array_slice(array_values($filteredOverdue), $offset, $pageSize);
+        $paged = array_slice(array_values($filtered), $offset, $pageSize);
 
         ok([
-            'overdue' => $pagedOverdue,
-            'dueSoon' => $dueSoon,
-            'pagination' => [
-                'page' => $page,
-                'pageSize' => $pageSize,
-                'total' => $total,
-                'totalPages' => $totalPages,
-                'showType' => $showType
+            'overdue'=>$paged,
+            'dueSoon'=>$dueSoon,
+            'pagination'=>[
+                'page'=>$page,
+                'pageSize'=>$pageSize,
+                'total'=>$total,
+                'totalPages'=>$totalPages,
+                'showType'=>$showType
             ]
         ]);
     }
@@ -374,7 +362,6 @@ if ($method === 'GET') {
     }
 
     if (isset($_GET['cards_summary'])) {
-        // Pagination parameters
         $page = max(1, (int)($_GET['page'] ?? 1));
         $pageSize = max(5, min(50, (int)($_GET['page_size'] ?? 10)));
         $search = trim($_GET['search'] ?? '');
@@ -401,7 +388,6 @@ if ($method === 'GET') {
             $doseMap[$r['child_id']][$r['vaccine_id']] = (int)$r['dose_count'];
         }
 
-        // Build search condition
         $searchWhere = '';
         $searchParams = [];
         if (!empty($search)) {
@@ -409,7 +395,6 @@ if ($method === 'GET') {
             $searchParams[] = '%' . $search . '%';
         }
 
-        // Get total count for pagination
         $countSql = "SELECT COUNT(*) as total FROM children $searchWhere";
         $countStmt = $mysqli->prepare($countSql);
         if (!empty($searchParams)) {
@@ -421,7 +406,6 @@ if ($method === 'GET') {
         $countStmt->close();
 
         $cards=[];
-        // Get paginated children
         $childSql = "
           SELECT child_id, full_name, birth_date,
             TIMESTAMPDIFF(MONTH,birth_date,CURDATE()) AS age_months
@@ -475,18 +459,18 @@ if ($method === 'GET') {
     fail('Unknown GET action',404);
 }
 
-/* ===================== POST ===================== */
+/* ===================== POST (Mutations) ===================== */
 if ($method === 'POST') {
     require_csrf();
 
-    /* NEW: Dismiss overdue notification */
+    /* Dismiss overdue notification (creates table if needed) */
     if (isset($_POST['dismiss_notification'])) {
         $childId = (int)($_POST['child_id'] ?? 0);
         $vaccineId = (int)($_POST['vaccine_id'] ?? 0);
         $doseNumber = (int)($_POST['dose_number'] ?? 0);
         if (!$childId || !$vaccineId || !$doseNumber) fail('Missing required parameters');
 
-        // Ensure table exists (safety if dismiss called before first overdue GET)
+        // Ensure table exists
         $mysqli->query("
             CREATE TABLE IF NOT EXISTS overdue_notifications (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -526,7 +510,7 @@ if ($method === 'POST') {
         ok(['dismissed'=>true]);
     }
 
-    /* NEW: Restore notification */
+    /* Restore notification */
     if (isset($_POST['restore_notification'])) {
         $childId = (int)($_POST['child_id'] ?? 0);
         $vaccineId = (int)($_POST['vaccine_id'] ?? 0);
@@ -586,7 +570,6 @@ if ($method === 'POST') {
         $validCats=['birth','infant','child','booster','adult'];
         if(!in_array($vaccine_category,$validCats,true)) fail('Invalid vaccine_category');
 
-        // DUPLICATE CHECK
         $dup=$mysqli->prepare("SELECT vaccine_id FROM vaccine_types WHERE vaccine_code=? LIMIT 1");
         $dup->bind_param('s',$vaccine_code);
         $dup->execute(); $dup->bind_result($eid);
@@ -598,14 +581,12 @@ if ($method === 'POST') {
         if($exists && $vaccine_id>0 && $exists!=$vaccine_id) fail('Vaccine code belongs to another record.');
 
         if ($vaccine_id > 0) {
-            // UPDATE (Corrected types: s s s s s i i i)
             $sql="UPDATE vaccine_types
                 SET vaccine_code=?,vaccine_name=?,vaccine_description=?,target_age_group=?,
                     vaccine_category=?,doses_required=?,interval_between_doses_days=?
                 WHERE vaccine_id=? LIMIT 1";
             $stmt=$mysqli->prepare($sql);
             if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
-            // NOTE: interval_between may be null; MySQLi will send NULL if param var is null (>=8.1).
             $stmt->bind_param(
                 'sssssiii',
                 $vaccine_code,
@@ -621,7 +602,6 @@ if ($method === 'POST') {
             $stmt->close();
             ok(['mode'=>'updated','vaccine_id'=>$vaccine_id]);
         } else {
-            // INSERT (Corrected types: s s s s s i i)
             $sql="INSERT INTO vaccine_types
                 (vaccine_code,vaccine_name,vaccine_description,target_age_group,
                 vaccine_category,doses_required,interval_between_doses_days,is_active)
@@ -679,11 +659,9 @@ if ($method === 'POST') {
         $vaccine_id_raw=trim($_POST['vaccine_id'] ?? '');
         $vaccine_id = ctype_digit($vaccine_id_raw)?(int)$vaccine_id_raw:0;
 
-        // NEW: expiry date (optional)
         $expiry_raw = trim($_POST['vaccine_expiry_date'] ?? '');
         $vaccine_expiry_date = ($expiry_raw !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/',$expiry_raw)) ? $expiry_raw : null;
 
-        // NEW: manual next dose date override (optional)
         $next_due_override_raw = trim($_POST['next_dose_due_date'] ?? '');
         $next_due_override = ($next_due_override_raw !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/',$next_due_override_raw)) ? $next_due_override_raw : null;
 
@@ -698,7 +676,7 @@ if ($method === 'POST') {
                 } else {
                     $name=trim($_POST['vaccine_name'] ?? $code);
                     $cat=trim($_POST['vaccine_category'] ?? 'infant');
-                    $dreq=(int)$_POST['doses_required'] ?? 1;
+                    $dreq=(int)($_POST['doses_required'] ?? 1);
                     if($dreq<=0) $dreq=1;
                     $auto=$mysqli->prepare("INSERT INTO vaccine_types (vaccine_code,vaccine_name,vaccine_category,doses_required,is_active) VALUES (?,?,?,?,1)");
                     $auto->bind_param('sssi',$code,$name,$cat,$dreq);
@@ -714,21 +692,18 @@ if ($method === 'POST') {
             fail('Required fields missing.');
         }
 
-        // Get vaccine meta for auto-compute
         $stmt=$mysqli->prepare("SELECT doses_required, interval_between_doses_days FROM vaccine_types WHERE vaccine_id=? LIMIT 1");
         $stmt->bind_param('i',$vaccine_id);
         $stmt->execute(); $stmt->bind_result($dreq,$interval_days);
         if(!$stmt->fetch()){ $stmt->close(); fail('Vaccine not found',404); }
         $stmt->close();
 
-        // Choose next due date: prefer manual override if valid, else auto-compute
         $next_due = $next_due_override;
         if($next_due === null && $dose_number < (int)$dreq && $interval_days !== null){
             $ts=strtotime($vaccination_date.' +'.(int)$interval_days.' days');
             if($ts) $next_due=date('Y-m-d',$ts);
         }
 
-        // Build dynamic insert (include expiry if column exists)
         $fields = [
           'child_id','vaccine_id','dose_number','vaccination_date',
           'vaccination_site','batch_lot_number',
@@ -741,10 +716,9 @@ if ($method === 'POST') {
             $fields[] = 'vaccine_expiry_date';
             $place[]  = '?';
             $types   .= 's';
-            $values[] = $vaccine_expiry_date; // can be null
+            $values[] = $vaccine_expiry_date;
         }
 
-        // Always present columns below
         $fields = array_merge($fields, ['administered_by','next_dose_due_date','adverse_reactions','notes']);
         $place  = array_merge($place,  ['?','?','?','?']);
         $types .= 'isss';
@@ -754,7 +728,6 @@ if ($method === 'POST') {
         $ins=$mysqli->prepare($sql);
         if(!$ins) fail('Prepare failed: '.$mysqli->error,500);
 
-        // Bind dynamically
         $ins->bind_param($types, ...$values);
         if(!$ins->execute()){
             if(stripos($ins->error,'duplicate')!==false) fail('Duplicate entry (already recorded dose).',409);

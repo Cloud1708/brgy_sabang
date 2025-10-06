@@ -12,12 +12,29 @@ function ok($d=[]){ echo json_encode(array_merge(['success'=>true],$d)); exit; }
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+/**
+ * Unified CSRF checker:
+ *  - Accepts token from POST field csrf_token OR header X-CSRF-Token
+ *  - Returns HTTP 419 on failure.
+ */
 function require_csrf(){
-    if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) ||
-        !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $postToken = $_POST['csrf_token'] ?? '';
+    $hdrToken = '';
+    if (function_exists('getallheaders')) {
+        foreach (getallheaders() as $k=>$v){
+            if (strcasecmp($k,'X-CSRF-Token')===0){
+                $hdrToken = $v;
+                break;
+            }
+        }
+    }
+    $token = $postToken ?: $hdrToken;
+    if (empty($_SESSION['csrf_token']) || $token==='' || !hash_equals($_SESSION['csrf_token'],$token)) {
         fail('CSRF failed',419);
     }
 }
+
 function rand_password($len=10){
     $chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
     $out='';
@@ -27,7 +44,7 @@ function rand_password($len=10){
     return $out;
 }
 
-/* ===== NEW: Audit Log Helper ===== */
+/* ===== Audit Log Helper ===== */
 function log_parent_activity(mysqli $mysqli, int $parent_user_id, string $action_code, ?int $child_id=null, array $meta=[]){
     if($parent_user_id<=0 || $action_code==='') return;
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
@@ -118,18 +135,12 @@ function link_parent_child(mysqli $mysqli, int $parent_user_id,int $child_id,str
     $ins->close();
 }
 
-/* ---------------- GET (with test_mail endpoint) ---------------- */
+/* ---------------- GET (Read-Only) ---------------- */
 if ($method === 'GET') {
 
-    if (isset($_GET['test_mail'])) {
-        $to = trim($_GET['to'] ?? '');
-        if(!$to) fail('Provide ?to=email@example.com');
-        $ok = send_parent_credentials($to,'Test Parent','testuser','Sample123!','guardian');
-        ok([
-            'test'=>true,
-            'email_sent'=>$ok,
-            'email_error'=>$ok?null:bhw_mail_last_error()
-        ]);
+    // Health ping (safe)
+    if (isset($_GET['ping'])) {
+        ok(['ping'=>'pong','has_csrf'=>!empty($_SESSION['csrf_token'])]);
     }
 
     if (isset($_GET['list_parents'])) {
@@ -177,19 +188,16 @@ if ($method === 'GET') {
     }
 
     if (isset($_GET['recent_activity'])) {
-        // Pagination parameters
         $page = max(1, (int)($_GET['page'] ?? 1));
         $pageSize = max(5, min(50, (int)($_GET['page_size'] ?? 10)));
         $offset = ($page - 1) * $pageSize;
 
-        // Get total count for pagination
         $countSql = "SELECT COUNT(*) as total FROM parent_audit_log l
                      JOIN users u ON u.user_id=l.parent_user_id";
         $countRes = $mysqli->query($countSql);
         $totalCount = $countRes->fetch_assoc()['total'];
         $totalPages = ceil($totalCount / $pageSize);
 
-        // Detailed audit feed with pagination
         $rows=[];
         $sql="
           SELECT l.log_id,l.parent_user_id,l.action_code,l.child_id,l.meta_json,
@@ -241,7 +249,6 @@ if ($method === 'GET') {
         ok(['children'=>$rows]);
     }
 
-    /* NEW: list linked children of a parent for edit modal */
     if (isset($_GET['children_of_parent'])) {
         $pid = (int)$_GET['children_of_parent'];
         if ($pid <= 0) fail('Invalid parent_user_id');
@@ -266,12 +273,23 @@ if ($method === 'GET') {
     fail('Unknown GET action',404);
 }
 
-/* ---------------- POST ---------------- */
+/* ---------------- POST (Mutating) ---------------- */
 if ($method === 'POST') {
     require_csrf();
 
-    if (isset($_POST['create_parent'])) {
+    /* (Optional) Test mail moved to POST to eliminate GET side-effect */
+    if (isset($_POST['test_mail'])) {
+        $to = trim($_POST['to'] ?? '');
+        if(!$to) fail('Recipient required');
+        $sent = false; $error=null;
+        try{
+            $sent = send_parent_credentials($to,'Test Parent','testuser','Sample123!','guardian');
+            if(!$sent) $error = bhw_mail_last_error();
+        }catch(Throwable $e){ $error=$e->getMessage(); }
+        ok(['test_mail'=>true,'email_sent'=>$sent,'email_error'=>$error]);
+    }
 
+    if (isset($_POST['create_parent'])) {
         $username          = trim($_POST['username'] ?? '');
         $email             = trim($_POST['email'] ?? '');
         $passwordInput     = trim($_POST['password'] ?? '');
@@ -400,7 +418,6 @@ if ($method === 'POST') {
             }
             $mysqli->commit();
 
-            // Log creation
             log_parent_activity($mysqli,$parent_user_id,'create_account');
 
             $email_sent=false;
@@ -467,13 +484,11 @@ if ($method === 'POST') {
         ok(['parent_user_id'=>$parent_user_id,'is_active'=>$new]);
     }
 
-    /* NEW: link a child to a parent (activate link) */
     if (isset($_POST['link_child'])) {
         $parent_user_id = (int)($_POST['parent_user_id'] ?? 0);
         $child_id       = (int)($_POST['child_id'] ?? 0);
         $rel            = trim($_POST['relationship_type'] ?? 'guardian');
         if ($parent_user_id<=0 || $child_id<=0) fail('Invalid link parameters');
-        // ensure child exists
         $chk = $mysqli->prepare("SELECT child_id FROM children WHERE child_id=? LIMIT 1");
         $chk->bind_param('i',$child_id);
         $chk->execute(); $chk->store_result();
@@ -485,7 +500,6 @@ if ($method === 'POST') {
         ok(['linked'=>true,'child_id'=>$child_id]);
     }
 
-    /* NEW: unlink (deactivate) a child from a parent */
     if (isset($_POST['unlink_child'])) {
         $parent_user_id = (int)($_POST['parent_user_id'] ?? 0);
         $child_id       = (int)($_POST['child_id'] ?? 0);
@@ -493,11 +507,7 @@ if ($method === 'POST') {
         $stmt = $mysqli->prepare("UPDATE parent_child_access SET is_active=0, updated_at=NOW() WHERE parent_user_id=? AND child_id=? AND is_active=1");
         $stmt->bind_param('ii',$parent_user_id,$child_id);
         if(!$stmt->execute()) fail('Unlink failed: '.$stmt->error,500);
-        $affected=$stmt->affected_rows;
         $stmt->close();
-        if($affected===0){
-            // if already inactive or not present, do not error
-        }
         log_parent_activity($mysqli,$parent_user_id,'unlink_child',$child_id);
         ok(['unlinked'=>true,'child_id'=>$child_id]);
     }
@@ -506,16 +516,12 @@ if ($method === 'POST') {
         $parent_user_id = (int)($_POST['parent_user_id'] ?? 0);
         $child_id       = (int)($_POST['child_id'] ?? 0);
         if ($parent_user_id<=0 || $child_id<=0) fail('Invalid remove parameters');
-        // Hard delete the link (single row per parent-child pair expected)
         $stmt = $mysqli->prepare("DELETE FROM parent_child_access WHERE parent_user_id=? AND child_id=? LIMIT 1");
         $stmt->bind_param('ii',$parent_user_id,$child_id);
         if(!$stmt->execute()) fail('Remove failed: '.$stmt->error,500);
         $affected = $stmt->affected_rows;
         $stmt->close();
-        // Audit log
-        if (function_exists('log_parent_activity')) {
-            log_parent_activity($mysqli,$parent_user_id,'remove_child_link',$child_id);
-        }
+        log_parent_activity($mysqli,$parent_user_id,'remove_child_link',$child_id);
         ok(['removed'=>($affected>0), 'child_id'=>$child_id]);
     }
 

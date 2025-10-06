@@ -34,12 +34,26 @@ function fail($m,$c=400){
     exit;
 }
 
+function csrf_check(){
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $post = $_POST['csrf_token'] ?? '';
+    $hdr = '';
+    if (function_exists('getallheaders')) {
+        foreach (getallheaders() as $k=>$v){
+            if (strcasecmp($k,'X-CSRF-Token')===0){ $hdr=$v; break; }
+        }
+    }
+    $token = $post ?: $hdr;
+    if (empty($_SESSION['csrf_token']) || $token==='' || !hash_equals($_SESSION['csrf_token'],$token)) {
+        fail('CSRF failed',419);
+    }
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
-/* =================== GET =================== */
+/* =================== GET (read-only) =================== */
 if ($method === 'GET') {
 
-    // Global list of all health records (now includes LMP & EDD)
     if (isset($_GET['all'])) {
         $limit = isset($_GET['limit']) ? max(1,min(1000,(int)$_GET['limit'])) : 500;
 
@@ -83,7 +97,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Consultation history per mother
     if (isset($_GET['list']) && isset($_GET['mother_id'])) {
         $mother_id = (int)$_GET['mother_id'];
         if ($mother_id <= 0) fail('Invalid mother_id');
@@ -113,7 +126,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Risk summary (latest risky)
     if (isset($_GET['risk_summary'])) {
         $rows=[];
         $sql = "
@@ -152,7 +164,6 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Recent consultations (global latest)
     if (isset($_GET['recent_consults'])) {
         $limit = isset($_GET['limit']) ? max(1,min(50,(int)$_GET['limit'])) : 20;
         $rows=[];
@@ -179,13 +190,10 @@ if ($method === 'GET') {
     fail('Unknown GET action',404);
 }
 
-/* =================== POST =================== */
+/* =================== POST (mutations) =================== */
 if ($method === 'POST') {
 
-    if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) ||
-        !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        fail('CSRF failed',419);
-    }
+    csrf_check();
 
     $mother_id = (int)($_POST['mother_id'] ?? 0);
     $consultation_date = $_POST['consultation_date'] ?? '';

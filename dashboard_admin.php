@@ -6,8 +6,15 @@ require_once __DIR__ . '/inc/mail.php';
 require_role(['Admin']);
 
 if (session_status() === PHP_SESSION_NONE) {
+    // Optional cookie scope tightening
+    session_set_cookie_params([
+        'path' => '/brgy_sabang/',
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -18,7 +25,8 @@ $csrf = $_SESSION['csrf_token'];
 -------------------------------------------------------------------*/
 $validSections = [
     'control-panel', 'accounts', 'reports', 'events',
-    'health_records', 'immunization', 'maternal_patients', 'parent_accounts'
+    'health_records', 'immunization', 'maternal_patients', 'parent_accounts',
+    'children_management', 'nutrition_data_entry', 'supplementation'
 ];
 $section = $_GET['section'] ?? ($_SESSION['active_section'] ?? 'control-panel');
 if (!in_array($section, $validSections)) $section = 'control-panel';
@@ -477,8 +485,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Regenerate CSRF token for next request
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 }
 
@@ -520,7 +526,10 @@ $titles = [
     'health_records' => 'Health Records',
     'immunization' => 'Immunization Management',
     'maternal_patients' => 'Maternal Patients',
-    'parent_accounts' => 'Parent Account Management'
+    'parent_accounts' => 'Parent Account Management',
+    'children_management' => 'Children Management',
+    'nutrition_data_entry' => 'Nutrition Data Entry',
+    'supplementation' => 'Supplementation'
 ];
 
 $descs = [
@@ -531,7 +540,10 @@ $descs = [
     'health_records' => 'Manage maternal health records',
     'immunization' => 'Track child immunizations',
     'maternal_patients' => 'Manage maternal patient records',
-    'parent_accounts' => 'Manage parent portal accounts'
+    'parent_accounts' => 'Manage parent portal accounts',
+    'children_management' => 'Manage child registry & quick nutrition status',
+    'nutrition_data_entry' => 'Enter and review nutrition measurements',
+    'supplementation' => 'Track vitamin & supplementation records'
 ];
 ?>
 <!DOCTYPE html>
@@ -1125,6 +1137,14 @@ $descs = [
                     <li><a class="<?php echo $section === 'parent_accounts' ? 'active' : ''; ?>" href="?section=parent_accounts"><i class="bi bi-person-badge"></i><span>Parent Accounts</span></a></li>
                 </ul>
             </div>
+            <div class="nav-section">
+                <small class="text-muted d-block mb-2" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BNS Functions</small>
+                <ul class="nav-list">
+                    <li><a class="<?php echo $section === 'children_management' ? 'active' : ''; ?>" href="?section=children_management"><i class="bi bi-heart-pulse"></i><span>Children Management</span></a></li>
+                    <li><a class="<?php echo $section === 'nutrition_data_entry' ? 'active' : ''; ?>" href="?section=nutrition_data_entry"><i class="bi bi-shield-check"></i><span>Nutrition Data Entry</span></a></li>
+                    <li><a class="<?php echo $section === 'supplementation' ? 'active' : ''; ?>" href="?section=supplementation"><i class="bi bi-person-heart"></i><span>Supplementation</span></a></li>
+                </ul>
+            </div>
             <div class="sidebar-footer">
                 <div>Barangay Health System</div>
                 <div>Version 2.0.1</div>
@@ -1231,7 +1251,7 @@ $descs = [
                                                 <td><?php echo htmlspecialchars($ac['created_at']); ?></td>
                                                 <td>
                                                     <label class="switch">
-                                                        <input type="checkbox" <?php echo $ac['is_active'] ? 'checked' : ''; ?> onchange="toggleActive(<?php echo $ac['user_id']; ?>, this.checked)">
+                                                        <input type="checkbox" <?php echo $ac['is_active'] ? 'checked' : ''; ?> onchange="toggleActive(<?php echo $ac['user_id']; ?>, this.checked); window.location.reload();">
                                                         <span class="slider"></span>
                                                     </label>
                                                     <span class="status-label <?php echo $ac['is_active'] ? '' : 'inactive'; ?>">
@@ -1239,7 +1259,7 @@ $descs = [
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <a class="btn btn-link p-0 fw-semibold" href="?section=accounts&edit=<?php echo $ac['user_id']; ?>">Edit</a>
+                                                    <a class="btn btn-link p-0 fw-semibold border px-3 bg-primary text-white text-decoration-none" href="?section=accounts&edit=<?php echo $ac['user_id']; ?>">Edit</a>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -1588,7 +1608,9 @@ $descs = [
                     <?php endif; ?>
                     
                 <?php elseif ($section === 'health_records' || $section === 'immunization' || 
-                              $section === 'maternal_patients' || $section === 'parent_accounts') : ?>
+                              $section === 'maternal_patients' || $section === 'parent_accounts' ||
+                              $section === 'children_management' || $section === 'nutrition_data_entry' ||
+                              $section === 'supplementation') : ?>
 
                     <div class="panel" id="dynamicSectionPanel">
                         <div class="panel-header mb-3">
@@ -1680,10 +1702,19 @@ $descs = [
         <?php if ($section === 'parent_accounts'): ?>
             <script src="admin_access/parent_accounts.js"></script>
         <?php endif; ?>
+        <?php if ($section === 'children_management'): ?>
+            <script src="admin_access/children_management.js"></script>
+        <?php endif; ?>
+        <?php if ($section === 'nutrition_data_entry'): ?>
+            <script src="admin_access/nutrition_data_entry.js"></script>
+        <?php endif; ?>
+        <?php if ($section === 'supplementation'): ?>
+            <script src="admin_access/supplementation.js"></script>
+        <?php endif; ?>
             
     <script>
 
-        window.__ADMIN_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
+        window.__ADMIN_CSRF = "<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>";
 
         if (window.AdminAPI && window.__ADMIN_CSRF) {
             AdminAPI.setCSRF(window.__ADMIN_CSRF);

@@ -9,103 +9,157 @@ header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors','0');
 error_reporting(E_ALL);
 
-function fail($m,$c=400){ http_response_code($c); echo json_encode(['success'=>false,'error'=>$m]); exit; }
-function nz($s){ $s=trim((string)$s); return $s===''? null : $s; }
+function fail($m,$c=400,$extra=null){
+    http_response_code($c);
+    $out = ['success'=>false,'error'=>$m];
+    if ($extra!==null) $out['details']=$extra;
+    echo json_encode($out);
+    exit;
+}
+
+function csrf_check(){
+    $post = $_POST['csrf_token'] ?? '';
+    $hdr  = '';
+    if (function_exists('getallheaders')) {
+        foreach (getallheaders() as $k=>$v){
+            if (strcasecmp($k,'X-CSRF-Token')===0){ $hdr=$v; break; }
+        }
+    }
+    $token = $post ?: $hdr;
+    if (empty($_SESSION['csrf_token']) || $token==='' || !hash_equals($_SESSION['csrf_token'],$token)) {
+        fail('CSRF failed',419);
+    }
+}
+
+function table_exists(mysqli $mysqli,string $table): bool {
+    $t = $mysqli->real_escape_string($table);
+    $res = $mysqli->query("SHOW TABLES LIKE '$t'");
+    return $res && $res->num_rows>0;
+}
+
+function column_set(mysqli $mysqli,string $table): array {
+    $cols=[];
+    $t = $mysqli->real_escape_string($table);
+    if ($res=$mysqli->query("SHOW COLUMNS FROM `$t`")) {
+        while($r=$res->fetch_assoc()) $cols[$r['Field']]=true;
+    }
+    return $cols;
+}
+
+// Determine actual mother table
+$motherTable = null;
+if (table_exists($mysqli,'maternal_patients')) {
+    $motherTable = 'maternal_patients';
+} elseif (table_exists($mysqli,'mothers_caregivers')) {
+    $motherTable = 'mothers_caregivers';
+} else {
+    fail('No maternal patients table found (neither maternal_patients nor mothers_caregivers).',500);
+}
+$cols = column_set($mysqli,$motherTable);
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-if ($method === 'GET') {
+// Optional diagnostics (admin only)
+if ($method==='GET' && isset($_GET['diag'])) {
+    echo json_encode([
+        'success'=>true,
+        'active_table'=>$motherTable,
+        'columns'=>array_keys($cols),
+        'csrf_present'=>!empty($_SESSION['csrf_token'])
+    ]);
+    exit;
+}
 
-    // Full maternal patients list (similar to old mothers list)
+// ================== GET ==================
+if ($method==='GET') {
+
+    // List (paginated & filter)
     if (isset($_GET['list'])) {
-        // Pagination & filtering
-        $page = max(1,(int)($_GET['page'] ?? 1));
+        $page     = max(1,(int)($_GET['page'] ?? 1));
         $pageSize = max(5,min(100,(int)($_GET['page_size'] ?? 20)));
-        $offset = ($page-1)*$pageSize;
-        $search = trim($_GET['search'] ?? '');
-        $riskFilter = trim($_GET['risk'] ?? ''); // high | monitor | normal
+        $offset   = ($page-1)*$pageSize;
+        $search   = trim($_GET['search'] ?? '');
+        $riskFilter = trim($_GET['risk'] ?? '');
 
-        // Build dynamic WHERE
+        // Build where
         $where = [];
-        $params = '';
-        $vals = [];
-        if($search!==''){
-            $where[] = '(m.full_name LIKE ? OR p.purok_name LIKE ?)';
-            $like = '%'.$search.'%';
-            $params .= 'ss';
-            $vals[] = $like; $vals[] = $like;
-        }
-        // risk is derived from counting risk indicators via subquery; we'll approximate by HAVING later
-        $whereSql = $where? ('WHERE '.implode(' AND ',$where)) : '';
+        $bindTypes = '';
+        $bindVals = [];
 
-        // Total count (without LIMIT)
-        $countSql = "SELECT COUNT(*) AS total FROM maternal_patients m LEFT JOIN puroks p ON p.purok_id=m.purok_id $whereSql";
-        if($params){
-            $cStmt=$mysqli->prepare($countSql);
-            $cStmt->bind_param($params,...$vals);
-            $cStmt->execute();
-            $cRes=$cStmt->get_result();
-            $total = (int)($cRes->fetch_assoc()['total'] ?? 0);
-            $cStmt->close();
-        } else {
-            $cRes=$mysqli->query($countSql);
-            $total = (int)($cRes->fetch_assoc()['total'] ?? 0);
+        // Name / purok search (purok join optional if table has purok_id)
+        if ($search!=='') {
+            $where[] = "(m.full_name LIKE ? OR p.purok_name LIKE ?)";
+            $like = '%'.$search.'%';
+            $bindTypes .= 'ss';
+            $bindVals[] = $like; $bindVals[] = $like;
         }
+
+        $whereSql = $where ? 'WHERE '.implode(' AND ',$where) : '';
+
+        // Count
+        $countSql = "SELECT COUNT(*) AS total
+                     FROM `$motherTable` m
+                     LEFT JOIN puroks p ON p.purok_id=m.purok_id
+                     $whereSql";
+        $countStmt = $mysqli->prepare($countSql);
+        if(!$countStmt) fail('Prepare failed (count): '.$mysqli->error,500);
+        if ($bindTypes) $countStmt->bind_param($bindTypes,...$bindVals);
+        $countStmt->execute();
+        $countRes = $countStmt->get_result();
+        $total = (int)($countRes->fetch_assoc()['total'] ?? 0);
+        $countStmt->close();
+
         $totalPages = $pageSize? (int)ceil($total/$pageSize) : 1;
 
-        $rows = [];
-        $sql = "
-          SELECT m.mother_id,
-                 m.full_name,
-                 m.date_of_birth,
-                 m.gravida,
-                 m.para,
-                 m.blood_type,
-                 m.emergency_contact_name,
-                 m.emergency_contact_number,
-                 m.address_details,
-                 m.contact_number,
-                 p.purok_name,
-                 (
-                   SELECT COUNT(*) FROM health_records hr WHERE hr.mother_id = m.mother_id
-                 ) AS records_count,
-                 (
-                   SELECT MAX(consultation_date) FROM health_records hr2 WHERE hr2.mother_id = m.mother_id
-                 ) AS last_consultation_date,
-                 (
-                   SELECT COUNT(*) FROM health_records hr3
-                   WHERE hr3.mother_id = m.mother_id
-                     AND (
-                       hr3.vaginal_bleeding=1 OR hr3.urinary_infection=1 OR hr3.high_blood_pressure=1
-                       OR hr3.fever_38_celsius=1 OR hr3.pallor=1 OR hr3.abnormal_abdominal_size=1
-                       OR hr3.abnormal_presentation=1 OR hr3.absent_fetal_heartbeat=1
-                       OR hr3.swelling=1 OR hr3.vaginal_infection=1
-                     )
-                 ) AS risk_count
-          FROM maternal_patients m
-          LEFT JOIN puroks p ON p.purok_id = m.purok_id
-          $whereSql
-          ORDER BY m.created_at DESC
-          LIMIT ? OFFSET ?
-        ";
-        $paramsPage = $params . 'ii';
-        $valsPage = array_merge($vals, [$pageSize,$offset]);
-        $stmt=$mysqli->prepare($sql);
-        if($paramsPage){
-            $stmt->bind_param($paramsPage,...$valsPage);
-        }
-        $stmt->execute();
-        $res=$stmt->get_result();
-        while($res && $r=$res->fetch_assoc()) $rows[]=$r;
-        $stmt->close();
+        // Risk score logic depends on health_records table
+        // We compute risk_count as number of records with any complication flags
+        $healthRiskExpr = "(SELECT COUNT(*) FROM health_records hr
+                            WHERE hr.mother_id = m.mother_id
+                              AND (hr.vaginal_bleeding=1 OR hr.urinary_infection=1 OR hr.high_blood_pressure=1
+                                OR hr.fever_38_celsius=1 OR hr.pallor=1 OR hr.abnormal_abdominal_size=1
+                                OR hr.abnormal_presentation=1 OR hr.absent_fetal_heartbeat=1
+                                OR hr.swelling=1 OR hr.vaginal_infection=1)
+                           ) AS risk_count";
 
-        // Apply risk HAVING filter in PHP (lightweight, dataset already paginated)
-        if($riskFilter){
-            $rows = array_values(array_filter($rows,function($r) use ($riskFilter){
-                $score = (int)($r['risk_count'] ?? 0);
-                if($riskFilter==='high') return $score>=2;
-                if($riskFilter==='monitor') return $score===1;
-                if($riskFilter==='normal') return $score===0;
+        // Basic columns that might exist
+        $selectCols = [
+            'm.mother_id',
+            'm.full_name'
+        ];
+        foreach (['date_of_birth','gravida','para','blood_type','emergency_contact_name',
+                  'emergency_contact_number','address_details','contact_number'] as $c) {
+            if (isset($cols[$c])) $selectCols[] = "m.$c";
+        }
+        $selectCols[] = 'p.purok_name';
+        $selectCols[] = "(SELECT COUNT(*) FROM health_records hr2 WHERE hr2.mother_id=m.mother_id) AS records_count";
+        $selectCols[] = "(SELECT MAX(consultation_date) FROM health_records hr3 WHERE hr3.mother_id=m.mother_id) AS last_consultation_date";
+        $selectCols[] = $healthRiskExpr;
+
+        $listSql = "SELECT ".implode(",",$selectCols)."
+                    FROM `$motherTable` m
+                    LEFT JOIN puroks p ON p.purok_id=m.purok_id
+                    $whereSql
+                    ORDER BY m.mother_id DESC
+                    LIMIT ? OFFSET ?";
+        $listStmt = $mysqli->prepare($listSql);
+        if(!$listStmt) fail('Prepare failed (list): '.$mysqli->error,500);
+
+        $bindTypesList = $bindTypes . 'ii';
+        $bindValsList  = array_merge($bindVals, [$pageSize,$offset]);
+        $listStmt->bind_param($bindTypesList,...$bindValsList);
+        $listStmt->execute();
+        $res = $listStmt->get_result();
+        $rows=[];
+        while($r=$res->fetch_assoc()) $rows[]=$r;
+        $listStmt->close();
+
+        // Risk filter (in-memory)
+        if ($riskFilter!=='') {
+            $rows = array_values(array_filter($rows,function($r) use($riskFilter){
+                $riskCount = (int)($r['risk_count'] ?? 0);
+                if ($riskFilter==='high') return $riskCount>=2;
+                if ($riskFilter==='monitor') return $riskCount===1;
+                if ($riskFilter==='normal') return $riskCount===0;
                 return true;
             }));
         }
@@ -116,81 +170,155 @@ if ($method === 'GET') {
             'total_count'=>$total,
             'current_page'=>$page,
             'page_size'=>$pageSize,
-            'total_pages'=>$totalPages
+            'total_pages'=>$totalPages,
+            'active_table'=>$motherTable
         ]);
         exit;
     }
 
-    // Basic list (for duplicate name check)
+    // Light list for dropdowns
     if (isset($_GET['list_basic'])) {
+        $sql = "SELECT mother_id, full_name FROM `$motherTable` ORDER BY full_name ASC";
+        $res = $mysqli->query($sql);
+        if(!$res) fail('Query failed: '.$mysqli->error,500);
         $rows=[];
-        $res=$mysqli->query("SELECT mother_id, full_name FROM maternal_patients ORDER BY full_name ASC");
         while($r=$res->fetch_assoc()) $rows[]=$r;
-        echo json_encode(['success'=>true,'mothers'=>$rows]);
+        echo json_encode(['success'=>true,'mothers'=>$rows,'active_table'=>$motherTable]);
         exit;
     }
 
     fail('Unknown GET action',404);
 }
 
-if ($method === 'POST') {
-    if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) ||
-        !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        fail('CSRF failed',419);
+// ================== POST (create) ==================
+if ($method==='POST') {
+    csrf_check();
+
+    // Gather possible input fields (some columns might not exist)
+    $inputMap = [
+        'full_name'                => ['required'=>true],
+        'purok_name'               => ['required'=>false],
+        'address_details'          => ['required'=>false],
+        'contact_number'           => ['required'=>false],
+        'date_of_birth'            => ['required'=>false, 'validate'=>'date'],
+        'gravida'                  => ['required'=>false, 'type'=>'int'],
+        'para'                     => ['required'=>false, 'type'=>'int'],
+        'blood_type'               => ['required'=>false],
+        'emergency_contact_name'   => ['required'=>false],
+        'emergency_contact_number' => ['required'=>false]
+    ];
+
+    $data = [];
+    foreach($inputMap as $field=>$meta){
+        $val = trim($_POST[$field] ?? '');
+        if ($meta['required'] && $val==='') {
+            fail("Missing required field: $field",422);
+        }
+        if ($val==='') $val=null;
+
+        if ($val!==null && isset($meta['validate']) && $meta['validate']==='date') {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/',$val)) $val=null;
+        }
+        if ($val!==null && isset($meta['type']) && $meta['type']==='int') {
+            $val = (int)$val;
+        }
+        $data[$field] = $val;
     }
 
-    $full_name       = nz($_POST['full_name'] ?? '');
-    $purok_name      = nz($_POST['purok_name'] ?? '');
-    $address_details = nz($_POST['address_details'] ?? '');
-    $contact_number  = nz($_POST['contact_number'] ?? '');
-    $user_id         = (int)($_SESSION['user_id'] ?? 0);
+    // Determine / create purok if provided
+    $purok_id = null;
+    $purok_name = $data['purok_name'] ?? null;
+    if ($purok_name===null || $purok_name==='') $purok_name='Unassigned';
 
-    $date_of_birth   = nz($_POST['date_of_birth'] ?? '');
-    if ($date_of_birth && !preg_match('/^\d{4}-\d{2}-\d{2}$/',$date_of_birth)) $date_of_birth = null;
-    $gravida         = ($_POST['gravida'] !== '' && isset($_POST['gravida'])) ? (int)$_POST['gravida'] : null;
-    $para            = ($_POST['para'] !== '' && isset($_POST['para'])) ? (int)$_POST['para'] : null;
-    $blood_type      = nz($_POST['blood_type'] ?? '');
-    $emg_name        = nz($_POST['emergency_contact_name'] ?? '');
-    $emg_number      = nz($_POST['emergency_contact_number'] ?? '');
+    // Only look up/create purok if the maternal table actually has purok_id column
+    if (isset($cols['purok_id'])) {
+        $ps = $mysqli->prepare("SELECT purok_id FROM puroks WHERE purok_name=? LIMIT 1");
+        $ps->bind_param('s',$purok_name);
+        $ps->execute(); $ps->bind_result($pid);
+        if ($ps->fetch()) $purok_id=$pid;
+        $ps->close();
+        if(!$purok_id){
+            $barangay='Sabang';
+            $insP = $mysqli->prepare("INSERT INTO puroks (purok_name,barangay) VALUES (?,?)");
+            $insP->bind_param('ss',$purok_name,$barangay);
+            if(!$insP->execute()) fail('Purok insert failed: '.$insP->error,500);
+            $purok_id=$insP->insert_id;
+            $insP->close();
+        }
+    }
 
-    if (!$full_name) fail('Full name required.');
-    if (!$purok_name) $purok_name = 'Unassigned';
+    $created_by = (int)($_SESSION['user_id'] ?? 0);
+    if ($created_by<=0) $created_by = null;
 
-    // Ensure purok
-    $purok_id=null;
-    $stmt=$mysqli->prepare("SELECT purok_id FROM puroks WHERE purok_name=? LIMIT 1");
-    $stmt->bind_param('s',$purok_name);
-    $stmt->execute(); $stmt->bind_result($pid);
-    if($stmt->fetch()) $purok_id=$pid;
+    // Build dynamic insert based on actual columns
+    $insertCols = [];
+    $placeholders = [];
+    $types = '';
+    $vals = [];
+
+    // Always try to set full_name if column exists
+    if (!isset($cols['full_name'])) fail("Target table '$motherTable' lacks required column full_name.",500);
+    $insertCols[]='full_name'; $placeholders[]='?'; $types.='s'; $vals[]=$data['full_name'];
+
+    if ($purok_id!==null && isset($cols['purok_id'])) {
+        $insertCols[]='purok_id'; $placeholders[]='?'; $types.='i'; $vals[]=$purok_id;
+    }
+
+    $optionalMapping = [
+        'address_details'=>'address_details',
+        'contact_number'=>'contact_number',
+        'date_of_birth'=>'date_of_birth',
+        'gravida'=>'gravida',
+        'para'=>'para',
+        'blood_type'=>'blood_type',
+        'emergency_contact_name'=>'emergency_contact_name',
+        'emergency_contact_number'=>'emergency_contact_number'
+    ];
+    foreach($optionalMapping as $in=>$colName){
+        if (isset($cols[$colName]) && array_key_exists($in,$data)) {
+            $val = $data[$in];
+            if ($val===null){
+                // use NULL directly
+                $insertCols[]=$colName; $placeholders[]='NULL';
+            } else {
+                $insertCols[]=$colName; $placeholders[]='?';
+                // type inference
+                if (in_array($colName,['gravida','para'])) { $types.='i'; $vals[]=(int)$val; }
+                else { $types.='s'; $vals[]=$val; }
+            }
+        }
+    }
+
+    if (isset($cols['created_by'])) {
+        if ($created_by===null) {
+            $insertCols[]='created_by'; $placeholders[]='NULL';
+        } else {
+            $insertCols[]='created_by'; $placeholders[]='?'; $types.='i'; $vals[]=$created_by;
+        }
+    }
+
+    $sql = "INSERT INTO `$motherTable` (".implode(',',$insertCols).") VALUES (".implode(',',$placeholders).")";
+    $stmt = $mysqli->prepare($sql);
+    if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
+
+    if ($types!=='') {
+        $bind = [];
+        $bind[] = &$types;
+        foreach($vals as $k=>$v){ $bind[] = &$vals[$k]; }
+        call_user_func_array([$stmt,'bind_param'],$bind);
+    }
+
+    if (!$stmt->execute()) {
+        fail('Insert failed: '.$stmt->error,500,['sql'=>$sql]);
+    }
+    $newId = $stmt->insert_id;
     $stmt->close();
-    if(!$purok_id){
-        $barangay='Sabang';
-        $ins=$mysqli->prepare("INSERT INTO puroks (purok_name,barangay) VALUES (?,?)");
-        $ins->bind_param('ss',$purok_name,$barangay);
-        if(!$ins->execute()) fail('Purok insert failed: '.$ins->error,500);
-        $purok_id=$ins->insert_id;
-        $ins->close();
-    }
 
-    $sql="INSERT INTO maternal_patients
-        (full_name,purok_id,address_details,contact_number,
-         date_of_birth,gravida,para,blood_type,
-         emergency_contact_name,emergency_contact_number,created_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)";
-    $stmt2=$mysqli->prepare($sql);
-    if(!$stmt2) fail('Prepare failed: '.$mysqli->error,500);
-    $types="sisssiisssi";
-    $stmt2->bind_param(
-        $types,
-        $full_name,$purok_id,$address_details,$contact_number,
-        $date_of_birth,$gravida,$para,$blood_type,
-        $emg_name,$emg_number,$user_id
-    );
-    if(!$stmt2->execute()) fail('Insert failed: '.$stmt2->error,500);
-    $mid=$stmt2->insert_id;
-    $stmt2->close();
-
-    echo json_encode(['success'=>true,'mother_id'=>$mid]);
+    echo json_encode([
+        'success'=>true,
+        'mother_id'=>$newId,
+        'active_table'=>$motherTable
+    ]);
     exit;
 }
 

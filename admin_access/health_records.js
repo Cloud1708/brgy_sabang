@@ -318,7 +318,7 @@ const HealthRecordsApp = {
                         ${extraCols ? `<td>${this.riskBadge(riskScore)}</td>` : ''}
                         <td style="font-size:.7rem">${flags || '-'}</td>
                         <td>
-                          <button class="btn btn-sm btn-link p-0" data-record="${r.health_record_id}" data-action="viewDetails">View</button>
+                          <a class="btn btn-sm btn-link px-3 bg-primary text-white text-decoration-none" data-record="${r.health_record_id}" data-action="viewDetails">View</a>
                         </td>
                       </tr>
                     `;

@@ -318,7 +318,14 @@ const ImmunizationApp = {
               <table class="data-table">
                 <thead>
                  <tr>
-                   <th>ID</th><th>Name</th><th>Sex</th><th>Birth Date</th><th>Age (mos)</th><th>Mother</th><th>Contact</th><th></th>
+                   <th>ID</th>
+                   <th>Name</th>
+                   <th>Sex</th>
+                   <th>Birth Date</th>
+                   <th>Age (mos)</th>
+                   <th>Mother</th>
+                   <th>Contact</th>
+                   <th>Patient's Card</th>
                  </tr>
                 </thead>
                 <tbody>
@@ -331,7 +338,7 @@ const ImmunizationApp = {
                       <td>${ch.age_months ?? '-'}</td>
                       <td>${ch.mother_name || '-'}</td>
                       <td>${ch.mother_contact || '-'}</td>
-                      <td><button class="btn btn-sm btn-link" data-action="viewCard" data-child-id="${ch.child_id}">Card</button></td>
+                      <td><button class="btn btn-sm btn-link bg-primary text-white text-decoration-none" data-action="viewCard" data-child-id="${ch.child_id}">View</button></td>
                     </tr>
                   `).join('')}
                 </tbody>

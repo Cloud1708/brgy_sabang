@@ -1,9 +1,10 @@
 // admin_access/parent_accounts.js
 // Parent Accounts management UI (create parent, list parents, activity & audit logs, manage links).
+// PATCH (2025-10-05): Explicitly send csrf_token on every POST + improved error handling for CSRF failures.
 
 const ParentAccountsApp = {
     state: {
-        tab: 'parents', // parents | activity | audit
+        tab: 'parents',
         parents: [],
         activity: [],
         recent: [],
@@ -248,7 +249,7 @@ const ParentAccountsApp = {
             const data = await AdminAPI.get('admin_access/api_parent_accounts_admin.php', { children_basic: 1 });
             this.state.childrenBasic = data.children || [];
         } catch {
-            // non-fatal
+            // silent
         }
     },
 
@@ -259,33 +260,38 @@ const ParentAccountsApp = {
           <div class="table-responsive">
             <table class="data-table">
               <thead>
-                <tr>
-                  <th>ID</th><th>Username</th><th>Name</th><th>Email</th>
-                  <th>Children</th><th>Created</th><th>Status</th><th>Actions</th>
-                </tr>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Children</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th>Parent Account Actions</th>
+          </tr>
               </thead>
               <tbody>
-                ${this.state.parents.map(p=>{
-                    return `
-                      <tr>
-                        <td>${p.user_id}</td>
-                        <td>${p.username}</td>
-                        <td>${(p.first_name||'')+' '+(p.last_name||'')}</td>
-                        <td>${p.email||'-'}</td>
-                        <td style="font-size:.65rem">${p.children_list || '-'}</td>
-                        <td>${AdminAPI.formatDateTime(p.created_at)}</td>
-                        <td>
-                          <span class="badge ${p.is_active?'bg-success':'bg-secondary'}">${p.is_active?'Active':'Inactive'}</span>
-                        </td>
-                        <td style="white-space:nowrap">
-                          <button class="btn btn-sm btn-outline-secondary" data-action="resetPwd" data-user="${p.user_id}">Reset PW</button>
-                          <button class="btn btn-sm btn-outline-${p.is_active?'danger':'success'}" data-action="toggleActive" data-user="${p.user_id}">${p.is_active?'Deactivate':'Activate'}</button>
-                          <button class="btn btn-sm btn-outline-primary" data-action="showLinkChildren" data-user="${p.user_id}">Link Child</button>
-                          ${p.children_count>0 ? this.renderUnlinkMenu(p) : ''}
-                        </td>
-                      </tr>
-                    `;
-                }).join('') || '<tr><td colspan="8">No parent accounts.</td></tr>'}
+          ${this.state.parents.map(p=>{
+            const active = String(p.is_active) === '1'; // explicit 1/0 check
+            return `
+            <tr>
+              <td>${p.user_id}</td>
+              <td>${p.username}</td>
+              <td>${(p.first_name||'')+' '+(p.last_name||'')}</td>
+              <td>${p.email||'-'}</td>
+              <td style="font-size:.65rem">${p.children_list || '-'}</td>
+              <td>${AdminAPI.formatDateTime(p.created_at)}</td>
+              <td><span class="badge ${active?'bg-success':'bg-danger'}">${active?'Active':'Inactive'}</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-sm btn-outline-secondary my-1" data-action="resetPwd" data-user="${p.user_id}">Reset Password</button>
+                <button class="btn btn-sm btn-outline-warning my-1" data-action="toggleActive" data-user="${p.user_id}">Toggle Status</button><br>
+                <button class="btn btn-sm btn-outline-primary my-1" data-action="showLinkChildren" data-user="${p.user_id}">Link Child</button>
+                ${p.children_count>0 ? this.renderUnlinkMenu(p) : ''}
+              </td>
+            </tr>
+            `;
+          }).join('') || '<tr><td colspan="8">No parent accounts.</td></tr>'}
               </tbody>
             </table>
           </div>
@@ -293,19 +299,12 @@ const ParentAccountsApp = {
     },
 
     renderUnlinkMenu(parent) {
-        // Provide quick unlink buttons (first 2 children if many)
         if (!parent.children_list) return '';
         const parts = parent.children_list.split(';').map(s=>s.trim()).filter(Boolean);
         return parts.slice(0,2).map(c=>{
-            const match = c.match(/\(([^)]+)\)$/);
-            const name = c.replace(/\s*\([^)]+\)$/,'');
-            return `<button class="btn btn-sm btn-link p-0 text-danger" title="Unlink ${name}" data-action="unlinkChild" data-user="${parent.user_id}" data-child="${this.extractChildIdGuess(name)}">Unlink</button>`;
+            // Without reliable child ID parsing we use a manual unlink via prompt.
+            return `<button class="btn btn-sm btn-outline-danger px-3 my-1 text-decoration-none" title="Unlink child (enter ID when prompted)" data-action="unlinkChild" data-user="${parent.user_id}" data-child="0">Unlink Child</button>`;
         }).join(' ');
-    },
-
-    extractChildIdGuess(name) {
-        // Without explicit ID in list we cannot reliably parse; returning 0 means server will ignore (safe).
-        return 0;
     },
 
     renderActivity() {
@@ -415,9 +414,8 @@ const ParentAccountsApp = {
           </div>
         `).join('');
 
-        // Listen to changes
         wrap.querySelectorAll('[data-field]').forEach(inp=>{
-            inp.addEventListener('change', e=>{
+            inp.addEventListener('change', ()=>{
                 const idx = parseInt(inp.getAttribute('data-index'),10);
                 const field = inp.getAttribute('data-field');
                 this.state.newChildren[idx][field] = inp.value;
@@ -428,7 +426,6 @@ const ParentAccountsApp = {
     async submitParent(form) {
         if (this.state.creating) return;
         const fd = new FormData(form);
-        // Validate new children (convert to JSON)
         const relationship = fd.get('relationship_type');
         const newChildren = this.state.newChildren
             .filter(c=>c.full_name && c.birth_date && c.sex)
@@ -455,7 +452,7 @@ const ParentAccountsApp = {
                 await this.loadTab();
             }
         } catch (e) {
-            AdminAPI.showError('Create failed: ' + e.message);
+            this.handleApiError('Create failed', e);
         } finally {
             this.state.creating = false;
         }
@@ -465,27 +462,29 @@ const ParentAccountsApp = {
         if (!await AdminAPI.confirm('Reset password for user #' + userId + '?')) return;
         try {
             const res = await AdminAPI.post('admin_access/api_parent_accounts_admin.php', {
-                reset_password: userId
+                reset_password: userId,
+                csrf_token: AdminAPI.csrf
             });
             if (res.success) {
                 AdminAPI.showSuccess('Password reset. New password: ' + res.new_password);
             }
         } catch (e) {
-            AdminAPI.showError('Reset failed: ' + e.message);
+            this.handleApiError('Reset failed', e);
         }
     },
 
     async toggleActive(userId) {
         try {
             const res = await AdminAPI.post('admin_access/api_parent_accounts_admin.php', {
-                toggle_active: userId
+                toggle_active: userId,
+                csrf_token: AdminAPI.csrf
             });
             if (res.success) {
                 AdminAPI.showSuccess('Status changed.');
                 await this.loadTab();
             }
         } catch (e) {
-            AdminAPI.showError('Toggle failed: ' + e.message);
+            this.handleApiError('Toggle failed', e);
         }
     },
 
@@ -509,28 +508,40 @@ const ParentAccountsApp = {
                 await this.loadTab();
             }
         } catch (e) {
-            AdminAPI.showError('Link failed: ' + e.message);
+            this.handleApiError('Link failed', e);
         }
     },
 
     async unlinkChild(userId, childId) {
         if (!childId || childId === '0') {
-            AdminAPI.showInfo('Unlink not possible: missing child ID reference.');
-            return;
+            // Prompt for ID if not captured
+            const manual = prompt('Enter exact child ID to unlink:','');
+            if(!manual) return;
+            childId = manual;
         }
         if (!await AdminAPI.confirm(`Unlink child ${childId} from parent ${userId}?`)) return;
         try {
             const res = await AdminAPI.post('admin_access/api_parent_accounts_admin.php', {
                 unlink_child: 1,
                 parent_user_id: userId,
-                child_id: childId
+                child_id: childId,
+                csrf_token: AdminAPI.csrf
             });
             if (res.success) {
                 AdminAPI.showSuccess('Child unlinked.');
                 await this.loadTab();
             }
         } catch (e) {
-            AdminAPI.showError('Unlink failed: ' + e.message);
+            this.handleApiError('Unlink failed', e);
+        }
+    },
+
+    handleApiError(prefix, err){
+        const msg = err && err.message ? err.message : 'Unknown error';
+        if (/CSRF failed/i.test(msg)) {
+            AdminAPI.showError(`${prefix}: ${msg}\nPlease reload the page to refresh your session token.`);
+        } else {
+            AdminAPI.showError(`${prefix}: ${msg}`);
         }
     }
 };

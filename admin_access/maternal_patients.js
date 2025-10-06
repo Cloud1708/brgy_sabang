@@ -208,7 +208,13 @@ const MaternalPatientsApp = {
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>ID</th><th>Name</th><th>Purok</th><th>Records</th><th>Last Consult</th><th>Risk Count</th><th>Actions</th>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Purok</th>
+                  <th>Records</th>
+                  <th>Last Consult</th>
+                  <th>Risk Count</th>
+                  <th>Mother's Record</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,7 +227,7 @@ const MaternalPatientsApp = {
                       <td>${m.last_consultation_date ? AdminAPI.formatDate(m.last_consultation_date) : '-'}</td>
                       <td>${this.riskBadge(m.risk_count||0)}</td>
                       <td>
-                        <a class="btn btn-sm btn-link p-0" href="?section=health_records" title="View Records for mother ${m.mother_id}">Records</a>
+                        <a class="btn btn-sm btn-link px-3 bg-primary text-white text-decoration-none" href="?section=health_records" title="View Records for mother ${m.mother_id}">View</a>
                       </td>
                     </tr>
                 `).join('')}

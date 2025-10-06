@@ -109,3 +109,156 @@ body {
     padding-top: 7rem;
   }
 }
+
+/* ===== Staff Login (Barangay photo background + header, like Image 3) ===== */
+.auth-body.brgy-bg {
+  /* Dim overlay + Barangay Sabang photo (place at assets/img/brgy-sabang.jpg) */
+  background-image:
+    linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)),
+    url('../img/brgy-sabang.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.auth-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(6px);
+  padding: .5rem 0;
+}
+.brand-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #0ea5e9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.brand-circle i { color:#fff; font-size:.9rem; }
+.brand-circle-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 1.4rem;
+  border-radius: 50%;
+  background: #0ea5e9;
+  color: #fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.auth-stage {
+  min-height: calc(100vh - 140px);
+}
+.login-card {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 16px;
+}
+.btn-login {
+  background-color: #169c52;
+  border-color: #169c52;
+}
+.btn-login:hover {
+  background-color: #138749;
+  border-color: #138749;
+}
+.xsmall {
+  font-size: .75rem;
+}
+.auth-footer {
+  padding: 1.25rem 0 1.75rem;
+}
+.input-group-text {
+  border-right: 0;
+}
+.input-group .form-control {
+  border-left: 0;
+}
+.input-group .form-control:focus {
+  box-shadow: none;
+}
+/* Put this block at the very end of the file to ensure it wins the cascade */
+.auth-body.brgy-bg {
+  /* Force override using shorthand + !important to replace earlier .auth-body background */
+  background: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url('../img/brgy-sabang.jpg') center / cover fixed no-repeat !important;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.auth-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(6px);
+  padding: .5rem 0;
+}
+.brand-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #0ea5e9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.brand-circle i { color:#fff; font-size:.9rem; }
+.brand-circle-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 1.4rem;
+  border-radius: 50%;
+  background: #0ea5e9;
+  color: #fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.auth-stage { min-height: calc(100vh - 140px); }
+.login-card { width: 100%; max-width: 520px; border-radius: 16px; }
+.btn-login { background-color: #169c52; border-color: #169c52; }
+.btn-login:hover { background-color: #138749; border-color: #138749; }
+.xsmall { font-size: .75rem; }
+.auth-footer { padding: 1.25rem 0 1.75rem; }
+.input-group-text { border-right: 0; }
+.input-group .form-control { border-left: 0; }
+.input-group .form-control:focus { box-shadow: none; }
+
+/* Add or keep this near the end of your CSS so it overrides earlier rules */
+.brand-circle,
+.brand-circle-lg {
+  border-radius: 999px;
+  overflow: hidden;              /* clip to a perfect circle */
+  background: #ffffff;           /* fallback */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-circle {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255,255,255,.65); /* subtle white ring like your screenshot */
+}
+
+.brand-circle-lg {
+  width: 64px;
+  height: 64px;
+  border: 3px solid #e6f4ff;    /* soft ring on the big logo */
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+
+/* Make the logo image fill the circle nicely */
+.brand-circle img,
+.brand-circle-lg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;             /* crop without distortion */
+  display: block;
+}
