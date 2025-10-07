@@ -68,11 +68,20 @@ if ($method === 'GET') {
         $createdCol = has_column($mysqli,'children','created_at') ? ', c.created_at' : '';
         // Include mother's address_details and purok info if available
         $sql = "
-          SELECT
-            c.child_id, c.full_name, c.sex, c.birth_date,
-            TIMESTAMPDIFF(MONTH,c.birth_date,CURDATE()) AS age_months,
-            c.mother_id,
-            m.full_name AS mother_name,
+SELECT
+  c.child_id,
+  c.first_name,
+  c.middle_name,
+  c.last_name,
+  /* If full_name still exists use it; if removed, compose on client or use CONCAT here */
+  c.full_name,
+  c.sex,
+  c.birth_date,
+  c.weight_kg,
+  c.height_cm,
+  TIMESTAMPDIFF(MONTH,c.birth_date,CURDATE()) AS age_months,
+  c.mother_id,
+  m.full_name AS mother_name,
             m.contact_number AS mother_contact,
             m.address_details,
             p.purok_name,
@@ -546,30 +555,49 @@ if ($method === 'POST') {
     }
 
     /* Add child */
-    if (isset($_POST['add_child'])) {
-        $full_name = trim($_POST['full_name'] ?? '');
-        $sex = $_POST['sex'] ?? '';
-        $birth_date = $_POST['birth_date'] ?? '';
-        $mother_id = (int)($_POST['mother_id'] ?? 0);
-        $rec_by = (int)($_SESSION['user_id'] ?? 0);
-        if ($full_name==='' || ($sex!=='male' && $sex!=='female') || !$birth_date || $mother_id<=0) {
-            fail('Required child fields missing.');
-        }
-        $chk=$mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE mother_id=? LIMIT 1");
-        $chk->bind_param('i',$mother_id);
-        $chk->execute(); $chk->bind_result($mid);
-        if(!$chk->fetch()){ $chk->close(); fail('Mother not found',404); }
-        $chk->close();
-        $ins=$mysqli->prepare("
-          INSERT INTO children (full_name,sex,birth_date,mother_id,created_by)
-          VALUES (?,?,?,?,?)
-        ");
-        $ins->bind_param('sssii',$full_name,$sex,$birth_date,$mother_id,$rec_by);
-        if(!$ins->execute()) fail('Child insert failed: '.$ins->error,500);
-        $cid=$ins->insert_id;
-        $ins->close();
-        ok(['child_id'=>$cid,'age_months'=>age_months($birth_date)]);
+if (isset($_POST['add_child'])) {
+    $first_name  = trim($_POST['first_name'] ?? '');
+    $middle_name = trim($_POST['middle_name'] ?? '');
+    $last_name   = trim($_POST['last_name'] ?? '');
+    $sex         = $_POST['sex'] ?? '';
+    $birth_date  = $_POST['birth_date'] ?? '';
+    $mother_id   = (int)($_POST['mother_id'] ?? 0);
+    $weight_kg   = ($_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null);
+    $height_cm   = ($_POST['height_cm'] !== '' ? (float)$_POST['height_cm'] : null);
+    $rec_by      = (int)($_SESSION['user_id'] ?? 0);
+
+    if ($first_name==='' || $last_name==='' || ($sex!=='male' && $sex!=='female') || !$birth_date || $mother_id<=0) {
+        fail('Required child fields missing.');
     }
+
+    $chk=$mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE mother_id=? LIMIT 1");
+    $chk->bind_param('i',$mother_id);
+    $chk->execute(); $chk->bind_result($mid);
+    if(!$chk->fetch()){ $chk->close(); fail('Mother not found',404); }
+    $chk->close();
+
+    // If full_name is still a normal column:
+    $full_name = compose_full_name($first_name,$middle_name,$last_name);
+
+    $sql = "INSERT INTO children
+        (first_name,middle_name,last_name,full_name,sex,birth_date,mother_id,weight_kg,height_cm,created_by)
+        VALUES (?,?,?,?,?,?,?,?,?,?)";
+
+    $ins=$mysqli->prepare($sql);
+    $ins->bind_param(
+        'sssssssddi',
+        $first_name,$middle_name,$last_name,$full_name,$sex,$birth_date,$mother_id,$weight_kg,$height_cm,$rec_by
+    );
+    if(!$ins->execute()) fail('Child insert failed: '.$ins->error,500);
+    $cid=$ins->insert_id;
+    $ins->close();
+
+    ok([
+        'child_id'=>$cid,
+        'age_months'=>age_months($birth_date),
+        'full_name'=>$full_name
+    ]);
+}
 
     if (isset($_POST['add_update_vaccine'])) {
         $vaccine_id = (int)($_POST['vaccine_id'] ?? 0);

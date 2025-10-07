@@ -933,6 +933,48 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .ha-info:before{background:#0d905c;}
 .ha-info .ha-icon{background:#d2f1e2;color:#0b7c4d;}
 
+/* === Parent Registry – Screenshot Layout === */
+.pr-layout{display:grid;grid-template-columns:330px 1fr;gap:0;border:1px solid var(--border);border-radius:20px;overflow:hidden;background:#fff;}
+@media (max-width:1100px){.pr-layout{grid-template-columns:1fr;}}
+.pr-list-panel{display:flex;flex-direction:column;background:#fff;border-right:1px solid var(--border);}
+@media (max-width:1100px){.pr-list-panel{border-right:0;border-bottom:1px solid var(--border);}}
+.pr-list-head{padding:1.1rem 1rem .9rem;display:flex;flex-direction:column;gap:.75rem;border-bottom:1px solid var(--border);background:#fff;}
+.pr-panel-title{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#3a565c;}
+.pr-add-mother-btn{border:0;background:#007a4e;color:#fff;font-size:.7rem;font-weight:700;padding:.65rem .9rem;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:.45rem;box-shadow:0 2px 4px rgba(0,0,0,.06);}
+.pr-add-mother-btn:hover{background:#00935e;color:#fff;}
+.pr-search-wrap{position:relative;}
+.pr-search-wrap input{font-size:.68rem;border-radius:10px;padding:.52rem .8rem .52rem 2.05rem;border:1px solid var(--border);}
+.pr-search-wrap i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);font-size:.85rem;color:#6c7a82;}
+.pr-parent-list{list-style:none;margin:0;padding:0;overflow:auto;flex:1;}
+.pr-parent-item{padding:.70rem .9rem .55rem .95rem;border-left:3px solid transparent;cursor:pointer;display:flex;flex-direction:column;gap:2px;font-size:.72rem;border-bottom:1px solid var(--border);background:#fff;transition:.15s;}
+.pr-parent-item:last-child{border-bottom:none;}
+.pr-parent-item:hover{background:#f5f9fc;}
+.pr-parent-item.active{background:#e8f2f9;border-left-color:#0d7c4e;}
+.pr-parent-item strong{font-size:.74rem;font-weight:700;color:#123c33;}
+.pr-parent-item small{font-size:.56rem;font-weight:600;color:#607078;display:flex;align-items:center;gap:.35rem;}
+.pr-parent-item small .dot{height:5px;width:5px;border-radius:50%;background:#6a7d82;display:inline-block;}
+.pr-detail-panel{background:#f7f9fa;padding:1.6rem 1.8rem 2rem;display:flex;flex-direction:column;min-height:520px;}
+.pr-detail-title{font-size:1.05rem;font-weight:700;color:#123c33;margin:0;}
+.pr-detail-meta{font-size:.6rem;font-weight:600;color:#5c6d74;margin-top:.35rem;display:flex;align-items:center;gap:.55rem;}
+.pr-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:1.05rem 1.15rem;display:flex;flex-direction:column;gap:.85rem;}
+.pr-card + .pr-card{margin-top:1.1rem;}
+.pr-card h6{margin:0;font-size:.68rem;font-weight:800;letter-spacing:.06em;color:#1d3d3a;text-transform:uppercase;}
+.pr-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem .9rem;font-size:.63rem;}
+.pr-info-grid div span{display:block;font-size:.55rem;font-weight:700;color:#697880;letter-spacing:.04em;margin-bottom:2px;text-transform:uppercase;}
+.pr-children-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;}
+.pr-add-child-btn{background:#007a4e;border:0;color:#fff;font-size:.6rem;font-weight:600;padding:.48rem .85rem;border-radius:8px;display:inline-flex;align-items:center;gap:.35rem;}
+.pr-add-child-btn:hover{background:#009562;color:#fff;}
+.pr-child-table{width:100%;border-collapse:collapse;font-size:.64rem;}
+.pr-child-table thead th{background:#f2f6f8;font-size:.56rem;font-weight:800;letter-spacing:.07em;padding:.55rem .6rem;color:#2a454d;text-transform:uppercase;position:sticky;top:0;}
+.pr-child-table tbody td{padding:.52rem .6rem;border-top:1px solid var(--border);font-weight:600;color:#223c43;}
+.pr-empty{padding:1.9rem 1rem;text-align:center;font-size:.64rem;color:#6a7b82;background:#fff;border:1px dashed #cdd7dd;border-radius:14px;}
+.pr-badge-min{display:inline-block;font-size:.52rem;font-weight:700;padding:.28rem .55rem;border-radius:999px;background:#e1edff;color:#134f9c;letter-spacing:.04em;}
+/* Compact modal reuse */
+.pr-modal .modal-content{border-radius:18px;}
+.pr-modal label{font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.32rem;color:#345058;}
+.pr-modal .form-control,.pr-modal .form-select{font-size:.74rem;padding:.55rem .7rem;border-radius:.65rem;}
+
+
 
 </style>
 </head>
@@ -948,6 +990,12 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
     <ul class="nav-list">
       <li><a href="#" class="nav-link-modern active" data-module="health_stats" data-label="Dashboard"><span class="icon-wrap"><i class="bi bi-grid-1x2"></i></span><span>Dashboard</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="maternal_health" data-label="Maternal Health"><span class="icon-wrap"><i class="bi bi-person-heart"></i></span><span>Maternal Health</span></a></li>
+      <li>
+  <a href="#" class="nav-link-modern" data-module="parent_registry" data-label="Parent Registry">
+    <span class="icon-wrap"><i class="bi bi-person-lines-fill"></i></span>
+    <span>Parent Registry</span>
+  </a>
+</li>
       <li>
   <a href="#" class="nav-link-modern" data-module="vaccination_entry" data-label="Vaccination Entry">
     <span class="icon-wrap"><i class="bi bi-capsule"></i></span>
@@ -1413,71 +1461,108 @@ function renderMaternalHealth(label){
         <div id="mhPanel"></div>
       </div>
 
-      <!-- Register Mother Modal -->
-      <div class="modal fade mh-modal" id="modalRegisterMother" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-          <div class="modal-content">
-            <form id="motherForm">
-              <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-person-plus me-1"></i> Register New Mother</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body row g-3">
-                <div class="col-md-6">
-                  <label>Full Name *</label>
-                  <input name="full_name" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                  <label>Purok *</label>
-                  <input name="purok_name" class="form-control" required placeholder="e.g. Purok 1">
-                </div>
-                <div class="col-md-6">
-                  <label>Date of Birth</label>
-                  <input type="date" name="date_of_birth" class="form-control">
-                </div>
-                <div class="col-md-6">
-                  <label>Contact Number</label>
-                  <input name="contact_number" class="form-control">
-                </div>
-                <div class="col-md-6">
-                  <label>Gravida</label>
-                  <input type="number" min="0" name="gravida" class="form-control">
-                </div>
-                <div class="col-md-6">
-                  <label>Para</label>
-                  <input type="number" min="0" name="para" class="form-control">
-                </div>
-                <div class="col-md-6">
-                  <label>Blood Type</label>
-                  <input name="blood_type" class="form-control" placeholder="O+ / A- ...">
-                </div>
-                <div class="col-md-6">
-                  <label>Emergency Contact Name</label>
-                  <input name="emergency_contact_name" class="form-control">
-                </div>
-                <div class="col-md-6">
-                  <label>Emergency Contact No.</label>
-                  <input name="emergency_contact_number" class="form-control">
-                </div>
-                <div class="col-12">
-                  <label>Address / Additional Info</label>
-                  <textarea name="address_details" rows="2" class="form-control" placeholder="House # / Landmark"></textarea>
-                </div>
-                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-                <div class="col-12">
-                  <div class="form-text">Ensure no duplicate name before saving.</div>
-                  <div class="text-danger small d-none" id="motherError"></div>
-                  <div class="text-success small d-none" id="motherSuccess">Saved!</div>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn-success"><i class="bi bi-save me-1"></i> Save</button>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-              </div>
-            </form>
+<!-- Register Mother Modal (UPDATED TO 2-STEP: Mother Details -> Initial Consultation) -->
+<div class="modal fade mh-modal" id="modalRegisterMother" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <form id="motherForm" autocomplete="off">
+        <div class="modal-header">
+          <h5 class="modal-title d-flex align-items-center gap-2">
+            <i class="bi bi-person-plus"></i>
+            <span id="motherModalTitle">Register New Mother</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <!-- STEP 1: Mother Information -->
+        <div class="modal-body" id="motherStep1">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label>First Name *</label>
+              <input name="first_name" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label>Middle Name</label>
+              <input name="middle_name" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Last Name *</label>
+              <input name="last_name" class="form-control" required>
+            </div>
+
+            <div class="col-md-4">
+              <label>Date of Birth</label>
+              <input type="date" name="date_of_birth" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Contact Number</label>
+              <input name="contact_number" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Blood Type</label>
+              <input name="blood_type" class="form-control" placeholder="O+ / A- ...">
+            </div>
+
+            <div class="col-md-4">
+              <label>Gravida</label>
+              <input type="number" min="0" name="gravida" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Para</label>
+              <input type="number" min="0" name="para" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Emergency Contact Name</label>
+              <input name="emergency_contact_name" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Emergency Contact No.</label>
+              <input name="emergency_contact_number" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+              <label>House #</label>
+              <input name="house_number" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Street Name</label>
+              <input name="street_name" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label>Subdivision / Village</label>
+              <input name="subdivision_name" class="form-control">
+            </div>
+
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
+            <div class="col-12">
+              <div class="form-text">Please ensure no duplicate (first + last name) before proceeding.</div>
+              <div class="text-danger small d-none" id="motherError"></div>
+              <div class="text-success small d-none" id="motherSuccess">Saved!</div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- STEP 2: Initial Consultation (dynamically injected) -->
+        <div class="modal-body d-none" id="motherStep2">
+          <div id="motherConsultWrapper">
+            <div class="text-muted small">Loading consultation form...</div>
+          </div>
+        </div>
+
+<div class="modal-footer justify-content-between">
+  <div class="small fw-semibold" id="motherStepIndicator">Step 1 of 2</div>
+  <div class="d-flex flex-column align-items-end" style="flex:1;">
+    <div id="motherGlobalMsg" class="text-end mb-2" style="min-height:18px;">
+      <span class="text-danger small d-none" id="motherErrGlobal"></span>
+      <span class="text-success small d-none" id="motherOkGlobal">Saved!</span>
+    </div>
+    <div id="motherFooterButtons" class="d-flex gap-2"></div>
+  </div>
+</div>
+      </form>
+    </div>
+  </div>
+</div>
 
       <!-- View Mother Modal Placeholder -->
       <div class="modal fade mh-modal" id="modalViewMother" tabindex="-1">
@@ -1498,8 +1583,11 @@ function renderMaternalHealth(label){
       </div>
     `;
 
-    // Insert Patient List panel by default
-    loadPatientList();
+  // IMPORTANT: initialize the two-step mother registration wizard
+  initMotherWizard();
+
+  // Insert Patient List panel by default
+  loadPatientList();
 
     function loadPatientList(){
       const panel = document.getElementById('mhPanel');
@@ -1580,6 +1668,12 @@ function renderMaternalHealth(label){
         fetchJSON(api.maternal+'?'+params.toString()).then(j=>{
           if(!j.success) throw new Error(j.error||'Load failed');
           currentRows = j.mothers||[];
+          const seen = new Set();
+currentRows = currentRows.filter(r=>{
+  if(seen.has(r.mother_id)) return false;
+  seen.add(r.mother_id);
+  return true;
+});
           if(!currentRows.length){
             tbody.innerHTML = '<tr><td colspan="6" class="mh-empty">No mothers found.</td></tr>';
           } else {
@@ -1593,23 +1687,43 @@ function renderMaternalHealth(label){
         });
       }
 
-      function renderMotherRow(m){
-        const riskScore = parseInt(m.risk_count||0,10);
-        let riskClass='risk-normal', riskLabel='Normal';
-        if(riskScore>=2){ riskClass='risk-high'; riskLabel='High Risk'; }
-        else if(riskScore===1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
-        const gaWeeks = m.pregnancy_age_weeks? parseInt(m.pregnancy_age_weeks,10): null; // may not be present here
-        const ageVal = m.date_of_birth ? calcAge(m.date_of_birth) : '—';
-        const eddTxt = m.expected_delivery_date || '';
-        return `<tr>
-          <td>${escapeHtml(m.full_name||'')}</td>
-          <td>${ageVal||'—'}</td>
-          <td>${gaWeeks? `<div class="mh-progress"><div class="mh-progress-bar" style="width:${Math.min(100,Math.round((gaWeeks/40)*100))}%;"></div></div><div class=\"mh-weeks-label\">${gaWeeks} weeks</div>` : '<span class="text-muted" style="font-size:.64rem;">No data</span>'}</td>
-          <td>${eddTxt? escapeHtml(eddTxt): '<span class="text-muted">—</span>'}</td>
-          <td><span class="risk-badge ${riskClass}">${riskLabel}</span></td>
-          <td><button class="mh-action-btn btn-view" data-id="${m.mother_id}"><i class="bi bi-eye me-1"></i>View</button></td>
-        </tr>`;
-      }
+function renderMotherRow(m){
+  // Prefer latest_risk_score (from latest consult), fall back to legacy risk_count
+  const riskScore = (m.latest_risk_score !== undefined && m.latest_risk_score !== null)
+      ? parseInt(m.latest_risk_score,10)
+      : parseInt(m.risk_count||0,10);
+
+  let riskClass='risk-normal', riskLabel='Normal';
+  if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High Risk'; }
+  else if(riskScore === 1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
+
+  const gaWeeks = (m.pregnancy_age_weeks !== undefined && m.pregnancy_age_weeks !== null)
+      ? parseInt(m.pregnancy_age_weeks,10)
+      : null;
+
+  const ageVal = m.date_of_birth ? calcAge(m.date_of_birth) : '—';
+  const eddTxt = m.expected_delivery_date || '';
+
+  // Progress bar only if GA present
+  const gaCell = gaWeeks
+    ? `<div class="mh-progress">
+         <div class="mh-progress-bar" style="width:${Math.min(100,Math.round((gaWeeks/40)*100))}%;"></div>
+       </div>
+       <div class="mh-weeks-label">${gaWeeks} weeks</div>`
+    : '<span class="text-muted" style="font-size:.64rem;">No data</span>';
+
+  return `<tr>
+    <td>${escapeHtml(m.full_name||'')}</td>
+    <td>${ageVal||'—'}</td>
+    <td>${gaCell}</td>
+    <td>${eddTxt? escapeHtml(eddTxt): '<span class="text-muted">—</span>'}</td>
+    <td><span class="risk-badge ${riskClass}">${riskLabel}</span></td>
+    <td><button class="mh-action-btn btn-view" data-id="${m.mother_id}">
+          <i class="bi bi-eye me-1"></i>View
+        </button>
+    </td>
+  </tr>`;
+}
 
       function calcAge(dob){
         const d=new Date(dob+'T00:00:00'); if(isNaN(d)) return '';
@@ -1753,113 +1867,116 @@ function renderMaternalHealth(label){
       function loadMotherConsultations(){
         const mother = mothers.find(m=>m.mother_id==activeMotherId);
         const wrap = panel.querySelector('#mhConsultMain');
-        wrap.innerHTML = `<h6>Consultations - ${escapeHtml(mother.full_name)}
-          <span class="badge-ga" id="gaBadge">GA: --</span></h6>
-          <div class="row g-4">
-            <div class="col-lg-5">
-              <form class="mh-consult-form" id="consultForm" autocomplete="off">
-                <div class="row g-2">
-                  <div class="col-12">
-                    <label>Consultation Date *</label>
-                    <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
-                  </div>
+        wrap.innerHTML = `
+  <h6>Consultations - ${escapeHtml(mother.full_name)}
+    <span class="badge-ga" id="gaBadge">GA: --</span></h6>
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <form class="mh-consult-form" id="consultForm" autocomplete="off">
+        <div class="row g-2">
+          <div class="col-12">
+            <label>PETSA NG KONSULTASYON *</label>
+            <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
+          </div>
 
-                  <div class="col-4">
-                    <label>Age</label>
-                    <input type="number" name="age" class="form-control" placeholder="Auto">
-                  </div>
-                  <div class="col-4">
-                    <label>Ht (cm)</label>
-                    <input type="number" step="0.1" name="height_cm" class="form-control">
-                  </div>
-                  <div class="col-4">
-                    <label>Wt (kg)</label>
-                    <input type="number" step="0.01" name="weight_kg" class="form-control">
-                  </div>
+          <div class="col-4">
+            <label>EDAD</label>
+            <input type="number" name="age" class="form-control" placeholder="Auto">
+          </div>
+          <div class="col-4">
+            <label>TAAS (CM)</label>
+            <input type="number" step="0.1" name="height_cm" class="form-control">
+          </div>
+          <div class="col-4">
+            <label>TIMBANG (KG)</label>
+            <input type="number" step="0.01" name="weight_kg" class="form-control">
+          </div>
 
-                  <div class="col-4">
-                    <label>BP Sys</label>
-                    <input type="number" name="blood_pressure_systolic" class="form-control">
-                  </div>
-                  <div class="col-4">
-                    <label>BP Dia</label>
-                    <input type="number" name="blood_pressure_diastolic" class="form-control">
-                  </div>
-                  <div class="col-4">
-                    <label>Preg Weeks</label>
-                    <input type="number" min="0" max="45" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
-                  </div>
+          <div class="col-4">
+            <label>BP (SISTOLIC)</label>
+            <input type="number" name="blood_pressure_systolic" class="form-control">
+          </div>
+          <div class="col-4">
+            <label>BP (DIASTOLIC)</label>
+            <input type="number" name="blood_pressure_diastolic" class="form-control">
+          </div>
+          <div class="col-4">
+            <label>LINGGO NG PAGBUBUNTIS</label>
+            <input type="number" min="0" max="45" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
+          </div>
 
-                  <div class="col-6">
-                    <label>LMP</label>
-                    <input type="date" name="last_menstruation_date" class="form-control">
-                  </div>
-                  <div class="col-6">
-                    <label>EDD</label>
-                    <input type="date" name="expected_delivery_date" class="form-control">
-                  </div>
-                  <div class="col-12">
-                    <div class="mh-inline-hint">Auto mula LMP/EDD (pwede i-override ang Pregnancy Weeks & Age).</div>
-                  </div>
-                </div>
-
-                <div class="mh-form-divider"></div>
-
-                <label style="margin-bottom:.4rem;">Labs</label>
-                <div class="row g-2 mb-2">
-                  <div class="col-6">
-                    <input name="hgb_result" class="form-control" placeholder="HGB">
-                  </div>
-                  <div class="col-6">
-                    <input name="urine_result" class="form-control" placeholder="Urine">
-                  </div>
-                  <div class="col-6">
-                    <input name="vdrl_result" class="form-control" placeholder="VDRL">
-                  </div>
-                  <div class="col-6">
-                    <input name="other_lab_results" class="form-control" placeholder="Other lab results">
-                  </div>
-                </div>
-
-                <div class="mh-form-divider"></div>
-                <label style="margin-bottom:.4rem;">Risk Flags</label>
-                <div class="mh-risks-wrap mb-2">
-                  ${[
-                    ['vaginal_bleeding','Vaginal Bleeding'],
-                    ['urinary_infection','Urinary Infection'],
-                    ['high_blood_pressure','High BP'],
-                    ['fever_38_celsius','Fever ≥38°C'],
-                    ['pallor','Pallor'],
-                    ['abnormal_abdominal_size','Abnormal Abd Size'],
-                    ['abnormal_presentation','Abnormal Presentation'],
-                    ['absent_fetal_heartbeat','No Fetal Heartbeat'],
-                    ['swelling','Swelling'],
-                    ['vaginal_infection','Vag Infection']
-                  ].map(([k,l])=>`
-                    <label class="mh-risk-box">
-                      <input type="checkbox" name="${k}" value="1">
-                      <span>${l}</span>
-                    </label>
-                  `).join('')}
-                </div>
-
-                <input type="hidden" name="mother_id" value="${activeMotherId}">
-                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-                <div class="mt-3 d-flex gap-2">
-                  <button class="btn btn-success mh-save-btn"><i class="bi bi-save me-1"></i>Save</button>
-                  <button type="reset" class="btn btn-outline-secondary mh-save-btn">Reset</button>
-                </div>
-                <div class="small text-danger mt-2 d-none" id="consultErr"></div>
-                <div class="small text-success mt-2 d-none" id="consultOk">Saved!</div>
-              </form>
-            </div>
-            <div class="col-lg-7">
-              <div id="consultListBox">
-                <div class="text-muted" style="font-size:.7rem;">Loading records...</div>
-              </div>
+          <div class="col-6">
+            <label>HULING REGLA (LMP)</label>
+            <input type="date" name="last_menstruation_date" class="form-control">
+          </div>
+          <div class="col-6">
+            <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
+            <input type="date" name="expected_delivery_date" class="form-control">
+          </div>
+          <div class="col-12">
+            <div class="mh-inline-hint">
+              Awtomatiko mula sa LMP/EDD (maaari mong baguhin ang Linggo ng Pagbubuntis at Edad).
             </div>
           </div>
-        `;
+        </div>
+
+        <div class="mh-form-divider"></div>
+
+        <label style="margin-bottom:.4rem;">MGA PAGSUSURI (LABS)</label>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <input name="hgb_result" class="form-control" placeholder="HGB">
+          </div>
+          <div class="col-6">
+            <input name="urine_result" class="form-control" placeholder="Ihi">
+          </div>
+          <div class="col-6">
+            <input name="vdrl_result" class="form-control" placeholder="VDRL">
+          </div>
+            <div class="col-6">
+            <input name="other_lab_results" class="form-control" placeholder="Ibang resulta ng laboratoryo">
+          </div>
+        </div>
+
+        <div class="mh-form-divider"></div>
+        <label style="margin-bottom:.4rem;">MGA PALATANDAAN NG PANGANIB</label>
+        <div class="mh-risks-wrap mb-2">
+          ${[
+            ['vaginal_bleeding','Pagdurugo sa Puwerta'],
+            ['urinary_infection','Impeksiyon sa Ihi'],
+            ['high_blood_pressure','Mataas na Presyon'],
+            ['fever_38_celsius','Lagnat ≥38°C'],
+            ['pallor','Pamumutla'],
+            ['abnormal_abdominal_size','Hindi Normal na Laki ng Tiyan'],
+            ['abnormal_presentation','Abnormal na Posisyon'],
+            ['absent_fetal_heartbeat','Walang Tibok ng Puso'],
+            ['swelling','Pamamaga'],
+            ['vaginal_infection','Impeksiyon sa Puwerta']
+          ].map(([k,l])=>`
+            <label class="mh-risk-box">
+              <input type="checkbox" name="${k}" value="1">
+              <span>${l}</span>
+            </label>
+          `).join('')}
+        </div>
+
+        <input type="hidden" name="mother_id" value="${activeMotherId}">
+        <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-success mh-save-btn"><i class="bi bi-save me-1"></i>I-save</button>
+          <button type="reset" class="btn btn-outline-secondary mh-save-btn">I-reset</button>
+        </div>
+        <div class="small text-danger mt-2 d-none" id="consultErr"></div>
+        <div class="small text-success mt-2 d-none" id="consultOk">Nai-save!</div>
+      </form>
+    </div>
+    <div class="col-lg-7">
+      <div id="consultListBox">
+        <div class="text-muted" style="font-size:.7rem;">Naglo-load ng mga rekord...</div>
+      </div>
+    </div>
+  </div>
+`;
 
         // Load existing consultation list
         fetchJSON(api.health+`?list=1&mother_id=${activeMotherId}`)
@@ -2729,82 +2846,133 @@ function loadPostnatalPanel(){
       const modalEl = document.getElementById('modalRegisterMother');
       bootstrap.Modal.getOrCreateInstance(modalEl).show();
     });
-    document.getElementById('motherForm').addEventListener('submit',e=>{
-      e.preventDefault();
-      const form = e.target;
-      const fd = new FormData(form);
-      fetch(api.maternal,{method:'POST',body:fd})
-        .then(r=>r.json())
-        .then(j=>{
-          if(!j.success) throw new Error(j.error||'Save failed');
-          document.getElementById('motherSuccess').classList.remove('d-none');
-          document.getElementById('motherError').classList.add('d-none');
-          setTimeout(()=>{
-            bootstrap.Modal.getInstance(document.getElementById('modalRegisterMother')).hide();
-            renderMaternalHealth(label);
-          },650);
-        }).catch(err=>{
-          const el=document.getElementById('motherError');
-          el.textContent=err.message;
-          el.classList.remove('d-none');
-        });
-    });
+
 
     // View mother details (simple placeholder – expand as needed)
     function openMotherModal(mother_id){
       const modal = document.getElementById('modalViewMother');
       const body  = document.getElementById('viewMotherBody');
       const title = document.getElementById('viewMotherTitle');
-      const mother = mothersFull.find(m=>String(m.mother_id)===String(mother_id));
-      const latest = riskMap[mother_id];
-      if(!mother){
-        body.innerHTML='<div class="text-danger small">Mother not found.</div>';
-      } else {
-        title.textContent = mother.full_name;
-        body.innerHTML = `
-          <div class="row g-3">
-            <div class="col-md-4">
-              <div class="border rounded p-3 h-100">
-                <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Profile</h6>
-                <p class="mb-1"><strong>Purok:</strong> ${escapeHtml(mother.purok_name||'')}</p>
-                <p class="mb-1"><strong>Contact:</strong> ${escapeHtml(mother.contact_number||'—')}</p>
-                <p class="mb-1"><strong>Gravida / Para:</strong> ${(mother.gravida??'—')} / ${(mother.para??'—')}</p>
-                <p class="mb-1"><strong>Blood Type:</strong> ${escapeHtml(mother.blood_type||'—')}</p>
-                <p class="mb-0"><strong>Emergency:</strong> ${escapeHtml(mother.emergency_contact_name||'')} <small class="text-muted">${escapeHtml(mother.emergency_contact_number||'')}</small></p>
+
+      // Show modal immediately with loading state
+      title.textContent = 'Loading...';
+      body.innerHTML = `<div class="py-4 text-center text-muted" style="font-size:.7rem;">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading mother details...
+        </div>`;
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+
+      fetchJSON(api.maternal+`?detail=1&mother_id=${encodeURIComponent(mother_id)}`)
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Load failed');
+
+          const m = j.mother;
+          const latest = j.latest_consultation;
+          const riskScore = parseInt(j.latest_risk_score ?? 0, 10);
+
+            let riskClass='risk-normal', riskLabel='Normal';
+            if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High Risk'; }
+            else if(riskScore === 1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
+
+          title.textContent = m.full_name;
+
+          // Build flag chips
+          let flagsHTML = '';
+          if(latest){
+            const map = {
+              vaginal_bleeding:'VB',
+              urinary_infection:'UTI',
+              high_blood_pressure:'HBP',
+              fever_38_celsius:'FEV',
+              pallor:'PAL',
+              abnormal_abdominal_size:'ABD',
+              abnormal_presentation:'PRES',
+              absent_fetal_heartbeat:'FHT',
+              swelling:'SWL',
+              vaginal_infection:'VAG'
+            };
+            Object.keys(map).forEach(k=>{
+              if(parseInt(latest[k])===1){
+                flagsHTML += `<span class="mh-flag-chip">${map[k]}</span>`;
+              }
+            });
+          }
+          if(!flagsHTML) flagsHTML = '<span class="text-muted" style="font-size:.65rem;">None</span>';
+
+          const gaTxt = latest && latest.pregnancy_age_weeks != null
+            ? `${latest.pregnancy_age_weeks} wks`
+            : '—';
+
+          const eddTxt = latest?.expected_delivery_date || '—';
+          const bpTxt = (latest?.blood_pressure_systolic && latest?.blood_pressure_diastolic)
+              ? `${latest.blood_pressure_systolic}/${latest.blood_pressure_diastolic}`
+              : '—';
+
+          const hgbTxt = latest?.hgb_result ? escapeHtml(latest.hgb_result) : '—';
+
+          body.innerHTML = `
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="border rounded p-3 h-100">
+                  <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Profile</h6>
+                  <p class="mb-1"><strong>Purok:</strong> ${escapeHtml(m.purok_name||'')}</p>
+                  <p class="mb-1"><strong>Contact:</strong> ${escapeHtml(m.contact_number||'—')}</p>
+                  <p class="mb-1"><strong>Gravida / Para:</strong> ${(m.gravida??'—')} / ${(m.para??'—')}</p>
+                  <p class="mb-1"><strong>Blood Type:</strong> ${escapeHtml(m.blood_type||'—')}</p>
+                  <p class="mb-0"><strong>Emergency:</strong> ${escapeHtml(m.emergency_contact_name||'')}
+                    <small class="text-muted">${escapeHtml(m.emergency_contact_number||'')}</small></p>
+                </div>
               </div>
-            </div>
-            <div class="col-md-8">
-              <div class="border rounded p-3">
-                <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Latest Consultation Snapshot</h6>
-                ${latest ? `
-                  <div class="row small g-2">
-                    <div class="col-6"><strong>Date:</strong> ${latest.consultation_date||'—'}</div>
-                    <div class="col-6"><strong>GA:</strong> ${latest.pregnancy_age_weeks!==null?latest.pregnancy_age_weeks+' wks':'—'}</div>
-                    <div class="col-6"><strong>BP:</strong> ${(latest.blood_pressure_systolic||'') && (latest.blood_pressure_diastolic||'')?`${latest.blood_pressure_systolic}/${latest.blood_pressure_diastolic}`:'—'}</div>
-                    <div class="col-6"><strong>EDD:</strong> ${latest.expected_delivery_date||'—'}</div>
-                    <div class="col-12 mt-2">
-                      <strong>Risk Flags:</strong><br>
-                      ${buildFlagChips(latest) || '<span class="text-muted">None</span>'}
-                    </div>
+              <div class="col-md-8">
+                <div class="border rounded p-3 h-100 d-flex flex-column">
+                  <h6 class="fw-semibold mb-2 d-flex align-items-center gap-2" style="font-size:.8rem;">
+                    Latest Consultation Snapshot
+                    ${latest ? `<span class="risk-badge ${riskClass}">${riskLabel}</span>` : ''}
+                  </h6>
+                  ${
+                    latest ? `
+                      <div class="row small g-2">
+                        <div class="col-6"><strong>Date:</strong> ${escapeHtml(latest.consultation_date||'')}</div>
+                        <div class="col-6"><strong>GA:</strong> ${gaTxt}</div>
+                        <div class="col-6"><strong>BP:</strong> ${bpTxt}</div>
+                        <div class="col-6"><strong>EDD:</strong> ${escapeHtml(eddTxt)}</div>
+                        <div class="col-6"><strong>HGB:</strong> ${hgbTxt}</div>
+                        <div class="col-12 mt-2">
+                          <strong>Risk Flags:</strong><br>${flagsHTML}
+                        </div>
+                      </div>
+                    ` : `
+                      <div class="text-muted small">No consultations recorded yet.</div>
+                    `
+                  }
+                  <hr class="my-3">
+                  <div class="mt-auto">
+                    <button class="btn btn-sm btn-success me-2" id="btnQuickConsult">
+                      <i class="bi bi-journal-plus me-1"></i> Add Consultation
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" id="btnOpenFullConsults">
+                      <i class="bi bi-list-ul me-1"></i> View All Consultations
+                    </button>
                   </div>
-                `: '<div class="text-muted small">No consultations recorded yet.</div>'}
-                <hr>
-                <div>
-                  <button class="btn btn-sm btn-success" id="btnQuickConsult"><i class="bi bi-journal-plus me-1"></i> Add Consultation</button>
-                  <button class="btn btn-sm btn-outline-primary" id="btnOpenFullConsults"><i class="bi bi-list-ul me-1"></i> View All Consultations</button>
                 </div>
               </div>
             </div>
-          </div>
-        `;
-        // Quick actions (switch tabs)
-        body.querySelector('#btnOpenFullConsults')?.addEventListener('click',()=>{
-          bootstrap.Modal.getInstance(modal).hide();
-          const tabBtn = document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
-          tabBtn?.click();
+          `;
+
+          body.querySelector('#btnOpenFullConsults')?.addEventListener('click',()=>{
+            bootstrap.Modal.getInstance(modal).hide();
+            document.querySelector('#mhTabs .nav-link[data-tab="consults"]')?.click();
+          });
+          body.querySelector('#btnQuickConsult')?.addEventListener('click',()=>{
+            bootstrap.Modal.getInstance(modal).hide();
+            document.querySelector('#mhTabs .nav-link[data-tab="consults"]')?.click();
+            // Optional: could auto-select mother in Consults tab if you add logic
+          });
+
+        })
+        .catch(err=>{
+          title.textContent = 'Error';
+          body.innerHTML = `<div class="text-danger small py-4 text-center">Failed to load details: ${escapeHtml(err.message)}</div>`;
         });
-      }
-      bootstrap.Modal.getOrCreateInstance(modal).show();
     }
 
     function buildFlagChips(r){
@@ -2886,52 +3054,42 @@ function renderVaccinationEntry(label){
       </div>
       <div class="text-muted mb-3" style="font-size:.62rem;font-weight:600;">Quick registration for immunization tracking</div>
       <form id="immChildRegForm" autocomplete="off">
-        <div class="imm-child-form-grid">
-          <div>
-            <label>Child's Full Name *</label>
-            <input name="child_full_name" class="form-control" required placeholder="e.g., Juan Dela Cruz">
-          </div>
-            <div>
-            <label>Date of Birth *</label>
-            <input type="date" name="birth_date" class="form-control" required>
-          </div>
-          <div>
-            <label>Gender *</label>
-            <select name="sex" class="form-select" required>
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-          <div>
-            <label>Parent/Guardian Name *</label>
-            <input name="parent_name" class="form-control" required placeholder="e.g., Maria Dela Cruz">
-          </div>
-          <div>
-            <label>Parent Date of Birth</label>
-            <input type="date" name="parent_date_of_birth" class="form-control">
-          </div>
-          <div>
-            <label>Contact Number</label>
-            <input name="contact_number" class="form-control" placeholder="09XX-XXX-XXXX">
-          </div>
-          <div>
-            <label>Emergency Contact Name</label>
-            <input name="emergency_contact_name" class="form-control" placeholder="e.g., Ana Reyes">
-          </div>
-          <div>
-            <label>Emergency Contact No.</label>
-            <input name="emergency_contact_number" class="form-control" placeholder="09XX-XXX-XXXX">
-          </div>
-          <div>
-            <label>Purok *</label>
-            <input name="purok_name" class="form-control" required placeholder="e.g., Purok 1">
-          </div>
-          <div style="grid-column:1/-1;">
-            <label>Address Details</label>
-            <input name="address_details" class="form-control" placeholder="Barangay / Landmark / House #">
-          </div>
-        </div>
+<div class="imm-child-form-grid">
+  <div>
+    <label>First Name *</label>
+    <input name="first_name" class="form-control" required>
+  </div>
+  <div>
+    <label>Middle Name</label>
+    <input name="middle_name" class="form-control">
+  </div>
+  <div>
+    <label>Last Name *</label>
+    <input name="last_name" class="form-control" required>
+  </div>
+  <div>
+    <label>Date of Birth *</label>
+    <input type="date" name="birth_date" class="form-control" required>
+  </div>
+  <div>
+    <label>Gender *</label>
+    <select name="sex" class="form-select" required>
+      <option value="">Select</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </div>
+  <div>
+    <label>Weight (kg)</label>
+    <input name="weight_kg" type="number" step="0.01" class="form-control">
+  </div>
+  <div>
+    <label>Height (cm)</label>
+    <input name="height_cm" type="number" step="0.1" class="form-control">
+  </div>
+  <!-- Parent fields remain below -->
+  ...
+</div>
         <div class="imm-child-divider"></div>
         <div class="imm-reg-actions">
           <button type="button" class="btn btn-outline-secondary btn-sm" id="immChildRegCancel">Cancel</button>
@@ -3147,7 +3305,11 @@ regForm.addEventListener('submit',e=>{
     // Step 3: create child
     const fdChild = new FormData();
     fdChild.append('add_child','1');
-    fdChild.append('full_name', childName);
+fdChild.append('first_name', regForm.first_name.value.trim());
+fdChild.append('middle_name', regForm.middle_name.value.trim());
+fdChild.append('last_name', regForm.last_name.value.trim());
+fdChild.append('weight_kg', regForm.weight_kg.value.trim());
+fdChild.append('height_cm', regForm.height_cm.value.trim());
     fdChild.append('sex', sex);
     fdChild.append('birth_date', dob);
     fdChild.append('mother_id', mother_id);
@@ -7346,6 +7508,302 @@ function renderHealthReports(label){
   });
 }
 
+/* ================== Mother & Child Registry (Simplified – Mothers only) ================== */
+function renderParentRegistry(label){
+  showLoading(label);
+
+  // Fetch maternal patients (all) + children
+  Promise.allSettled([
+    fetchJSON(api.maternal+'?list=1&page=1&page_size=1000'),
+    fetchJSON(api.immun+'?children=1')
+  ]).then(([mRes,cRes])=>{
+    const mothers = (mRes.value?.mothers||[]).map(m=>{
+      // Ensure consistent full_name field (API already gives full_name)
+      m.full_name = m.full_name || [m.first_name,m.middle_name,m.last_name].filter(Boolean).join(' ');
+      return m;
+    }).sort((a,b)=> (a.full_name||'').localeCompare(b.full_name||''));
+
+    const children = cRes.value?.children || [];
+    const childrenByMother = {};
+    children.forEach(ch=>{
+      if(!childrenByMother[ch.mother_id]) childrenByMother[ch.mother_id]=[];
+      childrenByMother[ch.mother_id].push(ch);
+    });
+
+    moduleContent.innerHTML = `
+      <div class="fade-in">
+        <div class="pr-layout">
+          <!-- LEFT LIST -->
+          <div class="pr-list-panel">
+            <div class="pr-list-head">
+              <div class="pr-panel-title">Mother & Child Registry</div>
+              <div class="pr-search-wrap">
+                <i class="bi bi-search"></i>
+                <input id="prSearch" type="text" class="form-control" placeholder="Search parents...">
+              </div>
+            </div>
+            <ul class="pr-parent-list" id="prParentList">
+              ${
+                mothers.length
+                  ? mothers.map((m,i)=>motherListItem(m, childrenByMother[m.mother_id]?.length || 0, i===0)).join('')
+                  : '<li class="pr-parent-item" style="cursor:default;">No mothers found.</li>'
+              }
+            </ul>
+          </div>
+
+          <!-- RIGHT DETAIL -->
+          <div class="pr-detail-panel" id="prDetail">
+            ${
+              mothers.length
+                ? motherDetailHTML(mothers[0], childrenByMother[mothers[0].mother_id]||[])
+                : '<div class="pr-empty">No mothers registered in Maternal Health.</div>'
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Child Modal -->
+      <div class="modal fade pr-modal" id="prAddChildModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <form id="prAddChildForm" autocomplete="off">
+              <div class="modal-header">
+                <h5 class="modal-title" style="font-size:.85rem;font-weight:700;">Add Child</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <input type="hidden" name="mother_id" id="prChildMotherId">
+                <div class="mb-3">
+                  <label>Child's Full Name *</label>
+                  <input name="full_name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label>Date of Birth *</label>
+                  <input name="birth_date" type="date" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                  <label>Gender *</label>
+                  <select name="sex" class="form-select" required>
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <input type="hidden" name="add_child" value="1">
+                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+                <div class="small text-danger d-none" id="prChildErr"></div>
+                <div class="small text-success d-none" id="prChildOk">Saved!</div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button class="btn btn-success btn-sm"><i class="bi bi-save me-1"></i>Save Child</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Wire interactions
+    const listEl   = document.getElementById('prParentList');
+    const detailEl = document.getElementById('prDetail');
+    const searchEl = document.getElementById('prSearch');
+
+    listEl.addEventListener('click', e=>{
+      const li = e.target.closest('.pr-parent-item[data-id]');
+      if(!li) return;
+      listEl.querySelectorAll('.pr-parent-item').forEach(x=>x.classList.remove('active'));
+      li.classList.add('active');
+      const id = parseInt(li.dataset.id,10);
+      const mom = mothers.find(m=>m.mother_id==id);
+      detailEl.innerHTML = motherDetailHTML(mom, childrenByMother[id]||[]);
+      wireDetailButtons();
+    });
+
+    let timer=null;
+    searchEl.addEventListener('input', ()=>{
+      clearTimeout(timer);
+      timer=setTimeout(()=>{
+        const q=(searchEl.value||'').toLowerCase();
+        listEl.querySelectorAll('.pr-parent-item[data-id]').forEach(li=>{
+          const txt=li.innerText.toLowerCase();
+            li.classList.toggle('d-none', !txt.includes(q));
+        });
+      },180);
+    });
+
+    function motherListItem(m, childCount, active){
+      return `
+        <li class="pr-parent-item ${active?'active':''}" data-id="${m.mother_id}">
+          <strong>${escapeHtml(m.full_name||'')}</strong>
+          ${m.contact_number? `<small>${escapeHtml(m.contact_number)}</small>`:''}
+          <small><span class="dot"></span>${childCount===1?'1 child':childCount+' children'}</small>
+        </li>
+      `;
+    }
+
+    function motherDetailHTML(m, kids){
+      const address = formatAddress(m);
+      const childRows = kids.map(c=>`
+        <tr>
+          <td>${escapeHtml(c.full_name||'')}</td>
+          <td>${formatAgeMonths(c.age_months)}</td>
+          <td>${c.sex?capitalize(c.sex):'—'}</td>
+          <td>${c.birth_date?formatShortDate(c.birth_date):'—'}</td>
+        </tr>
+      `).join('');
+      return `
+        <div>
+          <h3 class="pr-detail-title">${escapeHtml(m.full_name||'')}</h3>
+          <div class="pr-detail-meta">
+            <span>Mother</span>
+            ${m.contact_number? `<span>• ${escapeHtml(m.contact_number)}</span>`:''}
+            ${m.date_of_birth? `<span>• ${formatShortDate(m.date_of_birth)}</span>`:''}
+          </div>
+
+          <div class="pr-card">
+            <h6>Parent Information</h6>
+            <div class="pr-info-grid">
+              <div>
+                <span>Contact Number</span>${escapeHtml(m.contact_number||'—')}
+              </div>
+              <div>
+                <span>Relationship</span>Mother
+              </div>
+              <div>
+                <span>Birthday</span>${m.date_of_birth?formatShortDate(m.date_of_birth):'—'}
+              </div>
+              <div style="grid-column:1/-1;">
+                <span>Address</span>${escapeHtml(address)}
+              </div>
+            </div>
+          </div>
+
+          <div class="pr-card">
+            <div class="pr-children-head">
+              <h6>Children</h6>
+              <button class="pr-add-child-btn" data-add-child="${m.mother_id}">
+                <i class="bi bi-plus-lg"></i> Add Child
+              </button>
+            </div>
+            <div style="font-size:.58rem;font-weight:600;color:#607078;margin-top:-4px;">
+              ${kids.length===1?'1 child registered': kids.length+' children registered'}
+            </div>
+            ${
+              kids.length
+                ? `<div class="table-responsive" style="max-height:260px;margin-top:.55rem;">
+                    <table class="pr-child-table">
+                      <thead><tr><th>Child Name</th><th>Age</th><th>Gender</th><th>Date of Birth</th></tr></thead>
+                      <tbody>${childRows}</tbody>
+                    </table>
+                  </div>`
+                : `<div class="pr-empty" style="margin-top:.75rem;">No children linked. Click "Add Child".</div>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function formatAddress(m){
+      const parts = [m.house_number,m.street_name,m.subdivision_name].filter(Boolean).join(', ').replace(/\s*,\s*/g,', ');
+      const base = parts ? parts : '';
+      const suffix = 'Sabang, Lipa City';
+      if(!base){
+        return suffix;
+      }
+      const lower = base.toLowerCase();
+      if(lower.includes('sabang') && lower.includes('lipa') && lower.includes('city')){
+        // Already present – normalize single spacing + keep original base
+        return base;
+      }
+      return base.replace(/,\s*$/,'') + ', ' + suffix;
+    }
+
+    function formatAgeMonths(mo){
+      if(mo==null || isNaN(mo)) return '—';
+      const mInt=parseInt(mo,10);
+      return mInt===1?'1 month': mInt+' months';
+    }
+    function formatShortDate(d){
+      const dt=new Date(d+'T00:00:00');
+      if(isNaN(dt)) return escapeHtml(d);
+      return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+    }
+    function capitalize(s){return (s||'').charAt(0).toUpperCase()+ (s||'').slice(1);}
+
+    function wireDetailButtons(){
+      detailEl.querySelectorAll('[data-add-child]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const mid=btn.getAttribute('data-add-child');
+          document.getElementById('prChildMotherId').value=mid;
+          const f=document.getElementById('prAddChildForm');
+          f.reset();
+          document.getElementById('prChildErr').classList.add('d-none');
+          document.getElementById('prChildOk').classList.add('d-none');
+          bootstrap.Modal.getOrCreateInstance(document.getElementById('prAddChildModal')).show();
+        });
+      });
+    }
+    wireDetailButtons();
+
+    // Add Child submit
+    document.getElementById('prAddChildForm').addEventListener('submit',e=>{
+      e.preventDefault();
+      const form=e.target;
+      const errEl=document.getElementById('prChildErr');
+      const okEl=document.getElementById('prChildOk');
+      errEl.classList.add('d-none'); okEl.classList.add('d-none');
+
+      const fd=new FormData(form);
+      fetch(api.immun,{method:'POST',body:fd})
+        .then(parseJSONSafe)
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Save failed');
+          okEl.classList.remove('d-none');
+
+          // Update local cache
+          const mid=parseInt(fd.get('mother_id'),10);
+          childrenByMother[mid]=childrenByMother[mid]||[];
+          childrenByMother[mid].push({
+            child_id:j.child_id,
+            full_name:fd.get('full_name'),
+            birth_date:fd.get('birth_date'),
+            sex:fd.get('sex'),
+            age_months:j.age_months
+          });
+
+          // Refresh detail if still selected
+          const activeLi=listEl.querySelector('.pr-parent-item.active');
+          if(activeLi && parseInt(activeLi.dataset.id,10)===mid){
+            const mom=mothers.find(m=>m.mother_id==mid);
+            detailEl.innerHTML=motherDetailHTML(mom, childrenByMother[mid]);
+            wireDetailButtons();
+          }
+
+          // Update list child count
+          const li=listEl.querySelector(`.pr-parent-item[data-id="${mid}"]`);
+          if(li){
+            const count=childrenByMother[mid].length;
+            const smalls=[...li.querySelectorAll('small')];
+            const last=smalls[smalls.length-1];
+            if(last) last.innerHTML='<span class="dot"></span>'+ (count===1?'1 child': count+' children');
+          }
+
+          setTimeout(()=> bootstrap.Modal.getInstance(document.getElementById('prAddChildModal')).hide(),900);
+        })
+        .catch(ex=>{
+          errEl.textContent=ex.message;
+          errEl.classList.remove('d-none');
+        });
+    });
+
+  }).catch(err=>{
+    moduleContent.innerHTML = '<div class="alert alert-danger small">Error loading Mother & Child Registry: '+escapeHtml(err.message)+'</div>';
+  });
+}
+
+
+
 
  /* ===== Replace stubs below with your real full module implementations ===== */
  function renderRecentActivities(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Recent Activities code here.</div>';}
@@ -7369,6 +7827,7 @@ const moduleHandlers={
    health_records_all: renderHealthRecordsAll, 
    health_calendar: renderEventScheduling,    
    report_vaccination_coverage: renderHealthReports, 
+   parent_registry: renderParentRegistry,
 };
 
 function loadModule(mod,label){
@@ -7428,6 +7887,307 @@ function currentZoom(){return parseFloat(getComputedStyle(document.documentEleme
     applyZoom(0); localStorage.removeItem(zoomKey);
   });
 })();
+
+
+/* === Mother Registration Two-Step Wizard (single source) === */
+function initMotherWizard(){
+  const modal      = document.getElementById('modalRegisterMother');
+  if(!modal) return;
+
+  const form       = document.getElementById('motherForm');
+  const step1      = document.getElementById('motherStep1');
+  const step2      = document.getElementById('motherStep2');
+  const stepLabel  = document.getElementById('motherStepIndicator');
+  const footerBox  = document.getElementById('motherFooterButtons');
+
+  // Old messages (Step1 – optional) + new global messages
+  const motherErrStep1  = document.getElementById('motherError');
+  const motherOkStep1   = document.getElementById('motherSuccess');
+  const motherErrGlobal = document.getElementById('motherErrGlobal');
+  const motherOkGlobal  = document.getElementById('motherOkGlobal');
+
+  let step = 1;
+  let step2Built = false;
+
+  function clearMsgs(){
+    [motherErrStep1,motherOkStep1,motherErrGlobal,motherOkGlobal].forEach(el=>{
+      if(el) el.classList.add('d-none');
+    });
+  }
+
+  function showError(msg){
+    // If nasa Step 1, gamitin pa rin ang lumang container; else global
+    if(step===1 && motherErrStep1){
+      motherErrStep1.textContent = msg;
+      motherErrStep1.classList.remove('d-none');
+    } else if(motherErrGlobal){
+      motherErrGlobal.textContent = msg;
+      motherErrGlobal.classList.remove('d-none');
+    }
+  }
+  function showOk(msg='Saved!'){
+    if(step===1 && motherOkStep1){
+      motherOkStep1.textContent = msg;
+      motherOkStep1.classList.remove('d-none');
+    }
+    if(motherOkGlobal){
+      motherOkGlobal.textContent = msg;
+      motherOkGlobal.classList.remove('d-none');
+      setTimeout(()=>motherOkGlobal.classList.add('d-none'),1500);
+    }
+  }
+
+  function showStep(n){
+    step = n;
+    clearMsgs();
+    if(n===1){
+      step1.classList.remove('d-none');
+      step2.classList.add('d-none');
+      stepLabel.textContent = 'Step 1 of 2';
+      footerBox.innerHTML = `
+        <button type="button" class="btn btn-success" id="motherNextBtn">
+          <span class="d-inline-flex align-items-center gap-1">
+            <i class="bi bi-arrow-right-circle"></i> Next
+          </span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      `;
+      footerBox.querySelector('#motherNextBtn').addEventListener('click', onNext);
+    } else {
+      step1.classList.add('d-none');
+      step2.classList.remove('d-none');
+      stepLabel.textContent = 'Step 2 of 2';
+      footerBox.innerHTML = `
+        <button type="button" class="btn btn-outline-secondary" id="motherBackBtn">
+          <i class="bi bi-arrow-left"></i> Back
+        </button>
+        <button type="submit" class="btn btn-success" id="motherSaveBtn">
+          <i class="bi bi-save me-1"></i> Save Consultation
+        </button>
+      `;
+      footerBox.querySelector('#motherBackBtn').addEventListener('click', ()=>showStep(1));
+      form.addEventListener('submit', onSubmitCombined, { once:true });
+    }
+  }
+
+async function onNext(){
+  clearMsgs();
+  const fn = form.first_name.value.trim();
+  const ln = form.last_name.value.trim();
+  if(!fn || !ln){
+    showError('First name at Last name ay required.');
+    return;
+  }
+
+  try{
+    // Quick check kung existing na (first + last only)
+    const res = await fetch(api.maternal+'?list_basic=1').then(r=>r.json()).catch(()=>({}));
+    if(res.success){
+      const exists = (res.mothers||[]).find(m => (m.full_name||'').toLowerCase() === (fn+' '+ln).toLowerCase());
+      if(exists){
+        // STOP re-registration and redirect user to Consultations tab
+        showError('Existing mother na ito. Magdagdag ng consultation sa Consultations tab.');
+        showToast('Pumunta sa Consultations tab para magdagdag ng bagong consultation.', 'warning', 4500);
+
+        // Optional: auto-open Consultations tab
+        setTimeout(()=>{
+          bootstrap.Modal.getInstance(modal)?.hide();
+          document.querySelector('#mhTabs .nav-link[data-tab="consults"]')?.click();
+        }, 1200);
+        return;
+      }
+    }
+  }catch(_){ /* ignore – fallback proceed */ }
+
+  if(!step2Built) buildStep2();
+  showStep(2);
+}
+
+  function buildStep2(){
+    step2Built = true;
+    const wrap = document.getElementById('motherConsultWrapper');
+    wrap.innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label>Consultation Date *</label>
+          <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
+        </div>
+        <div class="col-md-2">
+          <label>Age</label>
+          <input type="number" name="age" class="form-control" placeholder="Auto">
+        </div>
+        <div class="col-md-2">
+          <label>Height (cm)</label>
+          <input type="number" step="0.1" name="height_cm" class="form-control">
+        </div>
+        <div class="col-md-2">
+          <label>Weight (kg)</label>
+          <input type="number" step="0.1" name="weight_kg" class="form-control">
+        </div>
+        <div class="col-md-2">
+          <label>Pregnancy Weeks</label>
+          <input type="number" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
+        </div>
+        <div class="col-md-3">
+          <label>BP Systolic</label>
+          <input type="number" name="blood_pressure_systolic" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label>BP Diastolic</label>
+          <input type="number" name="blood_pressure_diastolic" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label>Last Menstruation (LMP)</label>
+          <input type="date" name="last_menstruation_date" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label>Expected Delivery (EDD)</label>
+          <input type="date" name="expected_delivery_date" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label>HGB Result</label>
+          <input name="hgb_result" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label>Urine Result</label>
+          <input name="urine_result" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label>VDRL Result</label>
+          <input name="vdrl_result" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label>Other Lab Results</label>
+          <input name="other_lab_results" class="form-control">
+        </div>
+        <div class="col-12">
+          <label style="margin-bottom:.3rem;">Risk Flags</label>
+          <div class="d-flex flex-wrap gap-2" style="font-size:.65rem;">
+            ${[
+              ['vaginal_bleeding','Vaginal Bleeding'],
+              ['urinary_infection','Urinary Infection'],
+              ['high_blood_pressure','High Blood Pressure'],
+              ['fever_38_celsius','Fever ≥38°C'],
+              ['pallor','Pallor'],
+              ['abnormal_abdominal_size','Abnormal Abd Size'],
+              ['abnormal_presentation','Abnormal Presentation'],
+              ['absent_fetal_heartbeat','Absent Fetal Heartbeat'],
+              ['swelling','Swelling'],
+              ['vaginal_infection','Vaginal Infection'],
+            ].map(([k,l])=>`
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6;">
+                <input type="checkbox" name="${k}" value="1" style="margin-right:4px;"> ${l}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      <input type="hidden" name="create_mother_with_consult" value="1">
+    `;
+    // Auto Age / GA
+    const cdEl  = form.querySelector('[name=consultation_date]');
+    const lmpEl = form.querySelector('[name=last_menstruation_date]');
+    const eddEl = form.querySelector('[name=expected_delivery_date]');
+    const gaEl  = form.querySelector('[name=pregnancy_age_weeks]');
+    const ageEl = form.querySelector('[name=age]');
+    function autoAge(){
+      const dob=form.querySelector('[name=date_of_birth]')?.value;
+      const cd=cdEl.value;
+      if(!dob||!cd) return;
+      const dDob=new Date(dob+'T00:00:00'); const dCd=new Date(cd+'T00:00:00');
+      if(isNaN(dDob)||isNaN(dCd)) return;
+      let a=dCd.getFullYear()-dDob.getFullYear();
+      const m=dCd.getMonth()-dDob.getMonth();
+      if(m<0||(m===0 && dCd.getDate()<dDob.getDate())) a--;
+      if(ageEl.value===''||ageEl.dataset.autofill==='1'){ageEl.value=a;ageEl.dataset.autofill='1';}
+    }
+    function autoGA(){
+      const cd=cdEl.value,lmp=lmpEl.value,edd=eddEl.value;
+      if(!cd) return;
+      const cdDate=new Date(cd+'T00:00:00'); if(isNaN(cdDate)) return;
+      let weeks=null;
+      if(lmp){
+        const lmpDate=new Date(lmp+'T00:00:00');
+        if(!isNaN(lmpDate)){
+          const diff=(cdDate-lmpDate)/86400000;
+            if(diff>=0) weeks=Math.floor(diff/7);
+        }
+      } else if(edd){
+        const eddDate=new Date(edd+'T00:00:00');
+        if(!isNaN(eddDate)){
+          const diff=(eddDate-cdDate)/86400000;
+          weeks=Math.round(40-(diff/7));
+        }
+      }
+      if(weeks!==null && (gaEl.value===''||gaEl.dataset.autofill==='1')){
+        gaEl.value=weeks; gaEl.dataset.autofill='1';
+      }
+    }
+    [cdEl,lmpEl,eddEl].forEach(el=>el.addEventListener('change',()=>{autoAge();autoGA();}));
+    gaEl.addEventListener('input',()=>gaEl.dataset.autofill='0');
+    ageEl.addEventListener('input',()=>ageEl.dataset.autofill='0');
+    autoAge(); autoGA();
+  }
+
+  async function onSubmitCombined(e){
+    e.preventDefault();
+    clearMsgs();
+
+    if(!form.first_name.value.trim() || !form.last_name.value.trim()){
+      showError('First name at Last name ay required.');
+      return;
+    }
+    if(!form.consultation_date.value){
+      showError('Consultation date ay required.');
+      return;
+    }
+
+    const saveBtn=document.getElementById('motherSaveBtn');
+    const oldHTML=saveBtn.innerHTML;
+    saveBtn.disabled=true;
+    saveBtn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+    try{
+      const fd=new FormData(form);
+      if(!fd.get('csrf_token')) fd.append('csrf_token', window.__BHW_CSRF);
+      fd.set('create_mother_with_consult','1');
+
+      const resp = await fetch(api.maternal,{method:'POST',body:fd});
+      const txt  = await resp.text();
+      let data;
+      try{ data = JSON.parse(txt); }catch(_){
+        throw new Error('Server did not return valid JSON. Raw: '+ txt.slice(0,180));
+      }
+      if(!resp.ok || !data.success){
+        throw new Error(data.error || 'Save failed (HTTP '+resp.status+')');
+      }
+      showOk('Saved!');
+      setTimeout(()=>{
+        const inst=bootstrap.Modal.getInstance(modal);
+        inst && inst.hide();
+        const link=document.querySelector('.nav-link-modern[data-module="maternal_health"]');
+        if(link){ setActiveLink(link); loadModule('maternal_health','Maternal Health'); }
+        else location.reload();
+      },650);
+    }catch(ex){
+      showError(ex.message);
+      // Rebind para pwede ulit mag-submit
+      form.addEventListener('submit', onSubmitCombined, { once:true });
+    }finally{
+      saveBtn.disabled=false;
+      saveBtn.innerHTML=oldHTML;
+    }
+  }
+
+  // First Next button (initial markup)
+  const initNext=document.getElementById('motherNextBtn');
+  if(initNext) initNext.addEventListener('click', onNext);
+
+  modal.addEventListener('show.bs.modal',()=>{
+    showStep(1);
+    clearMsgs();
+  });
+}
 
 /* Initial load */
 loadModule('health_stats','Dashboard');

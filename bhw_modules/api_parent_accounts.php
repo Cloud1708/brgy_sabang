@@ -42,27 +42,22 @@ function log_parent_activity(mysqli $mysqli, int $parent_user_id, string $action
 }
 
 function ensure_mother_record(mysqli $mysqli, string $fullName, ?string $dob, int $created_by): int {
-    $q = $mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE LOWER(full_name)=LOWER(?) LIMIT 1");
-    $q->bind_param('s',$fullName);
+    // New: expect $fullName, split into parts
+    $parts = preg_split('/\s+/u', trim($fullName));
+    $first = $parts[0] ?? $fullName;
+    $last  = $parts[count($parts)-1] ?? $fullName;
+    $middle = null;
+    if(count($parts) > 2){
+        $middleParts = array_slice($parts,1,-1);
+        $middle = implode(' ',$middleParts);
+    }
+
+    // Try match by first & last (basic)
+    $q = $mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1");
+    $q->bind_param('ss',$first,$last);
     $q->execute(); $q->bind_result($mid);
     if($q->fetch()){ $q->close(); return (int)$mid; }
     $q->close();
-
-    $purok_name = 'Unassigned';
-    $purok_id = null;
-    $p = $mysqli->prepare("SELECT purok_id FROM puroks WHERE purok_name=? LIMIT 1");
-    $p->bind_param('s',$purok_name);
-    $p->execute(); $p->bind_result($pid);
-    if($p->fetch()) $purok_id = $pid;
-    $p->close();
-    if(!$purok_id){
-        $barangay='Sabang';
-        $ins=$mysqli->prepare("INSERT INTO puroks (purok_name,barangay) VALUES (?,?)");
-        $ins->bind_param('ss',$purok_name,$barangay);
-        if(!$ins->execute()) fail('Failed to create default Purok: '.$ins->error,500);
-        $purok_id = $ins->insert_id;
-        $ins->close();
-    }
 
     $hasDob = false;
     if($res = $mysqli->query("SHOW COLUMNS FROM mothers_caregivers LIKE 'date_of_birth'")){
@@ -71,30 +66,44 @@ function ensure_mother_record(mysqli $mysqli, string $fullName, ?string $dob, in
     }
     if($hasDob && $dob && !preg_match('/^\d{4}-\d{2}-\d{2}$/',$dob)) $dob = null;
 
+    $sql = $hasDob
+        ? "INSERT INTO mothers_caregivers (first_name,middle_name,last_name,date_of_birth,created_by) VALUES (?,?,?,?,?)"
+        : "INSERT INTO mothers_caregivers (first_name,middle_name,last_name,created_by) VALUES (?,?,?,?)";
+    $stmt=$mysqli->prepare($sql);
     if($hasDob){
-        $ins=$mysqli->prepare("INSERT INTO mothers_caregivers (full_name,purok_id,date_of_birth,created_by) VALUES (?,?,?,?)");
-        $ins->bind_param('sisi',$fullName,$purok_id,$dob,$created_by);
-    }else{
-        $ins=$mysqli->prepare("INSERT INTO mothers_caregivers (full_name,purok_id,created_by) VALUES (?,?,?)");
-        $ins->bind_param('sii',$fullName,$purok_id,$created_by);
+        $stmt->bind_param('ssssi',$first,$middle,$last,$dob,$created_by);
+    } else {
+        $stmt->bind_param('sssi',$first,$middle,$last,$created_by);
     }
-    if(!$ins->execute()) fail('Failed to create mother profile: '.$ins->error,500);
-    $mid=$ins->insert_id;
-    $ins->close();
+    if(!$stmt->execute()) fail('Failed to create mother profile: '.$stmt->error,500);
+    $mid=$stmt->insert_id;
+    $stmt->close();
     return $mid;
 }
 
-function create_child(mysqli $mysqli, int $mother_id, string $full_name, string $birth_date, string $sex, int $created_by): int {
-    if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$birth_date)) fail('Invalid child birth_date format.');
-    if(!in_array($sex,['male','female'],true)) fail('Invalid child sex.');
-    $ins=$mysqli->prepare("INSERT INTO children (full_name,sex,birth_date,mother_id,created_by) VALUES (?,?,?,?,?)");
-    $ins->bind_param('sssii',$full_name,$sex,$birth_date,$mother_id,$created_by);
+
+function create_child(mysqli $mysqli, int $mother_id, array $childData, int $created_by): int {
+    $first = trim($childData['first_name'] ?? '');
+    $middle= trim($childData['middle_name'] ?? '');
+    $last  = trim($childData['last_name'] ?? '');
+    $sex   = $childData['sex'] ?? '';
+    $birth = $childData['birth_date'] ?? '';
+    $weight= isset($childData['weight_kg']) && $childData['weight_kg']!=='' ? (float)$childData['weight_kg'] : null;
+    $height= isset($childData['height_cm']) && $childData['height_cm']!=='' ? (float)$childData['height_cm'] : null;
+
+    if($first==='' || $last==='' || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$birth) || !in_array($sex,['male','female'],true)){
+        fail('Invalid child fields.');
+    }
+    $full = compose_full_name($first,$middle,$last);
+    $ins=$mysqli->prepare("INSERT INTO children
+      (first_name,middle_name,last_name,full_name,sex,birth_date,mother_id,weight_kg,height_cm,created_by)
+      VALUES (?,?,?,?,?,?,?,?,?,?)");
+    $ins->bind_param('sssssssddi',$first,$middle,$last,$full,$sex,$birth,$mother_id,$weight,$height,$created_by);
     if(!$ins->execute()) fail('Child insert failed: '.$ins->error,500);
     $cid=$ins->insert_id;
     $ins->close();
     return $cid;
 }
-
 function link_parent_child(mysqli $mysqli, int $parent_user_id,int $child_id,string $relationship_type,int $creator){
     $valid=['mother','father','guardian','caregiver'];
     if(!in_array($relationship_type,$valid,true)) fail('Invalid relationship type for link.');
