@@ -58,23 +58,84 @@ function standard_vaccines(){ return [
   ['code'=>'HPV','name'=>'Human Papillomavirus Vaccine (HPV)','category'=>'booster','doses_required'=>2,'schedule'=>[['dose'=>1,'age'=>132],['dose'=>2,'age'=>138]]]
 ]; }
 
+/**
+ * Attempt to import a maternal_patients row into mothers_caregivers (so child add works).
+ * Uses the SAME mother_id so existing references remain valid.
+ * Returns true if mother now exists in mothers_caregivers; false if not found/import failed.
+ */
+function ensure_mother_in_caregivers(mysqli $mysqli, int $mother_id, int $user_id): bool {
+    if ($mother_id <= 0) return false;
+
+    // Already exists?
+    $chk = $mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE mother_id=? LIMIT 1");
+    if($chk){
+        $chk->bind_param('i',$mother_id);
+        $chk->execute();
+        $chk->bind_result($mid);
+        if($chk->fetch()){
+            $chk->close();
+            return true; // already present
+        }
+        $chk->close();
+    }
+
+    // Fetch from maternal_patients
+    $mp = $mysqli->prepare("SELECT first_name,middle_name,last_name,date_of_birth,emergency_contact_name,emergency_contact_number,contact_number,house_number,street_name,subdivision_name FROM maternal_patients WHERE mother_id=? LIMIT 1");
+    if(!$mp){
+        return false;
+    }
+    $mp->bind_param('i',$mother_id);
+    $mp->execute();
+    $res = $mp->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $mp->close();
+    if(!$row) return false;
+
+    $first = $row['first_name'] ?? '';
+    $middle= $row['middle_name'] ?? '';
+    $last  = $row['last_name'] ?? '';
+    $full  = trim($first.' '.($middle? $middle.' ':'').$last);
+
+    // Insert explicitly with mother_id
+    $ins = $mysqli->prepare("
+        INSERT INTO mothers_caregivers
+        (mother_id, first_name,middle_name,last_name,full_name,date_of_birth,
+         emergency_contact_name,emergency_contact_number,contact_number,
+         house_number,street_name,subdivision_name,created_by)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ");
+    if(!$ins) return false;
+    $ins->bind_param(
+        'isssssssssssi',
+        $mother_id,
+        $first,$middle,$last,$full,$row['date_of_birth'],
+        $row['emergency_contact_name'],$row['emergency_contact_number'],$row['contact_number'],
+        $row['house_number'],$row['street_name'],$row['subdivision_name'],
+        $user_id
+    );
+    $ok = $ins->execute();
+    $ins->close();
+    return $ok;
+}
+
 /* ===================== GET ===================== */
 if ($method === 'GET') {
 
-    /* Children list (ENHANCED: includes address and created_at if present) */
+    /* Children list (ENHANCED + backward compatibility if full_name column missing) */
     if (isset($_GET['children'])) {
         $rows=[];
-        // Dynamic created_at column support
         $createdCol = has_column($mysqli,'children','created_at') ? ', c.created_at' : '';
-        // Include mother's address_details and purok info if available
-        $sql = "
-SELECT
+        $hasFullNameCol = has_column($mysqli,'children','full_name');
+        $fullNameExpr = $hasFullNameCol
+            ? 'c.full_name'
+            : "TRIM(CONCAT(c.first_name,' ',COALESCE(NULLIF(c.middle_name,''),''),' ',c.last_name)) AS full_name";
+        $orderExpr = $hasFullNameCol ? 'c.full_name' : 'c.last_name, c.first_name';
+        $sql = "SELECT
   c.child_id,
   c.first_name,
   c.middle_name,
   c.last_name,
-  /* If full_name still exists use it; if removed, compose on client or use CONCAT here */
-  c.full_name,
+  $fullNameExpr,
   c.sex,
   c.birth_date,
   c.weight_kg,
@@ -82,17 +143,16 @@ SELECT
   TIMESTAMPDIFF(MONTH,c.birth_date,CURDATE()) AS age_months,
   c.mother_id,
   m.full_name AS mother_name,
-            m.contact_number AS mother_contact,
-            m.address_details,
-            p.purok_name,
-            p.barangay
-            $createdCol
-          FROM children c
-          LEFT JOIN mothers_caregivers m ON m.mother_id=c.mother_id
-          LEFT JOIN puroks p ON p.purok_id = m.purok_id
-          ORDER BY c.full_name ASC
-          LIMIT 1000
-        ";
+  m.contact_number AS mother_contact,
+  m.address_details,
+  p.purok_name,
+  p.barangay
+  $createdCol
+FROM children c
+LEFT JOIN mothers_caregivers m ON m.mother_id=c.mother_id
+LEFT JOIN puroks p ON p.purok_id = m.purok_id
+ORDER BY $orderExpr ASC
+LIMIT 1000";
         $res=$mysqli->query($sql);
         while($res && ($r=$res->fetch_assoc())) $rows[]=$r;
         ok(['children'=>$rows]);
@@ -146,7 +206,9 @@ SELECT
         $cid=(int)$_GET['child_id'];
         if($cid<=0) fail('Invalid child_id');
         $child=null;
-        $stmt=$mysqli->prepare("SELECT child_id,full_name,sex,birth_date FROM children WHERE child_id=? LIMIT 1");
+        $hasFullNameCol = has_column($mysqli,'children','full_name');
+        $childNameExpr = $hasFullNameCol ? 'full_name' : "TRIM(CONCAT(first_name,' ',COALESCE(NULLIF(middle_name,''),''),' ',last_name)) AS full_name";
+        $stmt=$mysqli->prepare("SELECT child_id,$childNameExpr,sex,birth_date FROM children WHERE child_id=? LIMIT 1");
         $stmt->bind_param('i',$cid);
         $stmt->execute(); $res=$stmt->get_result();
         if($res && $res->num_rows) $child=$res->fetch_assoc();
@@ -183,8 +245,8 @@ SELECT
             child_id INT NOT NULL,
             vaccine_id INT NOT NULL,
             dose_number INT NOT NULL,
-            status ENUM('active', 'dismissed', 'expired') DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            status ENUM('active','dismissed','expired') DEFAULT 'active',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             dismissed_at TIMESTAMP NULL,
             expires_at TIMESTAMP NULL,
             INDEX idx_child_vaccine_dose (child_id, vaccine_id, dose_number),
@@ -383,7 +445,6 @@ SELECT
     }
 
     if (isset($_GET['cards_summary'])) {
-        // Pagination parameters
         $page = max(1, (int)($_GET['page'] ?? 1));
         $pageSize = max(5, min(50, (int)($_GET['page_size'] ?? 10)));
         $search = trim($_GET['search'] ?? '');
@@ -410,7 +471,6 @@ SELECT
             $doseMap[$r['child_id']][$r['vaccine_id']] = (int)$r['dose_count'];
         }
 
-        // Build search condition
         $searchWhere = '';
         $searchParams = [];
         if (!empty($search)) {
@@ -418,7 +478,6 @@ SELECT
             $searchParams[] = '%' . $search . '%';
         }
 
-        // Get total count for pagination
         $countSql = "SELECT COUNT(*) as total FROM children $searchWhere";
         $countStmt = $mysqli->prepare($countSql);
         if (!empty($searchParams)) {
@@ -430,7 +489,6 @@ SELECT
         $countStmt->close();
 
         $cards=[];
-        // Get paginated children
         $childSql = "
           SELECT child_id, full_name, birth_date,
             TIMESTAMPDIFF(MONTH,birth_date,CURDATE()) AS age_months
@@ -488,21 +546,19 @@ SELECT
 if ($method === 'POST') {
     require_csrf();
 
-    /* NEW: Dismiss overdue notification */
     if (isset($_POST['dismiss_notification'])) {
         $childId = (int)($_POST['child_id'] ?? 0);
         $vaccineId = (int)($_POST['vaccine_id'] ?? 0);
         $doseNumber = (int)($_POST['dose_number'] ?? 0);
         if (!$childId || !$vaccineId || !$doseNumber) fail('Missing required parameters');
 
-        // Ensure table exists (safety if dismiss called before first overdue GET)
         $mysqli->query("
             CREATE TABLE IF NOT EXISTS overdue_notifications (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 child_id INT NOT NULL,
                 vaccine_id INT NOT NULL,
                 dose_number INT NOT NULL,
-                status ENUM('active', 'dismissed', 'expired') DEFAULT 'active',
+                status ENUM('active','dismissed','expired') DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 dismissed_at TIMESTAMP NULL,
                 expires_at TIMESTAMP NULL,
@@ -535,7 +591,6 @@ if ($method === 'POST') {
         ok(['dismissed'=>true]);
     }
 
-    /* NEW: Restore notification */
     if (isset($_POST['restore_notification'])) {
         $childId = (int)($_POST['child_id'] ?? 0);
         $vaccineId = (int)($_POST['vaccine_id'] ?? 0);
@@ -554,50 +609,90 @@ if ($method === 'POST') {
         ok(['restored'=>true]);
     }
 
-    /* Add child */
-if (isset($_POST['add_child'])) {
-    $first_name  = trim($_POST['first_name'] ?? '');
-    $middle_name = trim($_POST['middle_name'] ?? '');
-    $last_name   = trim($_POST['last_name'] ?? '');
-    $sex         = $_POST['sex'] ?? '';
-    $birth_date  = $_POST['birth_date'] ?? '';
-    $mother_id   = (int)($_POST['mother_id'] ?? 0);
-    $weight_kg   = ($_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null);
-    $height_cm   = ($_POST['height_cm'] !== '' ? (float)$_POST['height_cm'] : null);
-    $rec_by      = (int)($_SESSION['user_id'] ?? 0);
+    /* Add child (Enhanced: now auto-imports maternal_patients row into mothers_caregivers if needed) */
+    if (isset($_POST['add_child'])) {
+        $first_name  = trim($_POST['first_name'] ?? '');
+        $middle_name = trim($_POST['middle_name'] ?? '');
+        $last_name   = trim($_POST['last_name'] ?? '');
+        $sex         = $_POST['sex'] ?? '';
+        $birth_date  = $_POST['birth_date'] ?? '';
+        $mother_id   = (int)($_POST['mother_id'] ?? 0);
+        $weight_kg   = ($_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null);
+        $height_cm   = ($_POST['height_cm'] !== '' ? (float)$_POST['height_cm'] : null);
+        $rec_by      = (int)($_SESSION['user_id'] ?? 0);
+        $parent_user_id = (int)($_POST['parent_user_id'] ?? $_POST['parent_account_id'] ?? 0); // optional future use
 
-    if ($first_name==='' || $last_name==='' || ($sex!=='male' && $sex!=='female') || !$birth_date || $mother_id<=0) {
-        fail('Required child fields missing.');
+        if ($first_name==='' || $last_name==='' || ($sex!=='male' && $sex!=='female') || $birth_date==='') {
+            fail('Required child fields missing.');
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/',$birth_date)) {
+            fail('Invalid birth_date format (YYYY-MM-DD expected).');
+        }
+
+        if ($mother_id <= 0) {
+            fail('mother_id is required (cannot resolve parent).');
+        }
+
+        // Make sure mother exists or import from maternal_patients
+        ensure_mother_in_caregivers($mysqli, $mother_id, $rec_by);
+
+        // Compose full name; include middle name only if present
+        $full_name = trim($first_name.' '.($middle_name? $middle_name.' ':'').$last_name);
+
+        // Avoid duplicates (same mother, same full name, same birth date)
+        $hasFullNameCol = has_column($mysqli,'children','full_name');
+        if ($hasFullNameCol) {
+            $dupSql = "SELECT child_id FROM children WHERE mother_id=? AND full_name=? AND birth_date=? LIMIT 1";
+            $dup = $mysqli->prepare($dupSql);
+            $dup->bind_param('iss',$mother_id,$full_name,$birth_date);
+        } else {
+            $dupSql = "SELECT child_id FROM children
+                       WHERE mother_id=? AND first_name=? AND middle_name=? AND last_name=? AND birth_date=? LIMIT 1";
+            $dup = $mysqli->prepare($dupSql);
+            $dup->bind_param('issss',$mother_id,$first_name,$middle_name,$last_name,$birth_date);
+        }
+        $dup->execute();
+        $dup->bind_result($cidDup);
+        if($dup->fetch()){
+            $dup->close();
+            ok([
+                'duplicate'=>true,
+                'success'=>true,
+                'child_id'=>$cidDup,
+                'message'=>'Child already exists for this mother.'
+            ]);
+        }
+        $dup->close();
+
+        // Build dynamic insert
+        $cols = ['first_name','middle_name','last_name','sex','birth_date','mother_id','weight_kg','height_cm','created_by'];
+        $ph   = ['?','?','?','?','?','?','?','?','?'];
+        $types='sssssiddd';
+        $vals = [$first_name,$middle_name,$last_name,$sex,$birth_date,$mother_id,$weight_kg,$height_cm,$rec_by];
+
+        if ($hasFullNameCol) {
+            array_splice($cols,3,0,'full_name'); // insert after last_name
+            array_splice($ph,3,0,'?');
+            $types = 'sss'.'s'.substr($types,3); // add one more 's'
+            array_splice($vals,3,0,$full_name);
+        }
+
+        $sql="INSERT INTO children (".implode(',',$cols).") VALUES (".implode(',',$ph).")";
+        $stmt=$mysqli->prepare($sql);
+        if(!$stmt) fail('Child prepare failed: '.$mysqli->error,500);
+        $stmt->bind_param($types, ...$vals);
+        if(!$stmt->execute()) fail('Child insert failed: '.$stmt->error,500);
+        $child_id=$stmt->insert_id;
+        $stmt->close();
+
+        ok([
+            'child_id'=>$child_id,
+            'mother_id'=>$mother_id,
+            'full_name'=>$full_name,
+            'age_months'=>age_months($birth_date),
+            'has_full_name_column'=>$hasFullNameCol
+        ]);
     }
-
-    $chk=$mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE mother_id=? LIMIT 1");
-    $chk->bind_param('i',$mother_id);
-    $chk->execute(); $chk->bind_result($mid);
-    if(!$chk->fetch()){ $chk->close(); fail('Mother not found',404); }
-    $chk->close();
-
-    // If full_name is still a normal column:
-    $full_name = compose_full_name($first_name,$middle_name,$last_name);
-
-    $sql = "INSERT INTO children
-        (first_name,middle_name,last_name,full_name,sex,birth_date,mother_id,weight_kg,height_cm,created_by)
-        VALUES (?,?,?,?,?,?,?,?,?,?)";
-
-    $ins=$mysqli->prepare($sql);
-    $ins->bind_param(
-        'sssssssddi',
-        $first_name,$middle_name,$last_name,$full_name,$sex,$birth_date,$mother_id,$weight_kg,$height_cm,$rec_by
-    );
-    if(!$ins->execute()) fail('Child insert failed: '.$ins->error,500);
-    $cid=$ins->insert_id;
-    $ins->close();
-
-    ok([
-        'child_id'=>$cid,
-        'age_months'=>age_months($birth_date),
-        'full_name'=>$full_name
-    ]);
-}
 
     if (isset($_POST['add_update_vaccine'])) {
         $vaccine_id = (int)($_POST['vaccine_id'] ?? 0);
@@ -671,7 +766,8 @@ if (isset($_POST['add_child'])) {
         isset($_POST['vaccination_date']) &&
         (isset($_POST['vaccine_id']) || isset($_POST['vaccine_code'])) &&
         !isset($_POST['add_schedule']) &&
-        !isset($_POST['add_update_vaccine'])
+        !isset($_POST['add_update_vaccine']) &&
+        !isset($_POST['add_child'])
     ) {
         $child_id=(int)($_POST['child_id'] ?? 0);
         $dose_number=(int)($_POST['dose_number'] ?? 0);
@@ -684,11 +780,9 @@ if (isset($_POST['add_child'])) {
         $vaccine_id_raw=trim($_POST['vaccine_id'] ?? '');
         $vaccine_id = ctype_digit($vaccine_id_raw)?(int)$vaccine_id_raw:0;
 
-        // NEW: expiry date (optional)
         $expiry_raw = trim($_POST['vaccine_expiry_date'] ?? '');
         $vaccine_expiry_date = ($expiry_raw !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/',$expiry_raw)) ? $expiry_raw : null;
 
-        // NEW: manual next dose date override (optional)
         $next_due_override_raw = trim($_POST['next_dose_due_date'] ?? '');
         $next_due_override = ($next_due_override_raw !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/',$next_due_override_raw)) ? $next_due_override_raw : null;
 
@@ -719,21 +813,18 @@ if (isset($_POST['add_child'])) {
             fail('Required fields missing.');
         }
 
-        // Get vaccine meta for auto-compute
         $stmt=$mysqli->prepare("SELECT doses_required, interval_between_doses_days FROM vaccine_types WHERE vaccine_id=? LIMIT 1");
         $stmt->bind_param('i',$vaccine_id);
         $stmt->execute(); $stmt->bind_result($dreq,$interval_days);
         if(!$stmt->fetch()){ $stmt->close(); fail('Vaccine not found',404); }
         $stmt->close();
 
-        // Choose next due date: prefer manual override if valid, else auto-compute
         $next_due = $next_due_override;
         if($next_due === null && $dose_number < (int)$dreq && $interval_days !== null){
             $ts=strtotime($vaccination_date.' +'.(int)$interval_days.' days');
             if($ts) $next_due=date('Y-m-d',$ts);
         }
 
-        // Build dynamic insert (include expiry if column exists)
         $fields = [
           'child_id','vaccine_id','dose_number','vaccination_date',
           'vaccination_site','batch_lot_number',
@@ -746,10 +837,9 @@ if (isset($_POST['add_child'])) {
             $fields[] = 'vaccine_expiry_date';
             $place[]  = '?';
             $types   .= 's';
-            $values[] = $vaccine_expiry_date; // can be null
+            $values[] = $vaccine_expiry_date;
         }
 
-        // Always present columns below
         $fields = array_merge($fields, ['administered_by','next_dose_due_date','adverse_reactions','notes']);
         $place  = array_merge($place,  ['?','?','?','?']);
         $types .= 'isss';
@@ -759,7 +849,6 @@ if (isset($_POST['add_child'])) {
         $ins=$mysqli->prepare($sql);
         if(!$ins) fail('Prepare failed: '.$mysqli->error,500);
 
-        // Bind dynamically
         $ins->bind_param($types, ...$values);
         if(!$ins->execute()){
             if(stripos($ins->error,'duplicate')!==false) fail('Duplicate entry (already recorded dose).',409);

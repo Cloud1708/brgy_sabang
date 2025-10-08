@@ -173,7 +173,7 @@ if ($section === 'accounts') {
     if (isset($_GET['edit'])) {
         $uid = intval($_GET['edit']);
         $stmt = $mysqli->prepare("
-            SELECT user_id, first_name, last_name, email, password_hash 
+            SELECT user_id, first_name, last_name, email, password 
             FROM users 
             WHERE user_id = ?
         ");
@@ -316,76 +316,134 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // CREATE BHW/BNS
         if ($section === 'accounts' && isset($_POST['create_account'])) {
             $first_name = $mysqli->real_escape_string($_POST['first_name']);
-            $last_name = $mysqli->real_escape_string($_POST['last_name']);
-            $email = $mysqli->real_escape_string($_POST['email']);
-            $role = $mysqli->real_escape_string($_POST['role']);
-            $barangay = 'Sabang';
+            $last_name  = $mysqli->real_escape_string($_POST['last_name']);
+            $email      = $mysqli->real_escape_string($_POST['email']);
+            $role       = $mysqli->real_escape_string($_POST['role']);
+            $barangay   = 'Sabang';
+
+            // NEW: Check for existing email early to avoid exception
+            $chkEmail = $mysqli->prepare("SELECT 1 FROM users WHERE email = ? LIMIT 1");
+            if ($chkEmail) {
+                $chkEmail->bind_param("s", $email);
+                $chkEmail->execute();
+                $chkRes = $chkEmail->get_result();
+                if ($chkRes && $chkRes->num_rows) {
+                    $msg = "<div class='alert alert-danger'>Email already registered. Please use another email.</div>";
+                    $chkEmail->close();
+                    // Abort create block
+                    goto create_account_end;
+                }
+                $chkEmail->close();
+            }
+
             $last_name_suffix = substr(strtolower($last_name), -2);
-            $username = strtolower($first_name . $last_name_suffix);
-            $check_stmt = $mysqli->prepare("SELECT username FROM users WHERE username = ?");
+            $base_username = strtolower($first_name . $last_name_suffix);
+            $username = $base_username;
+
+            // Ensure unique username (tries up to 10 now)
+            $check_stmt = $mysqli->prepare("SELECT 1 FROM users WHERE username = ? LIMIT 1");
             $attempt = 0;
-            $base_username = $username;
-            while ($attempt < 5) {
+            while ($attempt < 10) {
                 $check_stmt->bind_param("s", $username);
                 $check_stmt->execute();
                 $check_result = $check_stmt->get_result();
-                if ($check_result->num_rows == 0) break;
+                if ($check_result->num_rows === 0) break;
                 $username = $base_username . rand(1, 9);
                 $attempt++;
             }
             $check_stmt->close();
-            if ($attempt >= 5) {
+
+            if ($attempt >= 10) {
                 $msg = "<div class='alert alert-danger'>Failed to generate unique username. Please try again.</div>";
-            } else {
-                $random_digits = '';
-                for ($i = 0; $i < 5; $i++) {
-                    $random_digits .= rand(1, 9);
-                }
-                $password = strtolower($last_name) . $random_digits;
-                $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                $role_stmt = $mysqli->prepare("SELECT role_id FROM roles WHERE role_name = ?");
-                $role_stmt->bind_param("s", $role);
-                $role_stmt->execute();
-                $role_result = $role_stmt->get_result();
-                $role_id = $role_result->fetch_row()[0] ?? 2;
-                $role_stmt->close();
-                $created_by_user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
-                if ($created_by_user_id) {
-                    $user_check_stmt = $mysqli->prepare("SELECT user_id FROM users WHERE user_id = ?");
-                    $user_check_stmt->bind_param("i", $created_by_user_id);
-                    $user_check_stmt->execute();
-                    $user_check_result = $user_check_stmt->get_result();
-                    if (!$user_check_result->num_rows) {
-                        $created_by_user_id = null;
-                    }
-                    $user_check_stmt->close();
-                }
-                $created_by_sql = $created_by_user_id ? $created_by_user_id : 'NULL';
-                $stmt = $mysqli->prepare("
-                    INSERT INTO users (username, email, password_hash, first_name, last_name, role_id, barangay, is_active, created_by_user_id) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, $created_by_sql)
-                ");
-                if ($stmt === false) {
-                    $msg = "<div class='alert alert-danger'>Database error: Unable to create account.</div>";
-                } else {
-                    $stmt->bind_param("sssssis", $username, $email, $password_hash, $first_name, $last_name, $role_id, $barangay);
-                    if ($stmt->execute()) {
-                        $new_user_id = $mysqli->insert_id;
-                        $log_stmt = $mysqli->prepare("
-                            INSERT INTO account_creation_log (created_user_id, account_type, created_by_user_id, creation_reason, created_at)
-                            VALUES (?, ?, $created_by_sql, ?, NOW())
-                        ");
-                        $creation_reason = 'New ' . $role . ' account created';
-                        $log_stmt->bind_param("iss", $new_user_id, $role, $creation_reason);
-                        $log_stmt->execute();
-                        $log_stmt->close();
-                        $msg = "<div class='alert alert-success'>A $role account has been created with Username: $username and Password: $password</div>";
-                    } else {
-                        $msg = "<div class='alert alert-danger'>Failed to create account: " . $mysqli->error . "</div>";
-                    }
-                    $stmt->close();
-                }
+                goto create_account_end;
             }
+
+            // Generate password
+            $random_digits = '';
+            for ($i = 0; $i < 5; $i++) $random_digits .= rand(1, 9);
+            $password      = strtolower($last_name) . $random_digits;
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+            // Resolve role_id
+            $role_stmt = $mysqli->prepare("SELECT role_id FROM roles WHERE role_name = ? LIMIT 1");
+            $role_stmt->bind_param("s", $role);
+            $role_stmt->execute();
+            $role_result = $role_stmt->get_result();
+            $role_id = $role_result->fetch_row()[0] ?? 2;
+            $role_stmt->close();
+
+            $created_by_user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+            if ($created_by_user_id) {
+                $user_check_stmt = $mysqli->prepare("SELECT user_id FROM users WHERE user_id = ? LIMIT 1");
+                $user_check_stmt->bind_param("i", $created_by_user_id);
+                $user_check_stmt->execute();
+                $ucr = $user_check_stmt->get_result();
+                if (!$ucr || !$ucr->num_rows) $created_by_user_id = null;
+                $user_check_stmt->close();
+            }
+            $created_by_sql = $created_by_user_id ? $created_by_user_id : 'NULL';
+
+            $stmt = $mysqli->prepare("
+                INSERT INTO users
+                    (username,email,password,password_hash,first_name,last_name,role_id,barangay,is_active,created_by_user_id)
+                VALUES
+                    (?,?,?,?,?,?,?,?,1,$created_by_sql)
+            ");
+            if (!$stmt) {
+                $msg = "<div class='alert alert-danger'>Database error: Unable to prepare account insert.</div>";
+                goto create_account_end;
+            }
+
+            $stmt->bind_param(
+                "ssssssis",
+                $username,
+                $email,
+                $password,
+                $password_hash,
+                $first_name,
+                $last_name,
+                $role_id,
+                $barangay
+            );
+
+            try {
+                $stmt->execute();
+                $new_user_id = $mysqli->insert_id;
+
+                $log_stmt = $mysqli->prepare("
+                    INSERT INTO account_creation_log
+                        (created_user_id, account_type, created_by_user_id, creation_reason, created_at)
+                    VALUES
+                        (?, ?, $created_by_sql, ?, NOW())
+                ");
+                if ($log_stmt) {
+                    $creation_reason = 'New ' . $role . ' account created';
+                    $log_stmt->bind_param("iss", $new_user_id, $role, $creation_reason);
+                    $log_stmt->execute();
+                    $log_stmt->close();
+                }
+
+                $msg = "<div class='alert alert-success'>A $role account has been created with Username: "
+                     . htmlspecialchars($username)
+                     . " and Password: " . htmlspecialchars($password) . "</div>";
+            } catch (mysqli_sql_exception $e) {
+                $err = $e->getMessage();
+                if (strpos($err, 'Duplicate entry') !== false) {
+                    if (strpos($err, 'uq_email') !== false || strpos($err, 'email') !== false) {
+                        $msg = "<div class='alert alert-danger'>Email already exists. Choose another.</div>";
+                    } elseif (strpos($err, 'username') !== false) {
+                        $msg = "<div class='alert alert-danger'>Username collision occurred. Please retry.</div>";
+                    } else {
+                        $msg = "<div class='alert alert-danger'>Duplicate value detected.</div>";
+                    }
+                } else {
+                    $msg = "<div class='alert alert-danger'>Failed to create account: " . htmlspecialchars($err) . "</div>";
+                }
+            } finally {
+                $stmt->close();
+            }
+            create_account_end:
+            ; // label end (no-op)
         }
         
         // EDIT ACCOUNT
@@ -1281,13 +1339,13 @@ $descs = [
                                           </div>
                                           <div class="modal-body">
                                               <label class="required">First Name</label>
-                                              <input type="text" name="first_name" required class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['first_name']); ?>" placeholder="First Name">
+                                              <input type="text" name="first_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['first_name']); ?>" placeholder="First Name">
                                               <label class="required">Last Name</label>
-                                              <input type="text" name="last_name" required class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['last_name']); ?>" placeholder="Last Name">
+                                              <input type="text" name="last_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['last_name']); ?>" placeholder="Last Name">
                                               <label class="required">Email</label>
-                                              <input type="email" name="email" required class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['email']); ?>" placeholder="Email">
-                                              <label>Password (Hashed)</label>
-                                              <input type="text" value="<?php echo htmlspecialchars($edit_account['password_hash'] ?? 'Not available'); ?>" class="form-control mb-2" readonly>
+                                              <input type="email" name="email" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['email']); ?>" placeholder="Email">
+                                              <label>Password</label>
+                                              <input type="text" value="<?php echo htmlspecialchars($edit_account['password'] ?? 'Not available'); ?>" class="form-control mb-2" readonly>
                                           </div>
                                           <div class="modal-footer">
                                               <a href="?section=accounts" class="btn btn-outline-secondary">Cancel</a>
@@ -1405,7 +1463,7 @@ $descs = [
                             <div style="font-weight:600;font-size:1.01em;">Nutrition Status Overview</div>
                             <div style="font-size:.98em;color:#5c6872;">Monthly trends of nutritional status across the barangay</div>
                             <canvas id="nutritionChart" style="max-width:100%;max-height:385px;margin-top:.7em;"></canvas>
-                            <div class="mt-2">
+                            <div class="mt-2 text-center">
                                 <span style="color:#047857;font-weight:600;">Normal</span>
                                 <span style="color:#1aa09c;font-weight:600;margin-left:.9em;">Overweight</span>
                                 <span style="color:#d41a5a;font-weight:600;margin-left:.9em;">Severely Underweight</span>

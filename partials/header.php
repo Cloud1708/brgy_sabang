@@ -15,6 +15,7 @@
 <header class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top py-1">
   <div class="container">
     <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="index.php">
+      <img src="assets/img/lipa.jpg" alt="" width="60" height="60" class="d-inline-block align-text-top rounded-circle border">
       <img src="assets/img/sabang.jpg" alt="" width="60" height="60" class="d-inline-block align-text-top rounded-circle border">
       <span class="px-3">Brgy. Sabang Health</span>
     </a>

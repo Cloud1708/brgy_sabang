@@ -61,7 +61,7 @@ if ($method === 'GET') {
         $sql = "
           SELECT hr.health_record_id,
                  hr.mother_id,
-                 m.full_name,
+                 CONCAT_WS(' ', m.first_name, m.middle_name, m.last_name) AS full_name,
                  hr.consultation_date,
                  hr.last_menstruation_date,
                  hr.expected_delivery_date,
@@ -81,8 +81,8 @@ if ($method === 'GET') {
                  hr.vaginal_infection,
                  hr.hgb_result, hr.urine_result, hr.vdrl_result, hr.other_lab_results,
                  hr.created_at
-                FROM health_records hr
-                JOIN maternal_patients m ON m.mother_id = hr.mother_id
+            FROM health_records hr
+            JOIN maternal_patients m ON m.mother_id = hr.mother_id
           ORDER BY hr.consultation_date DESC, hr.health_record_id DESC
           LIMIT ?
         ";
@@ -129,8 +129,9 @@ if ($method === 'GET') {
     if (isset($_GET['risk_summary'])) {
         $rows=[];
         $sql = "
-          SELECT m.mother_id, m.full_name,
-            hr.consultation_date, hr.pregnancy_age_weeks,
+          SELECT m.mother_id,
+                 CONCAT_WS(' ', m.first_name, m.middle_name, m.last_name) AS full_name,
+                 hr.consultation_date, hr.pregnancy_age_weeks,
             (hr.vaginal_bleeding + hr.urinary_infection + hr.high_blood_pressure +
              hr.fever_38_celsius + hr.pallor + hr.abnormal_abdominal_size +
              hr.abnormal_presentation + hr.absent_fetal_heartbeat + hr.swelling +
@@ -168,7 +169,8 @@ if ($method === 'GET') {
         $limit = isset($_GET['limit']) ? max(1,min(50,(int)$_GET['limit'])) : 20;
         $rows=[];
         $stmt = $mysqli->prepare("
-          SELECT hr.health_record_id, hr.consultation_date, m.full_name,
+          SELECT hr.health_record_id, hr.consultation_date,
+                 CONCAT_WS(' ', m.first_name, m.middle_name, m.last_name) AS full_name,
                  hr.pregnancy_age_weeks,
                  hr.high_blood_pressure, hr.vaginal_bleeding, hr.fever_38_celsius,
                  hr.swelling, hr.urinary_infection

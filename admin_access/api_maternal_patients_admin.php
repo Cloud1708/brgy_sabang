@@ -57,14 +57,28 @@ if (table_exists($mysqli,'maternal_patients')) {
 }
 $cols = column_set($mysqli,$motherTable);
 
+$hasFullNameCol = isset($cols['full_name']);
+$hasPurok       = isset($cols['purok_id']);
+$hasFirst       = isset($cols['first_name']);
+$hasMiddle      = isset($cols['middle_name']);
+$hasLast        = isset($cols['last_name']);
+$hasLegacyFull  = isset($cols['legacy_full_name_backup']);
+
+$fullNameExpr = $hasFullNameCol
+    ? 'm.full_name'
+    : 'TRIM(CONCAT_WS(" ", m.first_name, m.middle_name, m.last_name))';
+
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Optional diagnostics (admin only)
+// Optional diagnostics
 if ($method==='GET' && isset($_GET['diag'])) {
     echo json_encode([
         'success'=>true,
         'active_table'=>$motherTable,
         'columns'=>array_keys($cols),
+        'using_full_name_expr'=>$fullNameExpr,
+        'has_full_name_column'=>$hasFullNameCol,
+        'has_purok'=>$hasPurok,
         'csrf_present'=>!empty($_SESSION['csrf_token'])
     ]);
     exit;
@@ -81,25 +95,31 @@ if ($method==='GET') {
         $search   = trim($_GET['search'] ?? '');
         $riskFilter = trim($_GET['risk'] ?? '');
 
-        // Build where
         $where = [];
         $bindTypes = '';
         $bindVals = [];
 
-        // Name / purok search (purok join optional if table has purok_id)
         if ($search!=='') {
-            $where[] = "(m.full_name LIKE ? OR p.purok_name LIKE ?)";
-            $like = '%'.$search.'%';
-            $bindTypes .= 'ss';
-            $bindVals[] = $like; $bindVals[] = $like;
+            if ($hasPurok) {
+                $where[] = "( {$fullNameExpr} LIKE ? OR p.purok_name LIKE ? )";
+                $like = '%'.$search.'%';
+                $bindTypes .= 'ss';
+                $bindVals[] = $like; $bindVals[] = $like;
+            } else {
+                $where[] = "( {$fullNameExpr} LIKE ? )";
+                $like = '%'.$search.'%';
+                $bindTypes .= 's';
+                $bindVals[] = $like;
+            }
         }
 
         $whereSql = $where ? 'WHERE '.implode(' AND ',$where) : '';
+        $purokJoin = $hasPurok ? 'LEFT JOIN puroks p ON p.purok_id=m.purok_id' : '';
 
         // Count
         $countSql = "SELECT COUNT(*) AS total
                      FROM `$motherTable` m
-                     LEFT JOIN puroks p ON p.purok_id=m.purok_id
+                     $purokJoin
                      $whereSql";
         $countStmt = $mysqli->prepare($countSql);
         if(!$countStmt) fail('Prepare failed (count): '.$mysqli->error,500);
@@ -111,8 +131,6 @@ if ($method==='GET') {
 
         $totalPages = $pageSize? (int)ceil($total/$pageSize) : 1;
 
-        // Risk score logic depends on health_records table
-        // We compute risk_count as number of records with any complication flags
         $healthRiskExpr = "(SELECT COUNT(*) FROM health_records hr
                             WHERE hr.mother_id = m.mother_id
                               AND (hr.vaginal_bleeding=1 OR hr.urinary_infection=1 OR hr.high_blood_pressure=1
@@ -121,23 +139,24 @@ if ($method==='GET') {
                                 OR hr.swelling=1 OR hr.vaginal_infection=1)
                            ) AS risk_count";
 
-        // Basic columns that might exist
         $selectCols = [
             'm.mother_id',
-            'm.full_name'
+            "{$fullNameExpr} AS full_name",
         ];
+
         foreach (['date_of_birth','gravida','para','blood_type','emergency_contact_name',
                   'emergency_contact_number','address_details','contact_number'] as $c) {
             if (isset($cols[$c])) $selectCols[] = "m.$c";
         }
-        $selectCols[] = 'p.purok_name';
+
+        $selectCols[] = $hasPurok ? 'p.purok_name' : 'NULL AS purok_name';
         $selectCols[] = "(SELECT COUNT(*) FROM health_records hr2 WHERE hr2.mother_id=m.mother_id) AS records_count";
         $selectCols[] = "(SELECT MAX(consultation_date) FROM health_records hr3 WHERE hr3.mother_id=m.mother_id) AS last_consultation_date";
         $selectCols[] = $healthRiskExpr;
 
         $listSql = "SELECT ".implode(",",$selectCols)."
                     FROM `$motherTable` m
-                    LEFT JOIN puroks p ON p.purok_id=m.purok_id
+                    $purokJoin
                     $whereSql
                     ORDER BY m.mother_id DESC
                     LIMIT ? OFFSET ?";
@@ -153,7 +172,6 @@ if ($method==='GET') {
         while($r=$res->fetch_assoc()) $rows[]=$r;
         $listStmt->close();
 
-        // Risk filter (in-memory)
         if ($riskFilter!=='') {
             $rows = array_values(array_filter($rows,function($r) use($riskFilter){
                 $riskCount = (int)($r['risk_count'] ?? 0);
@@ -178,7 +196,11 @@ if ($method==='GET') {
 
     // Light list for dropdowns
     if (isset($_GET['list_basic'])) {
-        $sql = "SELECT mother_id, full_name FROM `$motherTable` ORDER BY full_name ASC";
+        $purokJoin = $hasPurok ? 'LEFT JOIN puroks p ON p.purok_id=m.purok_id' : '';
+        $sql = "SELECT m.mother_id, {$fullNameExpr} AS full_name
+                FROM `$motherTable` m
+                $purokJoin
+                ORDER BY full_name ASC";
         $res = $mysqli->query($sql);
         if(!$res) fail('Query failed: '.$mysqli->error,500);
         $rows=[];
@@ -194,7 +216,7 @@ if ($method==='GET') {
 if ($method==='POST') {
     csrf_check();
 
-    // Gather possible input fields (some columns might not exist)
+    // Input map (form sends single full_name)
     $inputMap = [
         'full_name'                => ['required'=>true],
         'purok_name'               => ['required'=>false],
@@ -225,13 +247,31 @@ if ($method==='POST') {
         $data[$field] = $val;
     }
 
-    // Determine / create purok if provided
+    // Parse full name if needed
+    $fullNameInput = $data['full_name'];
+
+    $nameParts = ['first'=>null,'middle'=>null,'last'=>null];
+    if (!$hasFullNameCol) {
+        // Simple heuristic: first token -> first_name, last token -> last_name, middle tokens joined -> middle_name
+        $tokens = preg_split('/\s+/',$fullNameInput,-1,PREG_SPLIT_NO_EMPTY);
+        if (count($tokens)===1) {
+            $nameParts['first'] = $tokens[0];
+        } elseif (count($tokens)===2) {
+            $nameParts['first'] = $tokens[0];
+            $nameParts['last']  = $tokens[1];
+        } else {
+            $nameParts['first']  = array_shift($tokens);
+            $nameParts['last']   = array_pop($tokens);
+            $nameParts['middle'] = implode(' ',$tokens);
+        }
+    }
+
+    // Purok handling only if table supports it
     $purok_id = null;
     $purok_name = $data['purok_name'] ?? null;
     if ($purok_name===null || $purok_name==='') $purok_name='Unassigned';
 
-    // Only look up/create purok if the maternal table actually has purok_id column
-    if (isset($cols['purok_id'])) {
+    if ($hasPurok) {
         $ps = $mysqli->prepare("SELECT purok_id FROM puroks WHERE purok_name=? LIMIT 1");
         $ps->bind_param('s',$purok_name);
         $ps->execute(); $ps->bind_result($pid);
@@ -250,17 +290,38 @@ if ($method==='POST') {
     $created_by = (int)($_SESSION['user_id'] ?? 0);
     if ($created_by<=0) $created_by = null;
 
-    // Build dynamic insert based on actual columns
     $insertCols = [];
     $placeholders = [];
     $types = '';
     $vals = [];
 
-    // Always try to set full_name if column exists
-    if (!isset($cols['full_name'])) fail("Target table '$motherTable' lacks required column full_name.",500);
-    $insertCols[]='full_name'; $placeholders[]='?'; $types.='s'; $vals[]=$data['full_name'];
+    if ($hasFullNameCol) {
+        $insertCols[]='full_name'; $placeholders[]='?'; $types.='s'; $vals[]=$fullNameInput;
+    } else {
+        // Insert name parts if columns exist
+        if ($hasFirst) {
+            $insertCols[]='first_name'; $placeholders[]='?'; $types.='s'; $vals[]=$nameParts['first'];
+        }
+        if ($hasMiddle) {
+            if ($nameParts['middle']===null) {
+                $insertCols[]='middle_name'; $placeholders[]='NULL';
+            } else {
+                $insertCols[]='middle_name'; $placeholders[]='?'; $types.='s'; $vals[]=$nameParts['middle'];
+            }
+        }
+        if ($hasLast) {
+            if ($nameParts['last']===null) {
+                $insertCols[]='last_name'; $placeholders[]='NULL';
+            } else {
+                $insertCols[]='last_name'; $placeholders[]='?'; $types.='s'; $vals[]=$nameParts['last'];
+            }
+        }
+        if ($hasLegacyFull) {
+            $insertCols[]='legacy_full_name_backup'; $placeholders[]='?'; $types.='s'; $vals[]=$fullNameInput;
+        }
+    }
 
-    if ($purok_id!==null && isset($cols['purok_id'])) {
+    if ($hasPurok && $purok_id!==null) {
         $insertCols[]='purok_id'; $placeholders[]='?'; $types.='i'; $vals[]=$purok_id;
     }
 
@@ -278,11 +339,9 @@ if ($method==='POST') {
         if (isset($cols[$colName]) && array_key_exists($in,$data)) {
             $val = $data[$in];
             if ($val===null){
-                // use NULL directly
                 $insertCols[]=$colName; $placeholders[]='NULL';
             } else {
                 $insertCols[]=$colName; $placeholders[]='?';
-                // type inference
                 if (in_array($colName,['gravida','para'])) { $types.='i'; $vals[]=(int)$val; }
                 else { $types.='s'; $vals[]=$val; }
             }
@@ -296,6 +355,8 @@ if ($method==='POST') {
             $insertCols[]='created_by'; $placeholders[]='?'; $types.='i'; $vals[]=$created_by;
         }
     }
+
+    if (!$insertCols) fail('Nothing to insert; table structure mismatch.',500);
 
     $sql = "INSERT INTO `$motherTable` (".implode(',',$insertCols).") VALUES (".implode(',',$placeholders).")";
     $stmt = $mysqli->prepare($sql);

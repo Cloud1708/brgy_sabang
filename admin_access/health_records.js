@@ -279,7 +279,7 @@ const HealthRecordsApp = {
               <thead>
                 <tr>
                   ${isMotherHistory ? '<th>ID</th>' : '<th>Record ID</th>'}
-                  ${!isMotherHistory ? '<th>Mother</th>' : ''}
+                  ${!isMotherHistory ? '<th>Mother\'s Name</th>' : ''}
                   <th>Date</th>
                   <th>Preg Weeks</th>
                   <th>BP</th>

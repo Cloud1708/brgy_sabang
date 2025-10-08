@@ -83,9 +83,23 @@ function ensure_mother_record(mysqli $mysqli, string $fullName, ?string $dob, in
 
 
 function create_child(mysqli $mysqli, int $mother_id, array $childData, int $created_by): int {
+    // Accept either separate name fields or a single full_name
     $first = trim($childData['first_name'] ?? '');
     $middle= trim($childData['middle_name'] ?? '');
     $last  = trim($childData['last_name'] ?? '');
+
+    if($first==='' && $last==='' && !empty($childData['full_name'])) {
+        $parts = preg_split('/\s+/u', trim($childData['full_name']));
+        if(count($parts)>=2){
+            $first = array_shift($parts);
+            $last  = array_pop($parts);
+            $middle = count($parts)? implode(' ',$parts): '';
+        } else {
+            $first = trim($childData['full_name']);
+            $last = '(Unknown)';
+        }
+    }
+
     $sex   = $childData['sex'] ?? '';
     $birth = $childData['birth_date'] ?? '';
     $weight= isset($childData['weight_kg']) && $childData['weight_kg']!=='' ? (float)$childData['weight_kg'] : null;
@@ -94,16 +108,52 @@ function create_child(mysqli $mysqli, int $mother_id, array $childData, int $cre
     if($first==='' || $last==='' || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$birth) || !in_array($sex,['male','female'],true)){
         fail('Invalid child fields.');
     }
+
+    if(!function_exists('compose_full_name')){
+        function compose_full_name($f,$m,$l){ return trim($f.' '.($m? $m.' ':'').$l); }
+    }
     $full = compose_full_name($first,$middle,$last);
-    $ins=$mysqli->prepare("INSERT INTO children
-      (first_name,middle_name,last_name,full_name,sex,birth_date,mother_id,weight_kg,height_cm,created_by)
-      VALUES (?,?,?,?,?,?,?,?,?,?)");
-    $ins->bind_param('sssssssddi',$first,$middle,$last,$full,$sex,$birth,$mother_id,$weight,$height,$created_by);
-    if(!$ins->execute()) fail('Child insert failed: '.$ins->error,500);
-    $cid=$ins->insert_id;
-    $ins->close();
+    
+    // Detect optional full_name column
+    $hasFullName = false;
+    if($res = $mysqli->query("SHOW COLUMNS FROM `children` LIKE 'full_name'")){
+        $hasFullName = $res->num_rows > 0;
+        $res->close();
+    }
+
+    if($hasFullName){
+        $sql="INSERT INTO children
+            (first_name,middle_name,last_name,full_name,sex,birth_date,mother_id,weight_kg,height_cm,created_by)
+            VALUES (?,?,?,?,?,?,?,?,?,?)";
+        $stmt=$mysqli->prepare($sql);
+        if(!$stmt) fail('Child prepare failed: '.$mysqli->error,500);
+        $stmt->bind_param('sssssssddi',$first,$middle,$last,$full,$sex,$birth,$mother_id,$weight,$height,$created_by);
+    }else{
+        $sql="INSERT INTO children
+            (first_name,middle_name,last_name,sex,birth_date,mother_id,weight_kg,height_cm,created_by)
+            VALUES (?,?,?,?,?,?,?,?,?)";
+        $stmt=$mysqli->prepare($sql);
+        if(!$stmt) fail('Child prepare failed: '.$mysqli->error,500);
+        $stmt->bind_param('sssssddi',$first,$middle,$last,$sex,$birth,$mother_id,$weight,$height,$created_by);
+    }
+
+    if(!$stmt->execute()) fail('Child insert failed: '.$stmt->error,500);
+    $cid=$stmt->insert_id;
+    $stmt->close();
     return $cid;
 }
+/* =========== 2. Sa loob ng create_parent loop palitan ang maling tawag =========== */
+foreach($new_child_defs as $nc){
+    if($mother_id===null) throw new Exception('Internal: mother_id not set.');
+    // DATING mali:
+    // $cid=create_child($mysqli,$mother_id,$nc['full_name'],$nc['birth_date'],$nc['sex'],$creator);
+    // TAMA:
+    $cid=create_child($mysqli,$mother_id,$nc,$creator);
+    $newly_created[]=$cid;
+    $linked_children[]=$cid;
+    link_parent_child($mysqli,$parent_user_id,$cid,$relationship_type,$creator);
+}
+
 function link_parent_child(mysqli $mysqli, int $parent_user_id,int $child_id,string $relationship_type,int $creator){
     $valid=['mother','father','guardian','caregiver'];
     if(!in_array($relationship_type,$valid,true)) fail('Invalid relationship type for link.');
@@ -526,6 +576,87 @@ if ($method === 'POST') {
             log_parent_activity($mysqli,$parent_user_id,'remove_child_link',$child_id);
         }
         ok(['removed'=>($affected>0), 'child_id'=>$child_id]);
+    }
+
+    /* NEW: Add a brand new child directly to an existing parent account */
+    if (isset($_POST['add_child_to_parent'])) {
+        $parent_user_id = (int)($_POST['parent_user_id'] ?? 0);
+        $full_name = trim($_POST['child_full_name'] ?? '');
+        $birth_date = trim($_POST['birth_date'] ?? '');
+        $sex = $_POST['sex'] ?? '';
+        $relationship = $_POST['relationship_type'] ?? 'guardian';
+
+        if($parent_user_id<=0 || $full_name==='' || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$birth_date) || !in_array($sex,['male','female'],true)){
+            fail('Incomplete child data.');
+        }
+
+        // Determine mother_id if this parent already mapped to a mother profile
+        $mother_id = null;
+        $q = $mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE user_account_id=? LIMIT 1");
+        if($q){
+            $q->bind_param('i',$parent_user_id);
+            $q->execute(); $q->bind_result($mid);
+            if($q->fetch()) $mother_id = (int)$mid;
+            $q->close();
+        }
+
+        if($mother_id===null){
+            // Fallback: create a minimal mother record using parent name (best-effort)
+            $usrRes = $mysqli->query("SELECT first_name,last_name FROM users WHERE user_id=".$parent_user_id." LIMIT 1");
+            if(!$usrRes || !$usrRes->num_rows) fail('Parent user not found',404);
+            $usr = $usrRes->fetch_assoc();
+            $fn = $usr['first_name'] ?? 'Parent';
+            $ln = $usr['last_name'] ?? '';
+            // Check for user_account_id column presence (to avoid SQL error if missing)
+            $hasUserCol=false;
+            if($colRes=$mysqli->query("SHOW COLUMNS FROM mothers_caregivers LIKE 'user_account_id'")){
+                $hasUserCol = $colRes->num_rows>0; $colRes->close();
+            }
+            if($hasUserCol){
+                $ins=$mysqli->prepare("INSERT INTO mothers_caregivers (first_name,last_name,created_by,user_account_id) VALUES (?,?,?,?)");
+                $creator=(int)($_SESSION['user_id'] ?? 0);
+                $ins->bind_param('ssii',$fn,$ln,$creator,$parent_user_id);
+            } else {
+                $ins=$mysqli->prepare("INSERT INTO mothers_caregivers (first_name,last_name,created_by) VALUES (?,?,?)");
+                $creator=(int)($_SESSION['user_id'] ?? 0);
+                $ins->bind_param('ssi',$fn,$ln,$creator);
+            }
+            if(!$ins->execute()) fail('Cannot create mother profile: '.$ins->error,500);
+            $mother_id = $ins->insert_id;
+            $ins->close();
+        }
+
+        // Split full name into parts
+        $parts = preg_split('/\s+/u',$full_name);
+        if(count($parts)<2) $parts[]='(Unknown)';
+        $first = array_shift($parts);
+        $last  = array_pop($parts);
+        $middle= count($parts)? implode(' ',$parts):'';
+        if(!function_exists('compose_full_name')){
+            // Fallback simple compose if helper not loaded
+            $full_comp = trim($first.' '.($middle? $middle.' ':'').$last);
+        } else {
+            $full_comp = compose_full_name($first,$middle,$last);
+        }
+
+        $creator = (int)($_SESSION['user_id'] ?? 0);
+        $insC=$mysqli->prepare("INSERT INTO children (first_name,middle_name,last_name,full_name,sex,birth_date,mother_id,created_by) VALUES (?,?,?,?,?,?,?,?)");
+        $insC->bind_param('ssssssii',$first,$middle,$last,$full_comp,$sex,$birth_date,$mother_id,$creator);
+        if(!$insC->execute()) fail('Child insert failed: '.$insC->error,500);
+        $child_id=$insC->insert_id;
+        $insC->close();
+
+        // Link the child to the parent
+        link_parent_child($mysqli,$parent_user_id,$child_id,$relationship,$creator);
+        log_parent_activity($mysqli,$parent_user_id,'add_child',$child_id,['relationship'=>$relationship]);
+
+        ok([
+            'added_child'=>true,
+            'child_id'=>$child_id,
+            'full_name'=>$full_comp,
+            'birth_date'=>$birth_date,
+            'sex'=>$sex
+        ]);
     }
 
     fail('Unknown POST action',400);

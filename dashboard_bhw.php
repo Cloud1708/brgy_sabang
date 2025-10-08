@@ -3054,7 +3054,7 @@ function renderVaccinationEntry(label){
       </div>
       <div class="text-muted mb-3" style="font-size:.62rem;font-weight:600;">Quick registration for immunization tracking</div>
       <form id="immChildRegForm" autocomplete="off">
-<div class="imm-child-form-grid">
+  <div class="imm-child-form-grid">
   <div>
     <label>First Name *</label>
     <input name="first_name" class="form-control" required>
@@ -3089,7 +3089,7 @@ function renderVaccinationEntry(label){
   </div>
   <!-- Parent fields remain below -->
   ...
-</div>
+  </div>
         <div class="imm-child-divider"></div>
         <div class="imm-reg-actions">
           <button type="button" class="btn btn-outline-secondary btn-sm" id="immChildRegCancel">Cancel</button>
@@ -3224,33 +3224,33 @@ function renderVaccinationEntry(label){
     `;
 
     /* === Quick Child Registration Logic === */
-const regToggleBtn = document.getElementById('immChildRegToggle');
-const regWrap      = document.getElementById('immChildRegWrap');
-const regCloseBtn  = document.getElementById('immChildRegClose');
-const regCancelBtn = document.getElementById('immChildRegCancel');
-const regForm      = document.getElementById('immChildRegForm');
-const regSubmitBtn = document.getElementById('immChildRegSubmit');
-const regOkMsg     = document.getElementById('immChildRegOk');
-const regErrMsg    = document.getElementById('immChildRegErr');
+  const regToggleBtn = document.getElementById('immChildRegToggle');
+  const regWrap      = document.getElementById('immChildRegWrap');
+  const regCloseBtn  = document.getElementById('immChildRegClose');
+  const regCancelBtn = document.getElementById('immChildRegCancel');
+  const regForm      = document.getElementById('immChildRegForm');
+  const regSubmitBtn = document.getElementById('immChildRegSubmit');
+  const regOkMsg     = document.getElementById('immChildRegOk');
+  const regErrMsg    = document.getElementById('immChildRegErr');
 
-function toggleRegForm(show){
+  function toggleRegForm(show){
   const willShow = (typeof show==='boolean')? show : (regWrap.style.display==='none');
   regWrap.style.display = willShow ? 'block':'none';
   regToggleBtn.classList.toggle('active', willShow);
   if(willShow){ regForm.reset(); regOkMsg.style.display='none'; regErrMsg.style.display='none'; }
-}
-regToggleBtn.addEventListener('click',()=>toggleRegForm());
-regCloseBtn.addEventListener('click',()=>toggleRegForm(false));
-regCancelBtn.addEventListener('click',()=>toggleRegForm(false));
+  }
+  regToggleBtn.addEventListener('click',()=>toggleRegForm());
+  regCloseBtn.addEventListener('click',()=>toggleRegForm(false));
+  regCancelBtn.addEventListener('click',()=>toggleRegForm(false));
 
-function setRegSaving(on){
+  function setRegSaving(on){
   const label=regSubmitBtn.querySelector('.reg-btn-label');
   const spin =regSubmitBtn.querySelector('.reg-btn-spin');
   if(on){label.classList.add('d-none');spin.classList.remove('d-none');regSubmitBtn.disabled=true;}
   else {label.classList.remove('d-none');spin.classList.add('d-none');regSubmitBtn.disabled=false;}
-}
+  }
 
-regForm.addEventListener('submit',e=>{
+  regForm.addEventListener('submit',e=>{
   e.preventDefault();
   regOkMsg.style.display='none';
   regErrMsg.style.display='none';
@@ -3305,11 +3305,11 @@ regForm.addEventListener('submit',e=>{
     // Step 3: create child
     const fdChild = new FormData();
     fdChild.append('add_child','1');
-fdChild.append('first_name', regForm.first_name.value.trim());
-fdChild.append('middle_name', regForm.middle_name.value.trim());
-fdChild.append('last_name', regForm.last_name.value.trim());
-fdChild.append('weight_kg', regForm.weight_kg.value.trim());
-fdChild.append('height_cm', regForm.height_cm.value.trim());
+  fdChild.append('first_name', regForm.first_name.value.trim());
+  fdChild.append('middle_name', regForm.middle_name.value.trim());
+  fdChild.append('last_name', regForm.last_name.value.trim());
+  fdChild.append('weight_kg', regForm.weight_kg.value.trim());
+  fdChild.append('height_cm', regForm.height_cm.value.trim());
     fdChild.append('sex', sex);
     fdChild.append('birth_date', dob);
     fdChild.append('mother_id', mother_id);
@@ -7563,6 +7563,7 @@ function renderParentRegistry(label){
       </div>
 
       <!-- Add Child Modal -->
+      <!-- Add Child Modal -->
       <div class="modal fade pr-modal" id="prAddChildModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
@@ -7573,24 +7574,42 @@ function renderParentRegistry(label){
               </div>
               <div class="modal-body">
                 <input type="hidden" name="mother_id" id="prChildMotherId">
-                <div class="mb-3">
-                  <label>Child's Full Name *</label>
-                  <input name="full_name" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                  <label>Date of Birth *</label>
-                  <input name="birth_date" type="date" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                  <label>Gender *</label>
-                  <select name="sex" class="form-select" required>
-                    <option value="">Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">First Name *</label>
+                    <input name="first_name" class="form-control" required>
+                  </div>
+                  <div class="col-md-4">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Middle Name</label>
+                    <input name="middle_name" class="form-control">
+                  </div>
+                  <div class="col-md-4">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Last Name *</label>
+                    <input name="last_name" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Date of Birth *</label>
+                    <input name="birth_date" type="date" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Gender *</label>
+                    <select name="sex" class="form-select" required>
+                      <option value="">Select</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Weight (kg)</label>
+                    <input name="weight_kg" type="number" step="0.01" class="form-control">
+                  </div>
+                  <div class="col-md-6">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Height (cm)</label>
+                    <input name="height_cm" type="number" step="0.1" class="form-control">
+                  </div>
                 </div>
                 <input type="hidden" name="add_child" value="1">
-                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
                 <div class="small text-danger d-none" id="prChildErr"></div>
                 <div class="small text-success d-none" id="prChildOk">Saved!</div>
               </div>
@@ -7746,7 +7765,16 @@ function renderParentRegistry(label){
     }
     wireDetailButtons();
 
-    // Add Child submit
+    // Helper to split child's full name into components for API
+    function splitFullName(full){
+      const parts=(full||'').trim().split(/\s+/).filter(Boolean);
+      if(parts.length===0) return {first_name:'(Unknown)',middle_name:'',last_name:'(Unknown)'};
+      if(parts.length===1) return {first_name:parts[0],middle_name:'',last_name:'(Unknown)'};
+      if(parts.length===2) return {first_name:parts[0],middle_name:'',last_name:parts[1]};
+      return {first_name:parts[0],middle_name:parts.slice(1,-1).join(' '),last_name:parts[parts.length-1]};
+    }
+
+    // Add Child submit (enhanced to send first/middle/last)
     document.getElementById('prAddChildForm').addEventListener('submit',e=>{
       e.preventDefault();
       const form=e.target;
@@ -7755,38 +7783,48 @@ function renderParentRegistry(label){
       errEl.classList.add('d-none'); okEl.classList.add('d-none');
 
       const fd=new FormData(form);
+      // Ensure optional numeric fields posted correctly (blank -> remove)
+      ['weight_kg','height_cm'].forEach(f=>{
+        if(fd.get(f)==='') fd.delete(f);
+      });
+
       fetch(api.immun,{method:'POST',body:fd})
         .then(parseJSONSafe)
         .then(j=>{
           if(!j.success) throw new Error(j.error||'Save failed');
           okEl.classList.remove('d-none');
 
-          // Update local cache
           const mid=parseInt(fd.get('mother_id'),10);
           childrenByMother[mid]=childrenByMother[mid]||[];
+          const first=fd.get('first_name')||'';
+          const middle=fd.get('middle_name')||'';
+          const last=fd.get('last_name')||'';
+          const full=[first,middle,last].filter(Boolean).join(' ');
           childrenByMother[mid].push({
             child_id:j.child_id,
-            full_name:fd.get('full_name'),
+            full_name:full,
             birth_date:fd.get('birth_date'),
             sex:fd.get('sex'),
-            age_months:j.age_months
+            age_months:j.age_months,
+            weight_kg:fd.get('weight_kg')||null,
+            height_cm:fd.get('height_cm')||null
           });
 
-          // Refresh detail if still selected
-          const activeLi=listEl.querySelector('.pr-parent-item.active');
+          // Refresh detail pane if same mother is active
+          const activeLi=document.querySelector('.pr-parent-item.active');
           if(activeLi && parseInt(activeLi.dataset.id,10)===mid){
             const mom=mothers.find(m=>m.mother_id==mid);
-            detailEl.innerHTML=motherDetailHTML(mom, childrenByMother[mid]);
+            document.getElementById('prDetail').innerHTML = motherDetailHTML(mom, childrenByMother[mid]);
             wireDetailButtons();
           }
 
-          // Update list child count
-          const li=listEl.querySelector(`.pr-parent-item[data-id="${mid}"]`);
+          // Update count badge
+          const li=document.querySelector(`.pr-parent-item[data-id="${mid}"]`);
           if(li){
             const count=childrenByMother[mid].length;
             const smalls=[...li.querySelectorAll('small')];
-            const last=smalls[smalls.length-1];
-            if(last) last.innerHTML='<span class="dot"></span>'+ (count===1?'1 child': count+' children');
+            const lastS=smalls[smalls.length-1];
+            if(lastS) lastS.innerHTML='<span class="dot"></span>'+ (count===1?'1 child':count+' children');
           }
 
           setTimeout(()=> bootstrap.Modal.getInstance(document.getElementById('prAddChildModal')).hide(),900);
@@ -7814,6 +7852,197 @@ function renderParentRegistry(label){
  function renderOverdueAlerts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Overdue Alerts - insert original code.</div>';}
  function renderParentNotifications(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Notifications - insert original code.</div>';}
 /* ========================================================================== */
+
+/* Immunization Module with robust error handling + graceful fallbacks (Enhanced Override) */
+function renderVaccinationEntry(label){
+  showLoading(label);
+
+  // Helper: always resolve with { ok:true|false, data|error }
+  function safeFetch(url){
+    return fetch(url,{headers:{'X-Requested-With':'fetch'}})
+      .then(async r=>{
+        const text = await r.text();
+        let json=null, parseErr=null;
+        try{ json = text.trim() ? JSON.parse(text) : {}; }catch(e){ parseErr=e; }
+        if(!r.ok){
+          return {ok:false,error:`HTTP ${r.status}`,raw:text.slice(0,180)};
+        }
+        if(parseErr){
+          return {ok:false,error:'Invalid JSON',raw:text.slice(0,180)};
+        }
+        return {ok:(json&&json.success!==false),data:json,error:json.success===false?(json.error||'API error'):null};
+      })
+      .catch(e=>({ok:false,error:e.message||'Network error'}));
+  }
+
+  Promise.all([
+    safeFetch(api.reports+'?vaccination_coverage=1'),   // 0
+    safeFetch(api.immun+'?overdue=1'),                  // 1
+    safeFetch(api.immun+'?schedule=1'),                 // 2
+    safeFetch(api.notif+'?list=1')                      // 3 (non‑critical)
+  ]).then(res=>{
+    const covRes   = res[0];
+    const overRes  = res[1];
+    const schedRes = res[2];
+    const notifRes = res[3];
+
+    // Prepare usable data or safe fallbacks
+    const coverage = covRes.ok && covRes.data ? covRes.data : {overall_dose_coverage_pct:0,total_children:0,fully_immunized_children:0};
+    const overdue  = overRes.ok && overRes.data ? overRes.data : {overdue:[],dueSoon:[]};
+    const schedule = schedRes.ok && schedRes.data ? schedRes.data : {schedule:[]};
+    const notif    = notifRes.ok && notifRes.data ? notifRes.data : {notifications:[]};
+
+    // Collect failures for diagnostics
+    const failures=[];
+    if(!covRes.ok)   failures.push({name:'coverage',detail:covRes.error});
+    if(!overRes.ok)  failures.push({name:'overdue',detail:overRes.error});
+    if(!schedRes.ok) failures.push({name:'schedule',detail:schedRes.error});
+
+    // UI alert block (only if something failed)
+    let alertHTML='';
+    if(failures.length){
+      alertHTML = `
+        <div class="alert alert-warning" style="font-size:.7rem;">
+          <strong>Partial load:</strong> ${failures.map(f=>f.name).join(', ')} failed.
+          <div style="margin-top:4px;">
+            ${failures.map(f=>`<div>• <code>${f.name}</code>: ${escapeHtml(f.detail||'unknown')}</div>`).join('')}
+          </div>
+          <button id="immRetryBtn" class="btn btn-sm btn-outline-secondary mt-2" style="font-size:.6rem;">
+            <i class="bi bi-arrow-clockwise me-1"></i>Retry
+          </button>
+        </div>`;
+    }
+
+    // If ALL three core calls failed, show focused recovery UI
+    if(failures.length===3){
+      moduleContent.innerHTML = `
+        <div class="imm-wrap fade-in">
+          <h2 class="imm-title">Immunization Management</h2>
+          <p class="imm-sub">Diagnostics</p>
+          ${alertHTML}
+          <div class="card p-3" style="border:1px solid var(--border);border-radius:16px;font-size:.75rem;">
+            <p class="mb-2"><strong>Possible causes:</strong></p>
+            <ul style="margin-left:1.1rem;">
+              <li>Missing tables (vaccine_types / immunization_schedule / child_immunizations).</li>
+              <li>PHP error (check server logs).</li>
+              <li>Incorrect path (verify api.immun points to the right file).</li>
+            </ul>
+            <p class="mb-2"><strong>Quick fix if tables exist but empty:</strong></p>
+            <button class="btn btn-success btn-sm" id="immBootstrapVaccines">
+              <i class="bi bi-capsule me-1"></i> Load Standard Vaccines
+            </button>
+            <div id="immBootstrapMsg" class="mt-2 small fw-semibold"></div>
+          </div>
+        </div>`;
+      wireRecoveryButtons();
+      return;
+    }
+
+    // ---- Normal (or partial) render continues even if some failed ----
+    renderImmunizationUI(coverage, overdue, schedule, notif, alertHTML);
+    wireRecoveryButtons();
+
+    function wireRecoveryButtons(){
+      const retry=document.getElementById('immRetryBtn');
+      if(retry){
+        retry.addEventListener('click',()=>renderVaccinationEntry(label));
+      }
+      const boot=document.getElementById('immBootstrapVaccines');
+      if(boot){
+        boot.addEventListener('click',()=>{
+          const msgEl=document.getElementById('immBootstrapMsg');
+            msgEl.textContent='Loading...';
+          const fd=new FormData();
+          fd.append('bulk_add_standard','1');
+          fd.append('csrf_token',window.__BHW_CSRF);
+          fetch(api.immun,{method:'POST',body:fd})
+            .then(parseJSONSafe)
+            .then(j=>{
+              if(!j.success) throw new Error(j.error||'Insert failed');
+              msgEl.innerHTML = `<span class="text-success">Added: ${(j.added||[]).join(', ')||'none'} - Skipped: ${(j.skipped||[]).join(', ')||'none'}</span>`;
+              setTimeout(()=>renderVaccinationEntry(label),900);
+            })
+            .catch(e=>{
+              msgEl.innerHTML = `<span class="text-danger">${escapeHtml(e.message)}</span>`;
+            });
+        });
+      }
+    }
+  }).catch(err=>{
+    moduleContent.innerHTML = `
+      <div class="alert alert-danger">
+        Critical error loading Immunization module: ${escapeHtml(err.message||'Unknown')}
+        <button class="btn btn-sm btn-outline-light ms-2" onclick="renderVaccinationEntry('Immunization')">Retry</button>
+      </div>`;
+  });
+
+  function renderImmunizationUI(cov, over, sched, notif, alertHTML){
+    // (Reuse most of your original rendering logic but replace the initial error check)
+    const totalChildren = cov.total_children ?? 0;
+    const fullyImm = cov.fully_immunized_children ?? 0;
+    const dueSoonCount = (over.dueSoon||[]).length;
+    const overdueCount = (over.overdue||[]).length;
+
+    moduleContent.innerHTML = `
+      <div class="imm-wrap fade-in">
+        <div class="imm-head">
+          <div>
+            <h2 class="imm-title">Immunization Management</h2>
+            <p class="imm-sub">Track vaccinations, schedules, and coverage</p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-success btn-sm" id="immChildRegToggle">
+              <i class="bi bi-person-plus me-1"></i> Register Child
+            </button>
+            <button class="imm-add-btn" id="immRecordBtn"><i class="bi bi-plus-lg"></i> Record Vaccination</button>
+          </div>
+        </div>
+        ${alertHTML||''}
+        <div class="imm-metrics">
+          ${metricCard('Total Children', totalChildren,'Registered for immunization','bi-people')}
+          ${metricCard('Fully Immunized', fullyImm,'Completed schedule','bi-clipboard-check')}
+          ${metricCard('Due This Week', dueSoonCount,'Scheduled vaccinations','bi-calendar-week')}
+          ${metricCard('Overdue', overdueCount,'Require follow-up','bi-exclamation-octagon')}
+        </div>
+        <div class="imm-tabs nav" id="immTabs">
+          <button class="nav-link active" data-tab="children">Registered Children</button>
+          <button class="nav-link" data-tab="schedule">Vaccine Schedule</button>
+          <button class="nav-link" data-tab="records">Vaccination Records</button>
+          <button class="nav-link" data-tab="overdue">Overdue Alerts</button>
+          <button class="nav-link" data-tab="cards">Immunization Cards</button>
+          <button class="nav-link" data-tab="parent_notifs">Parent Notifications</button>
+        </div>
+        <div id="immPanel"></div>
+      </div>
+      <!-- (Keep existing modals & forms below – omitted here for brevity if unchanged) -->
+    `;
+
+    if(typeof loadChildrenPanel==='function') loadChildrenPanel();
+
+    document.getElementById('immRecordBtn')?.addEventListener('click',()=>{
+      const m=document.getElementById('immRecordModal');
+      if(m) bootstrap.Modal.getOrCreateInstance(m)?.show();
+      if(typeof preloadVaccinationForm==='function') preloadVaccinationForm();
+    });
+    document.getElementById('immTabs')?.addEventListener('click',e=>{
+      const b=e.target.closest('.nav-link'); if(!b) return;
+      document.querySelectorAll('#immTabs .nav-link').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      const tab=b.dataset.tab;
+      if(tab==='children' && typeof loadChildrenPanel==='function') loadChildrenPanel();
+      else if(tab==='schedule' && typeof loadSchedulePanel==='function') loadSchedulePanel();
+      else if(tab==='records' && typeof loadRecordsPanel==='function') loadRecordsPanel();
+      else if(tab==='overdue' && typeof loadOverduePanel==='function') loadOverduePanel();
+      else if(tab==='cards' && typeof loadCardsPanel==='function') loadCardsPanel();
+      else if(tab==='parent_notifs' && typeof loadParentNotifPanel==='function') loadParentNotifPanel();
+    });
+
+    function metricCard(label,value,sub,icon){
+      return `<div class="imm-metric">\n        <div class="imm-metric-label"><i class="bi ${icon}"></i>${escapeHtml(label)}</div>\n        <div class="imm-metric-value">${escapeHtml(value)}</div>\n        <div class="imm-metric-sub">${escapeHtml(sub)}</div>\n      </div>`;
+    }
+  }
+}
+
 
 const moduleHandlers={
    health_stats:renderHealthStats,
