@@ -1191,7 +1191,8 @@ function loadChildrenPanel(){
     if(r.street_name) parts.push(r.street_name);
     if(r.purok_name) parts.push(r.purok_name);
     if(r.subdivision_name) parts.push(r.subdivision_name);
-    if(r.barangay) parts.push('Brgy. '+r.barangay);
+    // Remove Brgy. prefix to avoid duplicate Sabang
+    // if(r.barangay) parts.push('Brgy. '+r.barangay);
     const base = parts.filter(Boolean).join(', ');
     return base ? base + ', Sabang, Lipa City' : 'Sabang, Lipa City';
   }
