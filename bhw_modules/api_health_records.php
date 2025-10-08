@@ -34,44 +34,74 @@ function fail($m,$c=400){
     exit;
 }
 
+/* ---------- Column existence cache (for graceful rollout) ---------- */
+function hr_has_col($col){
+    static $cache = null;
+    global $mysqli;
+    if($cache === null){
+        $cache = [];
+        $res = $mysqli->query("SHOW COLUMNS FROM health_records");
+        if($res){
+            while($r=$res->fetch_assoc()){
+                $cache[strtolower($r['Field'])] = true;
+            }
+        }
+    }
+    return isset($cache[strtolower($col)]);
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 /* =================== GET =================== */
 if ($method === 'GET') {
 
-    // Global list of all health records (now includes LMP & EDD)
+    // Global list of all health records (now includes LMP & EDD and interventions if columns exist)
     if (isset($_GET['all'])) {
         $limit = isset($_GET['limit']) ? max(1,min(1000,(int)$_GET['limit'])) : 500;
 
-        $rows=[];
+        $cols = [
+            'hr.health_record_id',
+            'hr.mother_id',
+            'm.full_name',
+            'hr.consultation_date',
+            'hr.last_menstruation_date',
+            'hr.expected_delivery_date',
+            'hr.pregnancy_age_weeks',
+            'hr.age',
+            'hr.height_cm',
+            'hr.weight_kg',
+            'hr.blood_pressure_systolic',
+            'hr.blood_pressure_diastolic',
+            '(hr.vaginal_bleeding + hr.urinary_infection + hr.high_blood_pressure +
+              hr.fever_38_celsius + hr.pallor + hr.abnormal_abdominal_size +
+              hr.abnormal_presentation + hr.absent_fetal_heartbeat + hr.swelling +
+              hr.vaginal_infection) AS risk_score',
+            'hr.vaginal_bleeding','hr.urinary_infection','hr.high_blood_pressure',
+            'hr.fever_38_celsius','hr.pallor','hr.abnormal_abdominal_size',
+            'hr.abnormal_presentation','hr.absent_fetal_heartbeat','hr.swelling',
+            'hr.vaginal_infection',
+            'hr.hgb_result','hr.urine_result','hr.vdrl_result','hr.other_lab_results',
+            'hr.created_at'
+        ];
+
+        // Append intervention columns if they exist
+        $interventionCols = [
+          'iron_folate_prescription','additional_iodine','malaria_prophylaxis',
+          'breastfeeding_plan','danger_advice','dental_checkup','emergency_plan',
+          'general_risk','next_visit_date'
+        ];
+        foreach($interventionCols as $c){
+            if(hr_has_col($c)) $cols[] = "hr.$c";
+        }
+
         $sql = "
-          SELECT hr.health_record_id,
-                 hr.mother_id,
-                 m.full_name,
-                 hr.consultation_date,
-                 hr.last_menstruation_date,
-                 hr.expected_delivery_date,
-                 hr.pregnancy_age_weeks,
-                 hr.age,
-                 hr.height_cm,
-                 hr.weight_kg,
-                 hr.blood_pressure_systolic,
-                 hr.blood_pressure_diastolic,
-                 (hr.vaginal_bleeding + hr.urinary_infection + hr.high_blood_pressure +
-                  hr.fever_38_celsius + hr.pallor + hr.abnormal_abdominal_size +
-                  hr.abnormal_presentation + hr.absent_fetal_heartbeat + hr.swelling +
-                  hr.vaginal_infection) AS risk_score,
-                 hr.vaginal_bleeding, hr.urinary_infection, hr.high_blood_pressure,
-                 hr.fever_38_celsius, hr.pallor, hr.abnormal_abdominal_size,
-                 hr.abnormal_presentation, hr.absent_fetal_heartbeat, hr.swelling,
-                 hr.vaginal_infection,
-                 hr.hgb_result, hr.urine_result, hr.vdrl_result, hr.other_lab_results,
-                 hr.created_at
-                FROM health_records hr
-                JOIN maternal_patients m ON m.mother_id = hr.mother_id
+          SELECT ".implode(",", $cols)."
+          FROM health_records hr
+          JOIN maternal_patients m ON m.mother_id = hr.mother_id
           ORDER BY hr.consultation_date DESC, hr.health_record_id DESC
           LIMIT ?
         ";
+        $rows=[];
         $stmt=$mysqli->prepare($sql);
         if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
         $stmt->bind_param('i',$limit);
@@ -88,15 +118,27 @@ if ($method === 'GET') {
         $mother_id = (int)$_GET['mother_id'];
         if ($mother_id <= 0) fail('Invalid mother_id');
 
+        $baseCols = [
+          'health_record_id','consultation_date','age','height_cm','weight_kg',
+          'last_menstruation_date','expected_delivery_date','pregnancy_age_weeks',
+          'blood_pressure_systolic','blood_pressure_diastolic',
+          'vaginal_bleeding','urinary_infection','high_blood_pressure',
+          'fever_38_celsius','pallor','abnormal_abdominal_size',
+          'abnormal_presentation','absent_fetal_heartbeat','swelling','vaginal_infection',
+          'hgb_result','urine_result','vdrl_result','other_lab_results','created_at'
+        ];
+        $interventionCols = [
+          'iron_folate_prescription','additional_iodine','malaria_prophylaxis',
+          'breastfeeding_plan','danger_advice','dental_checkup','emergency_plan',
+          'general_risk','next_visit_date'
+        ];
+        foreach($interventionCols as $c){
+            if(hr_has_col($c)) $baseCols[] = $c;
+        }
+
         $rows = [];
         $stmt = $mysqli->prepare("
-          SELECT health_record_id, consultation_date, age, height_cm, weight_kg,
-                 last_menstruation_date, expected_delivery_date, pregnancy_age_weeks,
-                 blood_pressure_systolic, blood_pressure_diastolic,
-                 vaginal_bleeding, urinary_infection, high_blood_pressure,
-                 fever_38_celsius, pallor, abnormal_abdominal_size,
-                 abnormal_presentation, absent_fetal_heartbeat, swelling, vaginal_infection,
-                 hgb_result, urine_result, vdrl_result, other_lab_results, created_at
+          SELECT ".implode(',',$baseCols)."
           FROM health_records
           WHERE mother_id=?
           ORDER BY consultation_date DESC, health_record_id DESC
@@ -234,6 +276,24 @@ if ($method === 'POST') {
 
     $recorded_by = (int)($_SESSION['user_id'] ?? 0);
 
+    /* -------- INTERVENTION / ACTION FIELDS -------- */
+    $actionKeys = [
+      'iron_folate_prescription',
+      'additional_iodine',
+      'malaria_prophylaxis',
+      'breastfeeding_plan',
+      'danger_advice',
+      'dental_checkup',
+      'emergency_plan',
+      'general_risk'
+    ];
+    $actions = [];
+    foreach($actionKeys as $ak){
+        $actions[$ak] = isset($_POST[$ak]) ? 1 : 0;
+    }
+    $next_visit_date = $_POST['next_visit_date'] ?? null;
+    if($next_visit_date === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$next_visit_date)) $next_visit_date = null;
+
     $cols = [];
     $ph   = [];
     $vals = [];
@@ -281,6 +341,12 @@ if ($method === 'POST') {
     $add('urine_result',$urine,'s');
     $add('vdrl_result',$vdrl,'s');
     $add('other_lab_results',$other_lab,'s');
+
+    /* Conditionally add intervention columns if they exist (safe if migration already run) */
+    foreach($actionKeys as $ak){
+        if(hr_has_col($ak)) $add($ak, $actions[$ak],'i');
+    }
+    if(hr_has_col('next_visit_date')) $add('next_visit_date',$next_visit_date,'s');
 
     $add('recorded_by',$recorded_by,'i');
 

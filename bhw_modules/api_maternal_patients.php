@@ -1,16 +1,56 @@
 <?php
-require_once __DIR__.'/../inc/db.php';
-require_once __DIR__.'/../inc/auth.php';
-require_role(['BHW']);
+// Prevent any output before JSON response
+ob_start();
 
-if (session_status() === PHP_SESSION_NONE) session_start();
+// Start session first
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Handle database connection errors gracefully
+try {
+    require_once __DIR__.'/../inc/db.php';
+    if (!$mysqli) {
+        throw new Exception('Database connection failed');
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+    exit;
+}
+
+require_once __DIR__.'/../inc/auth.php';
+
+// Check authentication and return JSON error if not authenticated
+if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+    exit;
+}
+if (!in_array($_SESSION['role'], ['BHW', 'Admin'], true)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Access denied']);
+    exit;
+}
 header('Content-Type: application/json; charset=utf-8');
 
 ini_set('display_errors','0');
 error_reporting(E_ALL);
 
+// Clear any output buffer content
+ob_clean();
+
 function fail($m,$c=400){ http_response_code($c); echo json_encode(['success'=>false,'error'=>$m]); exit; }
 function nz($s){ $s=trim((string)$s); return $s===''? null : $s; }
+function has_col($table,$col){
+    global $mysqli;
+    try {
+        $res = $mysqli->query("SHOW COLUMNS FROM $table LIKE '$col'");
+        return $res && $res->num_rows > 0;
+    } catch (Exception $e) {
+        return false;
+    }
+}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -120,10 +160,6 @@ function table_columns($table){
     $cache[$table] = $cols;
     return $cols;
 }
-function has_col($table,$col){
-    $cols = table_columns($table);
-    return isset($cols[strtolower($col)]);
-}
 
 function valid_date_or_null($d){
     if(!$d) return null;
@@ -135,6 +171,7 @@ function risk_flag_value($key){
 
 /* ======================= GET ======================= */
 if ($method === 'GET') {
+    try {
 
     /* Detail endpoint */
     if (isset($_GET['detail'])) {
@@ -143,13 +180,16 @@ if ($method === 'GET') {
             fail('Invalid mother_id', 422);
         }
 
+        // Prioritize direct purok_name field over purok_id join since purok_id is often NULL
+        $purok_join = '';
+        $purok_col = has_col('maternal_patients','purok_name') ? ', mp.purok_name' : '';
         $stmt = $mysqli->prepare("
-            SELECT mother_id, first_name, middle_name, last_name,
-                   date_of_birth, gravida, para, blood_type,
-                   emergency_contact_name, emergency_contact_number,
-                   contact_number, house_number, street_name, subdivision_name
-            FROM maternal_patients
-            WHERE mother_id = ?
+            SELECT mp.mother_id, mp.first_name, mp.middle_name, mp.last_name,
+                   mp.date_of_birth, mp.gravida, mp.para, mp.blood_type,
+                   mp.emergency_contact_name, mp.emergency_contact_number,
+                   mp.contact_number, mp.house_number, mp.street_name{$purok_col}, mp.subdivision_name
+            FROM maternal_patients mp{$purok_join}
+            WHERE mp.mother_id = ?
             LIMIT 1
         ");
         $stmt->bind_param('i', $mother_id);
@@ -238,6 +278,9 @@ if ($method === 'GET') {
         $totalPages = $pageSize? (int)ceil($total/$pageSize) : 1;
 
         // FIXED: previous join caused duplicates when multiple consults share the same date.
+        // Prioritize direct purok_name field over purok_id join since purok_id is often NULL
+        $purok_join = '';
+        $purok_col = has_col('maternal_patients','purok_name') ? ', mp.purok_name' : '';
         $sql = "
   SELECT mp.mother_id,
          mp.first_name, mp.middle_name, mp.last_name,
@@ -245,7 +288,7 @@ if ($method === 'GET') {
          mp.gravida, mp.para, mp.blood_type,
          mp.emergency_contact_name, mp.emergency_contact_number,
          mp.contact_number,
-         mp.house_number, mp.street_name, mp.subdivision_name,
+         mp.house_number, mp.street_name{$purok_col}, mp.subdivision_name,
 
          (
            SELECT COUNT(*) FROM health_records hr_all
@@ -272,7 +315,7 @@ if ($method === 'GET') {
            IFNULL(lt.abnormal_presentation,0) + IFNULL(lt.absent_fetal_heartbeat,0) +
            IFNULL(lt.swelling,0) + IFNULL(lt.vaginal_infection,0)
          ) AS latest_risk_score
-  FROM maternal_patients mp
+  FROM maternal_patients mp{$purok_join}
   LEFT JOIN (
      SELECT hr.*
      FROM health_records hr
@@ -337,10 +380,15 @@ if ($method === 'GET') {
     }
 
     fail('Unknown GET action',404);
+    
+    } catch (Exception $e) {
+        fail('Server error: ' . $e->getMessage(), 500);
+    }
 }
 
 /* ======================= POST ======================= */
 if ($method === 'POST') {
+    try {
     if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) ||
         !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         fail('CSRF failed',419);
@@ -369,6 +417,7 @@ if ($method === 'POST') {
         $emg_number      = nz($_POST['emergency_contact_number'] ?? '');
         $house_number    = nz($_POST['house_number'] ?? '');
         $street_name     = nz($_POST['street_name'] ?? '');
+        $purok_name      = nz($_POST['purok_name'] ?? '');
         $subdivision     = nz($_POST['subdivision_name'] ?? '');
 
         // Consultation fields
@@ -397,7 +446,7 @@ if ($method === 'POST') {
         /* ========= PATCHED EXISTING-MOTHER BRANCH (supports optional overwrite_latest flag) ========= */
         if($existing){
 
-            $updatedCols = enrich_mother_if_blank($existing, [
+            $updateData = [
                 'date_of_birth'            => $date_of_birth,
                 'middle_name'              => $middle_name,
                 'gravida'                  => $gravida,
@@ -409,7 +458,11 @@ if ($method === 'POST') {
                 'house_number'             => $house_number,
                 'street_name'              => $street_name,
                 'subdivision_name'         => $subdivision
-            ]);
+            ];
+            if(has_col('maternal_patients','purok_name')){
+                $updateData['purok_name'] = $purok_name;
+            }
+            $updatedCols = enrich_mother_if_blank($existing, $updateData);
 
             $mother_id = (int)$existing['mother_id'];
 
@@ -559,6 +612,9 @@ if ($method === 'POST') {
             $add('emergency_contact_number',$emg_number,'s');
             $add('house_number',$house_number,'s');
             $add('street_name',$street_name,'s');
+            if(has_col('maternal_patients','purok_name')){
+                $add('purok_name',$purok_name,'s');
+            }
             $add('subdivision_name',$subdivision,'s');
             if(has_col('maternal_patients','created_by')){
                 $add('created_by',$user_id,'i');
@@ -660,6 +716,7 @@ if ($method === 'POST') {
     $emg_number      = nz($_POST['emergency_contact_number'] ?? '');
     $house_number    = nz($_POST['house_number'] ?? '');
     $street_name     = nz($_POST['street_name'] ?? '');
+    $purok_name      = nz($_POST['purok_name'] ?? '');
     $subdivision     = nz($_POST['subdivision_name'] ?? '');
 
     if (!$first_name || !$last_name) fail('First name at Last name ay required.');
@@ -681,6 +738,9 @@ if ($method === 'POST') {
             'street_name'=>$street_name,
             'subdivision_name'=>$subdivision
         ];
+        if(has_col('maternal_patients','purok_name')){
+            $map['purok_name'] = $purok_name;
+        }
         foreach($map as $col=>$val){
             if($val!==null && $val!=='' && (!isset($existing[$col]) || $existing[$col]==='' || $existing[$col]===null)){
                 $updates[]="$col=?";
@@ -726,6 +786,9 @@ if ($method === 'POST') {
     $add('emergency_contact_number',$emg_number,'s');
     $add('house_number',$house_number,'s');
     $add('street_name',$street_name,'s');
+    if(has_col('maternal_patients','purok_name')){
+        $add('purok_name',$purok_name,'s');
+    }
     $add('subdivision_name',$subdivision,'s');
     if(has_col('maternal_patients','created_by')){
         $add('created_by',$user_id,'i');
@@ -745,6 +808,10 @@ if ($method === 'POST') {
 
     echo json_encode(['success'=>true,'existing'=>false,'mother_id'=>$mid]);
     exit;
+    
+    } catch (Exception $e) {
+        fail('Server error: ' . $e->getMessage(), 500);
+    }
 }
 
 fail('Invalid method',405);
@@ -766,3 +833,4 @@ If overwrite_latest=1 AND the mother already exists, the latest consultation
 will be UPDATED instead of inserting a new health_records row. Default behavior
 (when flag absent or 0) still INSERTS a new consultation to preserve full history.
 */
+?>

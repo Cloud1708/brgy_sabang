@@ -22,6 +22,7 @@ $firstName = explode(' ', trim($username))[0];
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
+  
 /* =========================================
    TYPO SCALE (Adjust here for global size)
    ========================================= */
@@ -1080,6 +1081,393 @@ const titleEl=document.getElementById('currentModuleTitle');
 
 function escapeHtml(s){if(s==null)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch'},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+
+// Global helper functions for address formatting and other utilities
+function formatAddress(m){
+  const parts = [m.house_number,m.street_name,m.purok_name,m.subdivision_name].filter(Boolean).join(', ').replace(/\s*,\s*/g,', ');
+  const base = parts ? parts : '';
+  const suffix = 'Sabang, Lipa City';
+  if(!base){
+    return suffix;
+  }
+  const lower = base.toLowerCase();
+  if(lower.includes('sabang') && lower.includes('lipa') && lower.includes('city')){
+    // Already present – normalize single spacing + keep original base
+    return base;
+  }
+  return base.replace(/,\s*$/,'') + ', ' + suffix;
+}
+
+function formatAgeMonths(mo){
+  if(mo==null || isNaN(mo)) return '—';
+  const mInt=parseInt(mo,10);
+  return mInt===1?'1 month': mInt+' months';
+}
+
+function formatShortDate(d){
+  const dt=new Date(d+'T00:00:00');
+  if(isNaN(dt)) return escapeHtml(d);
+  return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+}
+
+function capitalize(s){return (s||'').charAt(0).toUpperCase()+ (s||'').slice(1);}
+
+// Immunization Management - Registered Children panel
+function loadChildrenPanel(){
+  const panel=document.getElementById('immPanel');
+  panel.innerHTML = `
+    <div class="imm-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h6 style="margin:0;font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Registered Children</h6>
+          <div class="imm-small-muted">All children enrolled in the immunization program</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <div class="position-relative">
+            <i class="bi bi-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#6a7b82;font-size:.8rem;"></i>
+            <input type="text" id="childSearch" class="form-control form-control-sm" placeholder="Search child / parent / contact" style="padding-left:28px;min-width:240px;font-size:.7rem;">
+          </div>
+          <select id="childPageSize" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="imm-scroll mt-2" style="max-height:460px;">
+        <table class="imm-table" id="childTable">
+          <thead>
+            <tr>
+              <th>Child Name</th>
+              <th>Age</th>
+              <th>Gender</th>
+              <th>Parent/Guardian</th>
+              <th>Contact Number</th>
+              <th>Address</th>
+              <th>Registered Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="imm-small-muted" id="childInfo">Loading...</div>
+        <nav><ul class="pagination pagination-sm mb-0" id="childPager"></ul></nav>
+      </div>
+    </div>
+  `;
+
+  const tbody = panel.querySelector('#childTable tbody');
+  const info  = panel.querySelector('#childInfo');
+  const pager = panel.querySelector('#childPager');
+  const searchEl = panel.querySelector('#childSearch');
+  const pageSizeSel = panel.querySelector('#childPageSize');
+
+  let all=[], filtered=[], page=1, pageSize=+pageSizeSel.value;
+
+  fetchJSON(api.immun+'?children=1').then(j=>{
+    if(!j.success){ throw new Error('Load failed'); }
+    all = (j.children||[]).map(r=>{
+      const addr = buildAddress(r);
+      const reg  = r.created_at || '';
+      return {...r, _address: addr, _created: reg};
+    });
+    filtered=[...all];
+    page=1;
+    render();
+  }).catch(err=>{
+    tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center py-4">${escapeHtml(err.message)}</td></tr>`;
+    pager.innerHTML='';
+    info.textContent='Error';
+  });
+
+  function buildAddress(r){
+    const parts=[];
+    if(r.house_number) parts.push(r.house_number);
+    if(r.street_name) parts.push(r.street_name);
+    if(r.purok_name) parts.push(r.purok_name);
+    if(r.subdivision_name) parts.push(r.subdivision_name);
+    if(r.barangay) parts.push('Brgy. '+r.barangay);
+    const base = parts.filter(Boolean).join(', ');
+    return base ? base + ', Sabang, Lipa City' : 'Sabang, Lipa City';
+  }
+  function fmtDate(d){
+    if(!d) return '—';
+    const dt = new Date((d.replace(' ','T'))+'Z'); // tolerate timestamp
+    // Fallback if invalid
+    if(isNaN(dt)) {
+      const dt2 = new Date(d+'T00:00:00');
+      if(isNaN(dt2)) return escapeHtml(d);
+      return dt2.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+    }
+    return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+  }
+  function fmtAge(m){
+    const n=parseInt(m,10); if(isNaN(n)) return '—';
+    return n+' month'+(n===1?'':'s');
+  }
+
+  function render(){
+    if(!filtered.length){
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No registered children.</td></tr>`;
+      pager.innerHTML='';
+      info.textContent='0 results';
+      return;
+    }
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / pageSize);
+    if(page>totalPages) page=totalPages;
+
+    const start = (page-1)*pageSize;
+    const end   = Math.min(start+pageSize, total);
+    const slice = filtered.slice(start, end);
+
+    tbody.innerHTML = slice.map(r=>`
+      <tr>
+        <td>${escapeHtml(r.full_name||'')}</td>
+        <td>${fmtAge(r.age_months)}</td>
+        <td>${escapeHtml((r.sex||'').charAt(0).toUpperCase()+ (r.sex||'').slice(1))}</td>
+        <td>${escapeHtml(r.mother_name||'')}</td>
+        <td>${escapeHtml(r.mother_contact||'')}</td>
+        <td>${escapeHtml(r._address||'')}</td>
+        <td>${fmtDate(r._created)}</td>
+      </tr>
+    `).join('');
+
+    info.textContent = `Showing ${start+1}-${end} of ${total}`;
+    renderPager(totalPages);
+  }
+
+  function renderPager(totalPages){
+    if(totalPages<=1){ pager.innerHTML=''; return; }
+    let html = `
+      <li class="page-item ${page<=1?'disabled':''}">
+        <a class="page-link" href="#" data-p="${page-1}" style="font-size:.65rem;">Previous</a>
+      </li>`;
+    const start = Math.max(1, page-2);
+    const end   = Math.min(totalPages, page+2);
+    if(start>1){
+      html += `<li class="page-item"><a class="page-link" href="#" data-p="1" style="font-size:.65rem;">1</a></li>`;
+      if(start>2) html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+    }
+    for(let i=start;i<=end;i++){
+      html += `<li class="page-item ${i===page?'active':''}">
+        <a class="page-link" href="#" data-p="${i}" style="font-size:.65rem;">${i}</a>
+      </li>`;
+    }
+    if(end<totalPages){
+      if(end<totalPages-1) html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+      html += `<li class="page-item"><a class="page-link" href="#" data-p="${totalPages}" style="font-size:.65rem;">${totalPages}</a></li>`;
+    }
+    html += `
+      <li class="page-item ${page>=totalPages?'disabled':''}">
+        <a class="page-link" href="#" data-p="${page+1}" style="font-size:.65rem;">Next</a>
+      </li>`;
+    pager.innerHTML = html;
+    pager.querySelectorAll('a.page-link').forEach(a=>{
+      a.addEventListener('click',e=>{
+        e.preventDefault();
+        const p = parseInt(a.dataset.p,10);
+        if(p && p!==page){ page=p; render(); }
+      });
+    });
+  }
+
+  // Search + page size
+  let timer=null;
+  searchEl.addEventListener('input', ()=>{
+    clearTimeout(timer);
+    timer = setTimeout(()=>{
+      const q = (searchEl.value||'').toLowerCase();
+      if(!q) filtered=[...all];
+      else {
+        filtered = all.filter(r=>{
+          const bag = [
+            r.full_name||'',
+            r.mother_name||'',
+            r.mother_contact||'',
+            r._address||'',
+          ].join(' ').toLowerCase();
+          return bag.includes(q);
+        });
+      }
+      page=1; render();
+    }, 200);
+  });
+  pageSizeSel.addEventListener('change', ()=>{
+    pageSize = parseInt(pageSizeSel.value,10)||20;
+    page=1; render();
+  });
+}
+
+// Immunization Management - Vaccine Schedule panel
+function loadSchedulePanel(){
+  const panel=document.getElementById('immPanel');
+  panel.innerHTML = `
+    <div class="imm-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h6 style="margin:0;font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Vaccine Schedule Management</h6>
+          <div class="imm-small-muted">Age-based immunization recommendations</div>
+        </div>
+      </div>
+
+      <div class="imm-scroll mt-2" style="max-height:460px;">
+        <table class="imm-table" id="scheduleTable">
+          <thead>
+            <tr>
+              <th>Age</th>
+              <th>Vaccine</th>
+              <th>Dose</th>
+              <th>Route</th>
+              <th>Site</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" class="text-center text-muted py-4">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const tbody = panel.querySelector('#scheduleTable tbody');
+
+  fetchJSON(api.immun+'?schedule=1').then(j=>{
+    if(!j.success){ throw new Error('Load failed'); }
+    const scheduleData = j.schedule || [];
+    if(!scheduleData.length){
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">No schedule data available.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = buildScheduleRows(scheduleData);
+  }).catch(err=>{
+    tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center py-4">${escapeHtml(err.message)}</td></tr>`;
+  });
+}
+
+function buildScheduleRows(rows){
+  if(!rows.length) return '';
+  return rows.map(r=>{
+    const ageLabel = mapAge(r.recommended_age_months);
+    const doseText = ordinal(r.dose_number)+' Dose';
+    return `<tr>
+      <td>${escapeHtml(ageLabel)}</td>
+      <td>${escapeHtml(r.vaccine_code)}${r.vaccine_name? ', '+escapeHtml(r.vaccine_name):''}</td>
+      <td>${doseText}</td>
+      <td>${guessRoute(r.vaccine_code)}</td>
+      <td>${guessSite(r.vaccine_code)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function mapAge(m){
+  const mm=parseInt(m,10);
+  if(mm===0) return 'At Birth';
+  if(mm===1) return '6 Weeks';
+  if(mm===2) return '10 Weeks';
+  if(mm===3) return '14 Weeks';
+  if(mm===9) return '9 Months';
+  if(mm===12) return '12 Months';
+  if(mm>=24 && mm<36) return mm+' Months';
+  if(mm>=36 && mm<60) return (mm/12).toFixed(0)+' Years';
+  return mm+' Months';
+}
+
+function guessRoute(code){
+  const c=(code||'').toUpperCase();
+  if(['BCG'].includes(c)) return 'Intradermal';
+  if(['OPV'].includes(c)) return 'Oral';
+  if(['HEPB','PENTA','IPV','PCV','MMR','MCV','TD','HPV'].includes(c)) return 'IM';
+  return 'IM';
+}
+
+function guessSite(code){
+  const c=(code||'').toUpperCase();
+  if(['BCG'].includes(c)) return 'Right arm';
+  if(['OPV'].includes(c)) return 'Oral';
+  if(['HEPB','PENTA','IPV','PCV','MMR','MCV','TD','HPV'].includes(c)) return 'Left arm';
+  return 'Left arm';
+}
+
+function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+
+// Parent Registry helper functions
+function motherListItem(m, childCount, active){
+  return `
+    <li class="pr-parent-item ${active?'active':''}" data-id="${m.mother_id}">
+      <strong>${escapeHtml(m.full_name||'')}</strong>
+      ${m.contact_number? `<small>${escapeHtml(m.contact_number)}</small>`:''}
+      <small><span class="dot"></span>${childCount===1?'1 child':childCount+' children'}</small>
+    </li>
+  `;
+}
+
+function motherDetailHTML(m, kids){
+  const address = formatAddress(m);
+  const childRows = kids.map(c=>`
+    <tr>
+      <td>${escapeHtml(c.full_name||'')}</td>
+      <td>${formatAgeMonths(c.age_months)}</td>
+      <td>${c.sex?capitalize(c.sex):'—'}</td>
+      <td>${c.birth_date?formatShortDate(c.birth_date):'—'}</td>
+    </tr>
+  `).join('');
+  return `
+    <div>
+      <h3 class="pr-detail-title">${escapeHtml(m.full_name||'')}</h3>
+      <div class="pr-detail-meta">
+        <span>Mother</span>
+        ${m.contact_number? `<span>• ${escapeHtml(m.contact_number)}</span>`:''}
+        ${m.date_of_birth? `<span>• ${formatShortDate(m.date_of_birth)}</span>`:''}
+      </div>
+
+      <div class="pr-card">
+        <h6>Parent Information</h6>
+        <div class="pr-info-grid">
+          <div>
+            <span>Contact Number</span>${escapeHtml(m.contact_number||'—')}
+          </div>
+          <div>
+            <span>Relationship</span>Mother
+          </div>
+          <div>
+            <span>Birthday</span>${m.date_of_birth?formatShortDate(m.date_of_birth):'—'}
+          </div>
+          <div style="grid-column:1/-1;">
+            <span>Address</span>${escapeHtml(address)}
+          </div>
+        </div>
+      </div>
+
+      <div class="pr-card">
+        <div class="pr-children-head">
+          <h6>Children</h6>
+          <button class="pr-add-child-btn" data-add-child="${m.mother_id}">
+            <i class="bi bi-plus-lg"></i> Add Child
+          </button>
+        </div>
+        <div style="font-size:.58rem;font-weight:600;color:#607078;margin-top:-4px;">
+          ${kids.length===1?'1 child registered': kids.length+' children registered'}
+        </div>
+        ${
+          kids.length
+            ? `<div class="table-responsive" style="max-height:260px;margin-top:.55rem;">
+                <table class="pr-child-table">
+                  <thead><tr><th>Child Name</th><th>Age</th><th>Gender</th><th>Date of Birth</th></tr></thead>
+                  <tbody>${childRows}</tbody>
+                </table>
+              </div>`
+            : `<div class="pr-empty" style="margin-top:.75rem;">No children linked. Click "Add Child".</div>`
+        }
+      </div>
+    </div>
+  `;
+}
 // Safely parse JSON even when server responds with HTML or empty body – gives a readable error
 function parseJSONSafe(resp){
   const ct=(resp.headers.get('content-type')||'').toLowerCase();
@@ -1529,6 +1917,13 @@ function renderMaternalHealth(label){
               <input name="street_name" class="form-control">
             </div>
             <div class="col-md-4">
+              <label>Purok</label>
+              <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off">
+              <datalist id="purokOptions">
+                <!-- Options will be populated by JavaScript -->
+              </datalist>
+            </div>
+            <div class="col-md-4">
               <label>Subdivision / Village</label>
               <input name="subdivision_name" class="form-control">
             </div>
@@ -1960,13 +2355,74 @@ function renderMotherRow(m){
           `).join('')}
         </div>
 
-        <input type="hidden" name="mother_id" value="${activeMotherId}">
-        <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-        <div class="mt-3 d-flex gap-2">
-          <button class="btn btn-success mh-save-btn"><i class="bi bi-save me-1"></i>I-save</button>
-          <button type="reset" class="btn btn-outline-secondary mh-save-btn">I-reset</button>
+        <!-- Step 1 Buttons -->
+        <div class="mt-3 d-flex gap-2" id="consultStep1Buttons">
+          <button type="button" class="btn btn-primary" id="consultNextBtn"><i class="bi bi-arrow-right me-1"></i>Next</button>
+          <button type="reset" class="btn btn-outline-secondary">I-reset</button>
         </div>
         <div class="small text-danger mt-2 d-none" id="consultErr"></div>
+      </form>
+
+      <!-- Step 2: Kilos/Lunas na Ginawa -->
+      <form class="mh-consult-form d-none" id="consultFormStep2" autocomplete="off">
+        <div class="mh-form-divider"></div>
+        <label style="margin-bottom:.4rem; font-weight: 700;">KILOS / LUNAS NA GINAWA</label>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;"> Iron/Folate # Reseta
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="additional_iodine" value="1" style="margin:0;"> Dagdag na Iodine sa delikadong lugar
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;"> Malaria Prophylaxis (Oo/Hindi)
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;"> Balak Magpasuso ng Nanay (Oo/Hindi)
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="danger_advice" value="1" style="margin:0;"> Payo sa 4 na Panganib (Oo/Hindi)
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="dental_checkup" value="1" style="margin:0;"> Nagpasuri ng Ngipin (Oo/Hindi)
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="emergency_plan" value="1" style="margin:0;"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+              <input type="checkbox" name="general_risk" value="1" style="margin:0;"> Panganib (Oo/Hindi)
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw</label>
+            <input type="date" name="next_visit_date" class="form-control" style="font-size:.7rem;">
+          </div>
+        </div>
+
+        <input type="hidden" name="mother_id" value="${activeMotherId}">
+        <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+        
+        <!-- Step 2 Buttons -->
+        <div class="mt-3 d-flex gap-2" id="consultStep2Buttons">
+          <button type="button" class="btn btn-outline-secondary" id="consultBackBtn"><i class="bi bi-arrow-left me-1"></i>Back</button>
+          <button type="submit" class="btn btn-success mh-save-btn"><i class="bi bi-save me-1"></i>I-save</button>
+        </div>
+        <div class="small text-danger mt-2 d-none" id="consultErrStep2"></div>
         <div class="small text-success mt-2 d-none" id="consultOk">Nai-save!</div>
       </form>
     </div>
@@ -2042,28 +2498,102 @@ function renderMotherRow(m){
         // Initial auto fill
         autoAge(); autoGA();
 
-        form.addEventListener('submit',e=>{
+        // Step navigation for consultation form
+        let consultStep = 1;
+        const consultForm1 = wrap.querySelector('#consultForm');
+        const consultForm2 = wrap.querySelector('#consultFormStep2');
+        const nextBtn = wrap.querySelector('#consultNextBtn');
+        const backBtn = wrap.querySelector('#consultBackBtn');
+
+        function showConsultStep(step) {
+          if (step === 1) {
+            consultForm1.classList.remove('d-none');
+            consultForm2.classList.add('d-none');
+            consultStep = 1;
+          } else {
+            consultForm1.classList.add('d-none');
+            consultForm2.classList.remove('d-none');
+            consultStep = 2;
+          }
+        }
+
+        if (nextBtn) {
+          nextBtn.addEventListener('click', () => {
+            showConsultStep(2);
+          });
+        }
+
+        if (backBtn) {
+          backBtn.addEventListener('click', () => {
+            showConsultStep(1);
+          });
+        }
+
+        // Handle form submission for both steps
+        function handleConsultSubmit(e) {
           e.preventDefault();
-          const fd = new FormData(form);
-          fetch(api.health,{method:'POST',body:fd})
-            .then(parseJSONSafe)
+          
+          // Combine data from both forms
+          const fd1 = new FormData(consultForm1);
+          const fd2 = new FormData(consultForm2);
+          const combinedFd = new FormData();
+          
+          // Add all data from step 1
+          for (let [key, value] of fd1.entries()) {
+            combinedFd.append(key, value);
+          }
+          
+          // Add all data from step 2
+          for (let [key, value] of fd2.entries()) {
+            combinedFd.append(key, value);
+          }
+          
+          // Debug: Log the data being sent
+          console.log('Sending data to API:', api.health);
+          for (let [key, value] of combinedFd.entries()) {
+            console.log(key + ': ' + value);
+          }
+          
+          fetch(api.health,{method:'POST',body:combinedFd})
+            .then(response => {
+              console.log('Response status:', response.status);
+              return response.text();
+            })
+            .then(text => {
+              console.log('Raw response:', text);
+              return JSON.parse(text);
+            })
             .then(j=>{
               if(!j.success) throw new Error(j.error||'Save failed');
-              form.querySelector('#consultErr').classList.add('d-none');
-              const okEl=form.querySelector('#consultOk');
+              
+              // Clear errors
+              consultForm1.querySelector('#consultErr').classList.add('d-none');
+              consultForm2.querySelector('#consultErrStep2').classList.add('d-none');
+              
+              // Show success message
+              const okEl = consultForm2.querySelector('#consultOk');
               okEl.classList.remove('d-none');
               setTimeout(()=>okEl.classList.add('d-none'),1500);
+
+              // Reset both forms and go back to step 1
+              consultForm1.reset();
+              consultForm2.reset();
+              showConsultStep(1);
 
               // Refresh consult list
               return fetchJSON(api.health+`?list=1&mother_id=${activeMotherId}`);
             })
             .then(j=>{ renderConsultTable(j.records||[]); })
             .catch(err=>{
-              const ce=form.querySelector('#consultErr');
+              console.error('Submission error:', err);
+              const ce = consultForm2.querySelector('#consultErrStep2');
               ce.textContent=err.message;
               ce.classList.remove('d-none');
             });
-        });
+        }
+
+        consultForm1.addEventListener('submit', handleConsultSubmit);
+        consultForm2.addEventListener('submit', handleConsultSubmit);
 
         function renderConsultTable(records){
           const box = panel.querySelector('#consultListBox');
@@ -2089,6 +2619,7 @@ function renderMotherRow(m){
                   <td>${r.hgb_result?escapeHtml(r.hgb_result):''}</td>
                   <td><span class="consult-risk-badge ${riskCls}">${riskLbl}</span></td>
                   <td>${flagsIcons(r)}</td>
+                  <td>${interventionIcons(r)}</td>
                 </tr>
               `;
             }).join('');
@@ -2101,7 +2632,7 @@ function renderMotherRow(m){
                 <table class="mh-consults-table">
                   <thead>
                     <tr>
-                      <th>Date</th><th>GA</th><th>BP</th><th>Wt</th><th>HGB</th><th>Risk</th><th>Flags</th>
+                      <th>Date</th><th>GA</th><th>BP</th><th>Wt</th><th>HGB</th><th>Risk</th><th>Flags</th><th>Interventions</th>
                     </tr>
                   </thead>
                   <tbody>${rows}</tbody>
@@ -2130,6 +2661,40 @@ function renderMotherRow(m){
             }
           });
           return outs.join('');
+        }
+
+        function interventionIcons(r){
+          const map = {
+            iron_folate_prescription:'IRON',
+            additional_iodine:'IODINE',
+            malaria_prophylaxis:'MALARIA',
+            breastfeeding_plan:'BF',
+            danger_advice:'ADVICE',
+            dental_checkup:'DENTAL',
+            emergency_plan:'EMERG',
+            general_risk:'RISK'
+          };
+          const outs=[];
+          Object.keys(map).forEach(k=>{
+            if(r[k]==1){
+              outs.push(`<span style="display:inline-block;background:#fff3cd;color:#856404;font-size:.56rem;font-weight:700;padding:3px 6px;border-radius:8px;margin:1px;" title="${getInterventionTitle(k)}">${map[k]}</span>`);
+            }
+          });
+          return outs.join('');
+        }
+
+        function getInterventionTitle(key){
+          const titles = {
+            iron_folate_prescription:'Iron/Folate Prescription',
+            additional_iodine:'Additional Iodine',
+            malaria_prophylaxis:'Malaria Prophylaxis',
+            breastfeeding_plan:'Breastfeeding Plan',
+            danger_advice:'Danger Advice',
+            dental_checkup:'Dental Checkup',
+            emergency_plan:'Emergency Plan',
+            general_risk:'General Risk'
+          };
+          return titles[key] || key;
         }
       } // end loadMotherConsultations
     } // end loadConsultsPanel
@@ -2908,13 +3473,14 @@ function loadPostnatalPanel(){
               : '—';
 
           const hgbTxt = latest?.hgb_result ? escapeHtml(latest.hgb_result) : '—';
+          const addressTxt = formatAddress(m);
 
           body.innerHTML = `
             <div class="row g-3">
               <div class="col-md-4">
                 <div class="border rounded p-3 h-100">
                   <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Profile</h6>
-                  <p class="mb-1"><strong>Purok:</strong> ${escapeHtml(m.purok_name||'')}</p>
+                    <p class="mb-1"><strong>Address:</strong> ${escapeHtml(addressTxt)}</p>
                   <p class="mb-1"><strong>Contact:</strong> ${escapeHtml(m.contact_number||'—')}</p>
                   <p class="mb-1"><strong>Gravida / Para:</strong> ${(m.gravida??'—')} / ${(m.para??'—')}</p>
                   <p class="mb-1"><strong>Blood Type:</strong> ${escapeHtml(m.blood_type||'—')}</p>
@@ -3426,21 +3992,6 @@ function renderVaccinationEntry(label){
     /* Panels */
     loadChildrenPanel();
 
-    function loadSchedulePanel(){
-      document.getElementById('immPanel').innerHTML = `
-        <div class="imm-card">
-          <h6>Vaccine Schedule Management</h6>
-          <div class="imm-small-muted mb-3">Age-based immunization recommendations</div>
-          <div class="imm-scroll">
-            <table class="imm-table">
-              <thead>
-                <tr><th>Age</th><th>Vaccine</th><th>Dose</th><th>Route</th><th>Site</th></tr>
-              </thead>
-              <tbody>${scheduleRows || `<tr><td colspan="5" class="text-center text-muted py-4">No schedule data.</td></tr>`}</tbody>
-            </table>
-          </div>
-        </div>`;
-    }
 function loadOverduePanel(){
   const panel=document.getElementById('immPanel');
   
@@ -4013,10 +4564,6 @@ function loadCardsPanel(){
     pageSizeSelect.value = page_size;
   }
 
-  function formatShortDate(d){
-    const dt=new Date(d+'T00:00:00'); if(isNaN(dt)) return escapeHtml(d);
-    return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
-  }
 
   // Initial load
   loadCards();
@@ -4635,200 +5182,8 @@ function loadRecordsPanel(){
   }
 
   function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
-  function formatShortDate(d){
-    const dt=new Date(d+'T00:00:00');if(isNaN(dt))return escapeHtml(d);
-    return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
-  }
 }
 
-   // NEW: Registered Children panel
-    function loadChildrenPanel(){
-      const panel=document.getElementById('immPanel');
-      panel.innerHTML = `
-        <div class="imm-card">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 style="margin:0;font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Registered Children</h6>
-              <div class="imm-small-muted">All children enrolled in the immunization program</div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <div class="position-relative">
-                <i class="bi bi-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#6a7b82;font-size:.8rem;"></i>
-                <input type="text" id="childSearch" class="form-control form-control-sm" placeholder="Search child / parent / contact" style="padding-left:28px;min-width:240px;font-size:.7rem;">
-              </div>
-              <select id="childPageSize" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
-                <option value="10">10</option>
-                <option value="20" selected>20</option>
-                <option value="50">50</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="imm-scroll mt-2" style="max-height:460px;">
-            <table class="imm-table" id="childTable">
-              <thead>
-                <tr>
-                  <th>Child Name</th>
-                  <th>Age</th>
-                  <th>Gender</th>
-                  <th>Parent/Guardian</th>
-                  <th>Contact Number</th>
-                  <th>Address</th>
-                  <th>Registered Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="imm-small-muted" id="childInfo">Loading...</div>
-            <nav><ul class="pagination pagination-sm mb-0" id="childPager"></ul></nav>
-          </div>
-        </div>
-      `;
-
-      const tbody = panel.querySelector('#childTable tbody');
-      const info  = panel.querySelector('#childInfo');
-      const pager = panel.querySelector('#childPager');
-      const searchEl = panel.querySelector('#childSearch');
-      const pageSizeSel = panel.querySelector('#childPageSize');
-
-      let all=[], filtered=[], page=1, pageSize=+pageSizeSel.value;
-
-      fetchJSON(api.immun+'?children=1').then(j=>{
-        if(!j.success){ throw new Error('Load failed'); }
-        all = (j.children||[]).map(r=>{
-          const addr = buildAddress(r);
-          const reg  = r.created_at || '';
-          return {...r, _address: addr, _created: reg};
-        });
-        filtered=[...all];
-        page=1;
-        render();
-      }).catch(err=>{
-        tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center py-4">${escapeHtml(err.message)}</td></tr>`;
-        pager.innerHTML='';
-        info.textContent='Error';
-      });
-
-      function buildAddress(r){
-        const parts=[];
-        if(r.purok_name) parts.push(r.purok_name);
-        if(r.barangay) parts.push('Brgy. '+r.barangay);
-        if(r.address_details) parts.push(r.address_details);
-        return parts.join(', ');
-      }
-      function fmtDate(d){
-        if(!d) return '—';
-        const dt = new Date((d.replace(' ','T'))+'Z'); // tolerate timestamp
-        // Fallback if invalid
-        if(isNaN(dt)) {
-          const dt2 = new Date(d+'T00:00:00');
-          if(isNaN(dt2)) return escapeHtml(d);
-          return dt2.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
-        }
-        return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
-      }
-      function fmtAge(m){
-        const n=parseInt(m,10); if(isNaN(n)) return '—';
-        return n+' month'+(n===1?'':'s');
-      }
-
-      function render(){
-        if(!filtered.length){
-          tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No registered children.</td></tr>`;
-          pager.innerHTML='';
-          info.textContent='0 results';
-          return;
-        }
-        const total = filtered.length;
-        const totalPages = Math.ceil(total / pageSize);
-        if(page>totalPages) page=totalPages;
-
-        const start = (page-1)*pageSize;
-        const end   = Math.min(start+pageSize, total);
-        const slice = filtered.slice(start, end);
-
-        tbody.innerHTML = slice.map(r=>`
-          <tr>
-            <td>${escapeHtml(r.full_name||'')}</td>
-            <td>${fmtAge(r.age_months)}</td>
-            <td>${escapeHtml((r.sex||'').charAt(0).toUpperCase()+ (r.sex||'').slice(1))}</td>
-            <td>${escapeHtml(r.mother_name||'')}</td>
-            <td>${escapeHtml(r.mother_contact||'')}</td>
-            <td>${escapeHtml(r._address||'')}</td>
-            <td>${fmtDate(r._created)}</td>
-          </tr>
-        `).join('');
-
-        info.textContent = `Showing ${start+1}-${end} of ${total}`;
-        renderPager(totalPages);
-      }
-
-      function renderPager(totalPages){
-        if(totalPages<=1){ pager.innerHTML=''; return; }
-        let html = `
-          <li class="page-item ${page<=1?'disabled':''}">
-            <a class="page-link" href="#" data-p="${page-1}" style="font-size:.65rem;">Previous</a>
-          </li>`;
-        const start = Math.max(1, page-2);
-        const end   = Math.min(totalPages, page+2);
-        if(start>1){
-          html += `<li class="page-item"><a class="page-link" href="#" data-p="1" style="font-size:.65rem;">1</a></li>`;
-          if(start>2) html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
-        }
-        for(let i=start;i<=end;i++){
-          html += `<li class="page-item ${i===page?'active':''}">
-            <a class="page-link" href="#" data-p="${i}" style="font-size:.65rem;">${i}</a>
-          </li>`;
-        }
-        if(end<totalPages){
-          if(end<totalPages-1) html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
-          html += `<li class="page-item"><a class="page-link" href="#" data-p="${totalPages}" style="font-size:.65rem;">${totalPages}</a></li>`;
-        }
-        html += `
-          <li class="page-item ${page>=totalPages?'disabled':''}">
-            <a class="page-link" href="#" data-p="${page+1}" style="font-size:.65rem;">Next</a>
-          </li>`;
-        pager.innerHTML = html;
-        pager.querySelectorAll('a.page-link').forEach(a=>{
-          a.addEventListener('click',e=>{
-            e.preventDefault();
-            const p = parseInt(a.dataset.p,10);
-            if(p && p!==page){ page=p; render(); }
-          });
-        });
-      }
-
-      // Search + page size
-      let timer=null;
-      searchEl.addEventListener('input', ()=>{
-        clearTimeout(timer);
-        timer = setTimeout(()=>{
-          const q = (searchEl.value||'').toLowerCase();
-          if(!q) filtered=[...all];
-          else {
-            filtered = all.filter(r=>{
-              const bag = [
-                r.full_name||'',
-                r.mother_name||'',
-                r.mother_contact||'',
-                r._address||'',
-              ].join(' ').toLowerCase();
-              return bag.includes(q);
-            });
-          }
-          page=1; render();
-        }, 200);
-      });
-      pageSizeSel.addEventListener('change', ()=>{
-        pageSize = parseInt(pageSizeSel.value,10)||20;
-        page=1; render();
-      });
-    }
 
     function metricCard(label,value,sub,icon){
       return `<div class="imm-metric">
@@ -4836,45 +5191,6 @@ function loadRecordsPanel(){
         <div class="imm-metric-value">${escapeHtml(value)}</div>
         <div class="imm-metric-sub">${escapeHtml(sub)}</div>
       </div>`;
-    }
-    function buildScheduleRows(rows){
-      if(!rows.length) return '';
-      return rows.map(r=>{
-        const ageLabel = mapAge(r.recommended_age_months);
-        const doseText = ordinal(r.dose_number)+' Dose';
-        return `<tr>
-          <td>${escapeHtml(ageLabel)}</td>
-          <td>${escapeHtml(r.vaccine_code)}${r.vaccine_name? ', '+escapeHtml(r.vaccine_name):''}</td>
-          <td>${doseText}</td>
-          <td>${guessRoute(r.vaccine_code)}</td>
-          <td>${guessSite(r.vaccine_code)}</td>
-        </tr>`;
-      }).join('');
-    }
-    function mapAge(m){
-      const mm=parseInt(m,10);
-      if(mm===0) return 'At Birth';
-      if(mm===1) return '6 Weeks';
-      if(mm===2) return '10 Weeks';
-      if(mm===3) return '14 Weeks';
-      if(mm===9) return '9 Months';
-      if(mm===12) return '12 Months';
-      if(mm>=24 && mm<36) return mm+' Months';
-      if(mm>=36 && mm<60) return (mm/12).toFixed(0)+' Years';
-      return mm+' Months';
-    }
-    function guessRoute(code){
-      const c=(code||'').toUpperCase();
-      if(['BCG'].includes(c)) return 'Intradermal';
-      if(['OPV'].includes(c)) return 'Oral';
-      if(['MMR','MCV'].includes(c)) return 'SC';
-      return 'IM';
-    }
-    function guessSite(code){
-      const c=(code||'').toUpperCase();
-      if(c==='BCG') return 'Right arm';
-      if(['OPV'].includes(c)) return 'Oral';
-      return 'Left arm';
     }
     function buildOverdueRows(overObj){
       const overdueArr=overObj.overdue||[];
@@ -7651,105 +7967,6 @@ function renderParentRegistry(label){
       },180);
     });
 
-    function motherListItem(m, childCount, active){
-      return `
-        <li class="pr-parent-item ${active?'active':''}" data-id="${m.mother_id}">
-          <strong>${escapeHtml(m.full_name||'')}</strong>
-          ${m.contact_number? `<small>${escapeHtml(m.contact_number)}</small>`:''}
-          <small><span class="dot"></span>${childCount===1?'1 child':childCount+' children'}</small>
-        </li>
-      `;
-    }
-
-    function motherDetailHTML(m, kids){
-      const address = formatAddress(m);
-      const childRows = kids.map(c=>`
-        <tr>
-          <td>${escapeHtml(c.full_name||'')}</td>
-          <td>${formatAgeMonths(c.age_months)}</td>
-          <td>${c.sex?capitalize(c.sex):'—'}</td>
-          <td>${c.birth_date?formatShortDate(c.birth_date):'—'}</td>
-        </tr>
-      `).join('');
-      return `
-        <div>
-          <h3 class="pr-detail-title">${escapeHtml(m.full_name||'')}</h3>
-          <div class="pr-detail-meta">
-            <span>Mother</span>
-            ${m.contact_number? `<span>• ${escapeHtml(m.contact_number)}</span>`:''}
-            ${m.date_of_birth? `<span>• ${formatShortDate(m.date_of_birth)}</span>`:''}
-          </div>
-
-          <div class="pr-card">
-            <h6>Parent Information</h6>
-            <div class="pr-info-grid">
-              <div>
-                <span>Contact Number</span>${escapeHtml(m.contact_number||'—')}
-              </div>
-              <div>
-                <span>Relationship</span>Mother
-              </div>
-              <div>
-                <span>Birthday</span>${m.date_of_birth?formatShortDate(m.date_of_birth):'—'}
-              </div>
-              <div style="grid-column:1/-1;">
-                <span>Address</span>${escapeHtml(address)}
-              </div>
-            </div>
-          </div>
-
-          <div class="pr-card">
-            <div class="pr-children-head">
-              <h6>Children</h6>
-              <button class="pr-add-child-btn" data-add-child="${m.mother_id}">
-                <i class="bi bi-plus-lg"></i> Add Child
-              </button>
-            </div>
-            <div style="font-size:.58rem;font-weight:600;color:#607078;margin-top:-4px;">
-              ${kids.length===1?'1 child registered': kids.length+' children registered'}
-            </div>
-            ${
-              kids.length
-                ? `<div class="table-responsive" style="max-height:260px;margin-top:.55rem;">
-                    <table class="pr-child-table">
-                      <thead><tr><th>Child Name</th><th>Age</th><th>Gender</th><th>Date of Birth</th></tr></thead>
-                      <tbody>${childRows}</tbody>
-                    </table>
-                  </div>`
-                : `<div class="pr-empty" style="margin-top:.75rem;">No children linked. Click "Add Child".</div>`
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function formatAddress(m){
-      const parts = [m.house_number,m.street_name,m.subdivision_name].filter(Boolean).join(', ').replace(/\s*,\s*/g,', ');
-      const base = parts ? parts : '';
-      const suffix = 'Sabang, Lipa City';
-      if(!base){
-        return suffix;
-      }
-      const lower = base.toLowerCase();
-      if(lower.includes('sabang') && lower.includes('lipa') && lower.includes('city')){
-        // Already present – normalize single spacing + keep original base
-        return base;
-      }
-      return base.replace(/,\s*$/,'') + ', ' + suffix;
-    }
-
-    function formatAgeMonths(mo){
-      if(mo==null || isNaN(mo)) return '—';
-      const mInt=parseInt(mo,10);
-      return mInt===1?'1 month': mInt+' months';
-    }
-    function formatShortDate(d){
-      const dt=new Date(d+'T00:00:00');
-      if(isNaN(dt)) return escapeHtml(d);
-      return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
-    }
-    function capitalize(s){return (s||'').charAt(0).toUpperCase()+ (s||'').slice(1);}
-
     function wireDetailButtons(){
       detailEl.querySelectorAll('[data-add-child]').forEach(btn=>{
         btn.addEventListener('click',()=>{
@@ -8238,23 +8455,23 @@ async function onNext(){
     wrap.innerHTML = `
       <div class="row g-3">
         <div class="col-md-3">
-          <label>Consultation Date *</label>
+          <label>PETSA NG KONSULTASYON *</label>
           <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
         </div>
         <div class="col-md-2">
-          <label>Age</label>
+          <label>EDAD</label>
           <input type="number" name="age" class="form-control" placeholder="Auto">
         </div>
         <div class="col-md-2">
-          <label>Height (cm)</label>
+          <label>TAAS (CM)</label>
           <input type="number" step="0.1" name="height_cm" class="form-control">
         </div>
         <div class="col-md-2">
-          <label>Weight (kg)</label>
+          <label>TIMBANG (KG)</label>
           <input type="number" step="0.1" name="weight_kg" class="form-control">
         </div>
         <div class="col-md-2">
-          <label>Pregnancy Weeks</label>
+          <label>Edad ng Pagbubuntis (weeks)</label>
           <input type="number" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
         </div>
         <div class="col-md-3">
@@ -8266,15 +8483,16 @@ async function onNext(){
           <input type="number" name="blood_pressure_diastolic" class="form-control">
         </div>
         <div class="col-md-3">
-          <label>Last Menstruation (LMP)</label>
+          <label>HULING REGLA (LMP) (LMP)</label>
           <input type="date" name="last_menstruation_date" class="form-control">
         </div>
         <div class="col-md-3">
-          <label>Expected Delivery (EDD)</label>
+          <label>TINATAYANG PETSA NG PANGANGANAK (EDD) (EDD)</label>
           <input type="date" name="expected_delivery_date" class="form-control">
         </div>
+        <label>MGA PAGSUSURI (LABS)</label>
         <div class="col-md-3">
-          <label>HGB Result</label>
+          <label>HGB</label>
           <input name="hgb_result" class="form-control">
         </div>
         <div class="col-md-3">
@@ -8290,24 +8508,75 @@ async function onNext(){
           <input name="other_lab_results" class="form-control">
         </div>
         <div class="col-12">
-          <label style="margin-bottom:.3rem;">Risk Flags</label>
+          <label style="margin-bottom:.3rem;">Mga Palatandaan ng Panganib</label>
           <div class="d-flex flex-wrap gap-2" style="font-size:.65rem;">
             ${[
-              ['vaginal_bleeding','Vaginal Bleeding'],
-              ['urinary_infection','Urinary Infection'],
-              ['high_blood_pressure','High Blood Pressure'],
-              ['fever_38_celsius','Fever ≥38°C'],
-              ['pallor','Pallor'],
-              ['abnormal_abdominal_size','Abnormal Abd Size'],
-              ['abnormal_presentation','Abnormal Presentation'],
-              ['absent_fetal_heartbeat','Absent Fetal Heartbeat'],
-              ['swelling','Swelling'],
-              ['vaginal_infection','Vaginal Infection'],
+              ['vaginal_bleeding','Pagdurugo sa Ari'],
+              ['urinary_infection','Impeksyon sa Ihi'],
+              ['high_blood_pressure','Mataas na Presyon ng Dugo'],
+              ['fever_38_celsius','Lagnat ≥38°C'],
+              ['pallor','Maputla'],
+              ['abnormal_abdominal_size','Hindi Normal na Laki ng Tiyan'],
+              ['abnormal_presentation','Hindi Normal na Posisyon'],
+              ['absent_fetal_heartbeat','Walang Tibok ng Puso ng Sanggol'],
+              ['swelling','Pamamaga'],
+              ['vaginal_infection','Impeksyon sa Ari'],
             ].map(([k,l])=>`
               <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6;">
                 <input type="checkbox" name="${k}" value="1" style="margin-right:4px;"> ${l}
               </label>
             `).join('')}
+          </div>
+        </div>
+        
+        <!-- Maternal Health Checklist -->
+        <div class="col-12 mt-4">
+          <label style="margin-bottom:.3rem; font-weight: 700;">KILOS / LUNAS NA GINAWA</label>
+          <div class="row g-2" style="font-size:.65rem;">
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;"> Iron/Folate # Reseta
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="additional_iodine" value="1" style="margin:0;"> Dagdag na Iodine sa delikadong lugar
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;"> Malaria Prophylaxis (Oo/Hindi)
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;"> Balak Magpasuso ng Nanay (Oo/Hindi)
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="danger_advice" value="1" style="margin:0;"> Payo sa 4 na Panganib (Oo/Hindi)
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="dental_checkup" value="1" style="margin:0;"> Nagpasuri ng Ngipin (Oo/Hindi)
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="emergency_plan" value="1" style="margin:0;"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
+                <input type="checkbox" name="general_risk" value="1" style="margin:0;"> Panganib (Oo/Hindi)
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw</label>
+              <input type="date" name="next_visit_date" class="form-control" style="font-size:.7rem;">
+            </div>
           </div>
         </div>
       </div>
@@ -8377,19 +8646,77 @@ async function onNext(){
     saveBtn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
 
     try{
-      const fd=new FormData(form);
-      if(!fd.get('csrf_token')) fd.append('csrf_token', window.__BHW_CSRF);
-      fd.set('create_mother_with_consult','1');
+      // First, create the mother
+      const motherFd = new FormData();
+      const motherFields = ['first_name', 'middle_name', 'last_name', 'date_of_birth', 'gravida', 'para', 
+                           'contact_number', 'blood_type', 'emergency_contact_name', 'emergency_contact_number',
+                           'house_number', 'street_name', 'purok_name', 'subdivision_name', 'csrf_token'];
+      
+      motherFields.forEach(field => {
+        if (form[field]) {
+          motherFd.append(field, form[field].value);
+        }
+      });
+      if(!motherFd.get('csrf_token')) motherFd.append('csrf_token', window.__BHW_CSRF);
 
-      const resp = await fetch(api.maternal,{method:'POST',body:fd});
-      const txt  = await resp.text();
-      let data;
-      try{ data = JSON.parse(txt); }catch(_){
-        throw new Error('Server did not return valid JSON. Raw: '+ txt.slice(0,180));
+      const motherResp = await fetch(api.maternal, {method:'POST', body:motherFd});
+      const motherTxt = await motherResp.text();
+      let motherData;
+      try{ motherData = JSON.parse(motherTxt); }catch(_){
+        throw new Error('Server did not return valid JSON for mother creation. Raw: '+ motherTxt.slice(0,180));
       }
-      if(!resp.ok || !data.success){
-        throw new Error(data.error || 'Save failed (HTTP '+resp.status+')');
+      if(!motherResp.ok || !motherData.success){
+        throw new Error(motherData.error || 'Mother creation failed (HTTP '+motherResp.status+')');
       }
+
+      // Then, create the consultation with intervention data
+      const consultFd = new FormData();
+      const consultFields = ['consultation_date', 'age', 'height_cm', 'weight_kg', 'blood_pressure_systolic', 
+                            'blood_pressure_diastolic', 'pregnancy_age_weeks', 'last_menstruation_date', 
+                            'expected_delivery_date', 'hgb_result', 'urine_result', 'vdrl_result', 'other_lab_results',
+                            'vaginal_bleeding', 'urinary_infection', 'high_blood_pressure', 'fever_38_celsius', 
+                            'pallor', 'abnormal_abdominal_size', 'abnormal_presentation', 'absent_fetal_heartbeat', 
+                            'swelling', 'vaginal_infection', 'iron_folate_prescription', 'additional_iodine', 
+                            'malaria_prophylaxis', 'breastfeeding_plan', 'danger_advice', 'dental_checkup', 
+                            'emergency_plan', 'general_risk', 'next_visit_date', 'csrf_token'];
+      
+      // Handle regular fields
+      const regularFields = ['consultation_date', 'age', 'height_cm', 'weight_kg', 'blood_pressure_systolic', 
+                            'blood_pressure_diastolic', 'pregnancy_age_weeks', 'last_menstruation_date', 
+                            'expected_delivery_date', 'hgb_result', 'urine_result', 'vdrl_result', 'other_lab_results',
+                            'next_visit_date', 'csrf_token'];
+      
+      regularFields.forEach(field => {
+        if (form[field]) {
+          consultFd.append(field, form[field].value);
+        }
+      });
+      
+      // Handle checkbox fields (risk flags and interventions) - only append if checked
+      const checkboxFields = ['vaginal_bleeding', 'urinary_infection', 'high_blood_pressure', 'fever_38_celsius', 
+                             'pallor', 'abnormal_abdominal_size', 'abnormal_presentation', 'absent_fetal_heartbeat', 
+                             'swelling', 'vaginal_infection', 'iron_folate_prescription', 'additional_iodine', 
+                             'malaria_prophylaxis', 'breastfeeding_plan', 'danger_advice', 'dental_checkup', 
+                             'emergency_plan', 'general_risk'];
+      
+      checkboxFields.forEach(field => {
+        if (form[field] && form[field].checked) {
+          consultFd.append(field, '1');
+        }
+      });
+      consultFd.append('mother_id', motherData.mother_id);
+      if(!consultFd.get('csrf_token')) consultFd.append('csrf_token', window.__BHW_CSRF);
+
+      const consultResp = await fetch(api.health, {method:'POST', body:consultFd});
+      const consultTxt = await consultResp.text();
+      let consultData;
+      try{ consultData = JSON.parse(consultTxt); }catch(_){
+        throw new Error('Server did not return valid JSON for consultation creation. Raw: '+ consultTxt.slice(0,180));
+      }
+      if(!consultResp.ok || !consultData.success){
+        throw new Error(consultData.error || 'Consultation creation failed (HTTP '+consultResp.status+')');
+      }
+
       showOk('Saved!');
       setTimeout(()=>{
         const inst=bootstrap.Modal.getInstance(modal);
@@ -8408,6 +8735,27 @@ async function onNext(){
     }
   }
 
+  // Load puroks for dropdown
+  function loadPuroks(){
+    fetch('bhw_modules/api_puroks.php?list=1')
+      .then(response => response.json())
+      .then(data => {
+        if(data.success && data.puroks){
+          const datalist = document.getElementById('purokOptions');
+          datalist.innerHTML = '';
+          data.puroks.forEach(purok => {
+            const option = document.createElement('option');
+            option.value = purok.purok_name;
+            option.setAttribute('data-purok-id', purok.purok_id);
+            datalist.appendChild(option);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading puroks:', error);
+      });
+  }
+
   // First Next button (initial markup)
   const initNext=document.getElementById('motherNextBtn');
   if(initNext) initNext.addEventListener('click', onNext);
@@ -8415,6 +8763,7 @@ async function onNext(){
   modal.addEventListener('show.bs.modal',()=>{
     showStep(1);
     clearMsgs();
+    loadPuroks();
   });
 }
 

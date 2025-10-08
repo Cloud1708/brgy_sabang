@@ -142,15 +142,20 @@ if ($method === 'GET') {
   c.height_cm,
   TIMESTAMPDIFF(MONTH,c.birth_date,CURDATE()) AS age_months,
   c.mother_id,
-  m.full_name AS mother_name,
-  m.contact_number AS mother_contact,
-  m.address_details,
+  mp.first_name AS mother_first_name,
+  mp.middle_name AS mother_middle_name,
+  mp.last_name AS mother_last_name,
+  CONCAT(mp.first_name, ' ', COALESCE(mp.middle_name, ''), ' ', mp.last_name) AS mother_name,
+  mp.contact_number AS mother_contact,
+  mp.house_number,
+  mp.street_name,
+  mp.subdivision_name,
   p.purok_name,
   p.barangay
   $createdCol
 FROM children c
-LEFT JOIN mothers_caregivers m ON m.mother_id=c.mother_id
-LEFT JOIN puroks p ON p.purok_id = m.purok_id
+LEFT JOIN maternal_patients mp ON mp.mother_id=c.mother_id
+LEFT JOIN puroks p ON p.purok_id = mp.purok_id
 ORDER BY $orderExpr ASC
 LIMIT 1000";
         $res=$mysqli->query($sql);

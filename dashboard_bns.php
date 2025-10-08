@@ -1226,21 +1226,18 @@ function renderChildrenModule(label) {
       }
       
       const children = response.children || [];
+
+      window.__childrenCache = children; // cache for tab switching back to Child Database
       
       moduleContent.innerHTML = `
-    <div class="fade-in">
-      <!-- Page Header -->
-      <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-          <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
-            👶 Children Management
-          </h1>
-          <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Manage child records and profiles</p>
-        </div>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#registerChildModal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.05rem;border-radius:11px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
-          <i class="bi bi-plus-lg me-1"></i> Register New Child
-        </button>
-      </div>
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
+      👶 Children Management
+    </h1>
+    <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Manage child records and profiles</p>
+  </div>
+</div>
 
       <!-- Tab Navigation - Removed Mother-Child Linking Tab -->
       <div class="mb-3">
@@ -1339,7 +1336,8 @@ function setupChildrenTabsUpdated() {
   document.querySelectorAll('.children-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
       e.preventDefault();
-      // Update active tab
+
+      // Update active styles
       document.querySelectorAll('.children-tab').forEach(t => {
         t.classList.remove('active');
         t.style.color = 'var(--muted)';
@@ -1348,36 +1346,39 @@ function setupChildrenTabsUpdated() {
       tab.classList.add('active');
       tab.style.color = 'var(--green)';
       tab.style.borderBottom = '2px solid var(--green)';
-      
-      // Update content based on tab
+
       const tabType = tab.dataset.tab;
       const contentArea = document.getElementById('children-tab-content');
-      
-      switch(tabType) {
-        case 'profiles':
-  // Render shell first (no Search box)
-  const contentAreaPM = document.getElementById('children-tab-content');
-  contentAreaPM.innerHTML = renderProfileManagementShell();
 
-  // Load children then populate list
-  fetchJSON(api.children + '?action=list')
-    .then(res => {
-      const list = res.children || [];
-      populateProfileList(list);
-    })
-    .catch(err => {
-      console.error('Profile Management load error:', err);
-      contentAreaPM.innerHTML = `
-        <div class="tile">
-          <div class="text-center py-5" style="color:#dc3545;font-size:.7rem;">
-            <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:.5;"></i>
-            <div class="mt-2">Error loading profiles</div>
-          </div>
-        </div>
-      `;
-    });
-  break;
+      if (tabType === 'profiles') {
+        // Render Profile Management shell then load list
+        contentArea.innerHTML = renderProfileManagementShell();
+        fetchJSON(api.children + '?action=list')
+          .then(res => populateProfileList(res.children || []))
+          .catch(err => {
+            console.error('Profile Management load error:', err);
+            contentArea.innerHTML = `
+              <div class="tile">
+                <div class="text-center py-5" style="color:#dc3545;font-size:.7rem;">
+                  <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:.5;"></i>
+                  <div class="mt-2">Error loading profiles</div>
+                </div>
+              </div>`;
+          });
+        return;
       }
+
+      if (tabType === 'database') {
+        // Re-render the child database from cache, no full module reload
+        const list = window.__childrenCache || [];
+        contentArea.innerHTML = renderChildrenTable(list);
+        // Ensure the Search & Filter (above the tabs) still works with the same list
+        setupChildrenFilters(list);
+        return;
+      }
+
+      // Fallback (shouldn't be needed, pero safe)
+      renderChildrenModule('Children Management');
     });
   });
 }
@@ -1385,20 +1386,18 @@ function setupChildrenTabsUpdated() {
 function renderChildrenTable(children) {
   const totalChildren = children.length;
   
-  if (totalChildren === 0) {
-    return `
-      <div class="tile">
-        <div class="text-center py-5">
-          <i class="bi bi-people text-muted" style="font-size:3rem;opacity:0.3;"></i>
-          <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Children Found</h6>
-          <p class="text-muted small mb-0" style="font-size:.65rem;">No children have been registered yet.</p>
-          <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#registerChildModal">
-            <i class="bi bi-plus-lg me-1"></i> Register First Child
-          </button>
-        </div>
+  // REPLACE the empty-state in renderChildrenTable(children)
+if (totalChildren === 0) {
+  return `
+    <div class="tile">
+      <div class="text-center py-5">
+        <i class="bi bi-people text-muted" style="font-size:3rem;opacity:0.3;"></i>
+        <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Children Found</h6>
+        <p class="text-muted small mb-0" style="font-size:.65rem;">No children available. Try adjusting your filters.</p>
       </div>
-    `;
-  }
+    </div>
+  `;
+}
   
   return `
     <!-- Child Registry Header -->
@@ -1762,177 +1761,373 @@ function exportChildrenData() {
   // Implement export functionality
 }
 
-function renderWeighingModule(label) {
-  showLoading(label);
-  setTimeout(() => {
-    moduleContent.innerHTML = `
-      <div class="fade-in">
-        <!-- Page Header -->
-        <div class="page-header">
-          <div class="page-header-icon">
-            <i class="bi bi-clipboard2-data"></i>
-          </div>
-          <div class="page-header-text">
-            <h1>Nutrition Data Entry</h1>
-            <p>Record comprehensive nutrition and growth measurements</p>
+let __WEIGH_SELECTED_CHILD_ID = null;
+let __WEIGH_ALL_CHILDREN = [];
+
+// Small styles for the left list to mimic the BHW side registry
+(function ensureWeighingStyles(){
+  const css = `
+    .child-list-wrap{display:flex;flex-direction:column;gap:.25rem;max-height:calc(100vh - 320px);overflow:auto;}
+    .child-list-item{
+      border:1px solid var(--border-soft);
+      background:#fff;
+      border-radius:10px;
+      padding:.55rem .7rem;
+      cursor:pointer;
+      display:flex;align-items:center;gap:.55rem;
+      transition:background .15s,border-color .15s;
+    }
+    .child-list-item:hover{background:#f6faf7;border-color:#dfe8e3;}
+    .child-list-item.active{background:#e8f5ea;border-color:#bfe3cd;}
+    .child-list-item .avatar{
+      width:30px;height:30px;border-radius:9px;
+      background:#e8f5ea;display:flex;align-items:center;justify-content:center;
+      font-size:.8rem;color:#0b7a43;flex:0 0 30px;
+    }
+    .child-list-item .meta{display:flex;flex-direction:column;min-width:0;}
+    .child-list-item .meta .name{font-weight:700;color:#1e3e27;font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .child-list-item .meta .sub{font-size:.6rem;color:#6a7a6d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pane-note{font-size:.62rem;color:#6a7a6d;}
+  `;
+  if (!document.getElementById('weighingSplitCSS')) {
+    const style = document.createElement('style');
+    style.id = 'weighingSplitCSS';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+})();
+
+function renderWeighingModuleSplit(label){
+  titleEl.textContent = label || 'Nutrition Data Entry';
+  showLoading('Nutrition Data Entry');
+
+  // Build the split-view shell
+  moduleContent.innerHTML = `
+    <div class="fade-in">
+      <div class="page-header">
+        <div class="page-header-icon"><i class="bi bi-clipboard2-data"></i></div>
+        <div class="page-header-text">
+          <h1>Nutrition Data Entry</h1>
+          <p>Record comprehensive nutrition and growth measurements</p>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <!-- Left Pane: Children list -->
+        <div class="col-12 col-lg-4">
+          <div class="tile" style="padding:1rem;">
+            <div class="tile-header mb-2">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">CHILDREN REGISTRY</h5>
+            </div>
+            <div class="position-relative mb-2">
+              <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.8rem;color:#7b8c7f;"></i>
+              <input id="weighChildSearch" type="text" class="form-control" placeholder="Search child or mother/caregiver..." style="padding-left:2.2rem;font-size:.72rem;">
+            </div>
+            <div class="pane-note mb-2">Select a child to view details and add a weighing record</div>
+            <div id="weighChildList" class="child-list-wrap">
+              <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+                <span class="spinner-border spinner-border-sm me-2"></span>Loading children...
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Form Container -->
-        <div class="form-container">
-          <!-- Child Information Section -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <div class="form-section-icon child">
-                <i class="bi bi-person-plus"></i>
-              </div>
-              <h3 class="form-section-title">Child Information</h3>
-            </div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Select Child</label>
-                <select class="form-select" id="childSelect" required>
-                  <option value="">Select a child</option>
-                  <!-- Children options will be populated dynamically -->
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" id="childFullName" placeholder="Child's complete name" readonly>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Sex</label>
-                <input type="text" class="form-control" id="childSex" readonly>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Birth Date</label>
-                <input type="date" class="form-control" id="childBirthDate" readonly>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Current Age (months)</label>
-                <input type="text" class="form-control" id="childAge" readonly>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Mother/Caregiver</label>
-                <input type="text" class="form-control" id="motherName" readonly>
-              </div>
-            </div>
-          </div>
-
-          <!-- Weighing Sessions Section -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
-                <i class="bi bi-clipboard-data"></i>
-              </div>
-              <h3 class="form-section-title">📊 New Weighing Record</h3>
-            </div>
-            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Record new measurement data for the selected child</p>
-            
-            <!-- Weighing Form -->
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Date of Weighing *</label>
-                <div class="date-input">
-                  <input type="date" class="form-control" id="weighingDate" required style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Weight (kg) *</label>
-                <input type="number" step="0.1" class="form-control" id="childWeight" placeholder="0.0" required style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Height/Length (cm) *</label>
-                <input type="number" step="0.1" class="form-control" id="childHeight" placeholder="0.0" required style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
-              </div>
-              <div class="form-group">
-                <label class="form-label">WFL/H Assessment</label>
-                <select class="form-select" id="nutritionStatus" style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;">
-                  <option value="">Auto-calculate</option>
-                  <option value="1">Normal (NOR)</option>
-                  <option value="2">Moderate Acute Malnutrition (MAM)</option>
-                  <option value="3">Severe Acute Malnutrition (SAM)</option>
-                  <option value="4">Overweight (OW)</option>
-                  <option value="5">Obese (OB)</option>
-                  <option value="6">Stunted (ST)</option>
-                  <option value="7">Underweight (UW)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Remarks</label>
-                <textarea class="form-control" id="remarks" placeholder="Additional notes or observations" rows="2" style="font-size:.65rem;padding:.4rem .6rem;border:1px solid var(--border-soft);border-radius:6px;"></textarea>
-              </div>
-            </div>
-
-            <!-- Add Record Button -->
-            <div class="d-flex justify-content-end mt-3">
-              <button class="btn btn-success" id="saveNutritionRecord" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
-                <i class="bi bi-plus-lg me-1"></i> Add Weighing Record
-              </button>
-            </div>
-          </div>
-
-          <!-- Previous Records Section -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;">
-                <i class="bi bi-clipboard-data"></i>
-              </div>
-              <h3 class="form-section-title">📋 Previous Weighing Records</h3>
-            </div>
-            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Historical measurement data for the selected child</p>
-            
-            <!-- Previous Records Table -->
-            <div class="table-responsive" id="previousRecordsContainer">
-              <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
-                Select a child to view their weighing history
-              </div>
-            </div>
-          </div>
-
-          <!-- Nutrition Classification Guide -->
-          <div class="form-section" style="background:#f0f8f1;border:1px solid #d3e8d9;">
-            <div class="form-section-header">
-              <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
-                <i class="bi bi-info-circle"></i>
-              </div>
-              <h3 class="form-section-title">Nutrition Classification Guide</h3>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-              <div style="display: flex; align-items: center; gap: 0.7rem;">
-                <span class="badge-status badge-NOR" style="min-width:70px;text-align:center;">Normal</span>
-                <span style="font-size:.65rem;color:#15692d;font-weight:600;">Healthy weight for age and height</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 0.7rem;">
-                <span class="badge-status badge-MAM" style="min-width:70px;text-align:center;">MAM</span>
-                <span style="font-size:.65rem;color:#845900;font-weight:600;">Moderate Acute Malnutrition - requires monitoring</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 0.7rem;">
-                <span class="badge-status badge-SAM" style="min-width:70px;text-align:center;">SAM</span>
-                <span style="font-size:.65rem;color:#b02020;font-weight:600;">Severe Acute Malnutrition - requires urgent intervention</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 0.7rem;">
-                <span class="badge-status badge-UW" style="min-width:70px;text-align:center;">Underweight</span>
-                <span style="font-size:.65rem;color:#7c5100;font-weight:600;">Below normal weight for age</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 0.7rem;">
-                <span class="badge-status" style="background:#ff6b6b;color:#fff;min-width:70px;text-align:center;">Stunted</span>
-                <span style="font-size:.65rem;color:#b02020;font-weight:600;">Below normal height for age</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 0.7rem;">
-                <span class="badge-status badge-OW" style="background:#a259c6;color:#fff;min-width:70px;text-align:center;">Overweight/Obese</span>
-                <span style="font-size:.65rem;color:#105694;font-weight:600;">Above normal weight for height</span>
+        <!-- Right Pane: Details + New record + History -->
+        <div class="col-12 col-lg-8">
+          <div id="weighRightPane">
+            <div class="tile">
+              <div class="text-center py-5" style="color:var(--muted);font-size:.7rem;">
+                <i class="bi bi-person-vcard" style="font-size:2.4rem;opacity:.35;"></i>
+                <div class="mt-2">Select a child on the left to view details</div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  `;
+
+  // Load children list then render items
+  fetchJSON(api.children + '?action=list')
+    .then(res=>{
+      const children = res.children || [];
+      __WEIGH_ALL_CHILDREN = children;
+      renderWeighingChildrenList(children);
+      // Auto-select first child for faster flow
+      if (children.length) selectWeighChild(children[0].child_id);
+    })
+    .catch(err=>{
+      console.error('Children load error', err);
+      document.getElementById('weighChildList').innerHTML = `
+        <div class="text-center py-3" style="color:#dc3545;font-size:.65rem;">
+          <i class="bi bi-exclamation-triangle" style="font-size:1.2rem;"></i>
+          <div class="mt-1">Failed to load children</div>
+        </div>
+      `;
+    });
+
+  // Wire search
+  document.getElementById('weighChildSearch').addEventListener('input', ()=>{
+    const q = document.getElementById('weighChildSearch').value.toLowerCase();
+    const filtered = __WEIGH_ALL_CHILDREN.filter(c=>{
+      return (c.full_name||'').toLowerCase().includes(q)
+          || (c.mother_name||'').toLowerCase().includes(q)
+          || (c.purok_name||'').toLowerCase().includes(q);
+    });
+    renderWeighingChildrenList(filtered);
+  });
+}
+
+function renderWeighingChildrenList(list){
+  const host = document.getElementById('weighChildList');
+  if (!list.length) {
+    host.innerHTML = `
+      <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+        <i class="bi bi-people" style="font-size:2rem;opacity:.35;"></i>
+        <div class="mt-2">No children found</div>
+      </div>
+    `;
+    return;
+  }
+
+  host.innerHTML = list.map(c=>{
+    const sexIcon = c.sex==='male' ? 'bi-gender-male' : 'bi-gender-female';
+    const sexColor = c.sex==='male' ? '#1c79d0' : '#e91e63';
+    return `
+      <div class="child-list-item ${c.child_id===__WEIGH_SELECTED_CHILD_ID?'active':''}" data-id="${c.child_id}">
+        <div class="avatar"><i class="bi ${sexIcon}" style="color:${sexColor}"></i></div>
+        <div class="meta">
+          <div class="name">${escapeHtml(c.full_name)}</div>
+          <div class="sub">${escapeHtml(c.mother_name||'')}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  host.querySelectorAll('.child-list-item').forEach(el=>{
+    el.addEventListener('click', ()=> {
+      const id = parseInt(el.getAttribute('data-id'),10);
+      selectWeighChild(id);
+    });
+  });
+}
+
+async function selectWeighChild(childId){
+  __WEIGH_SELECTED_CHILD_ID = childId;
+
+  // Highlight selection in list
+  document.querySelectorAll('.child-list-item').forEach(x=>{
+    x.classList.toggle('active', parseInt(x.getAttribute('data-id'),10)===childId);
+  });
+
+  // Load details for right pane
+  await loadWeighRightPane(childId);
+}
+
+async function loadWeighRightPane(childId){
+  const pane = document.getElementById('weighRightPane');
+  pane.innerHTML = `
+    <div class="tile">
+      <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+        <span class="spinner-border spinner-border-sm me-2"></span>Loading child profile...
+      </div>
+    </div>
+  `;
+
+  try{
+    const res = await fetchJSON(`${api.children}?action=get&child_id=${childId}`);
+    if(!res.success || !res.child) throw new Error(res.error || 'Not found');
+    const c = res.child;
+
+    // Details card
+    const details = `
+      <div class="tile" style="margin-bottom:1rem;">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <div class="tile-header">
+              <h5 style="font-size:.78rem;font-weight:800;color:#18432b;margin:0;display:flex;gap:.4rem;align-items:center;">
+                <i class="bi bi-person-badge text-success"></i> ${escapeHtml(c.full_name)}
+              </h5>
+            </div>
+            <div class="pane-note">Purok: <strong>${escapeHtml(c.purok_name||'Not Set')}</strong></div>
+          </div>
+          <span class="badge-status ${c.sex==='male'?'badge-OW':''}" style="font-size:.62rem;">${escapeHtml(c.sex||'')}</span>
+        </div>
+        <div class="row g-2 mt-2" style="font-size:.7rem;">
+          <div class="col-md-6"><strong>Birth Date:</strong> ${escapeHtml(c.birth_date||'—')}</div>
+          <div class="col-md-6"><strong>Mother/Caregiver:</strong> ${escapeHtml(c.mother_name||'—')}</div>
+          <div class="col-md-6"><strong>Contact:</strong> ${escapeHtml(c.mother_contact||'—')}</div>
+          <div class="col-md-6"><strong>Address:</strong> ${escapeHtml(c.address_details||'—')}</div>
+        </div>
+      </div>
     `;
 
-    // Initialize the module functionality
-    initializeNutritionDataEntry();
-  }, 100);
+    // New Weighing form (auto-calc reuses your helper)
+    const today = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Manila'});
+    const form = `
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;"><i class="bi bi-clipboard-data"></i></div>
+          <h3 class="form-section-title">📊 New Weighing Record</h3>
+        </div>
+        <p class="pane-note">The record will be saved for: <strong>${escapeHtml(c.full_name)}</strong></p>
+
+        <div class="form-grid">
+          <div class="form-group">
+        <label class="form-label">Date of Weighing *</label>
+        <div class="date-input">
+          <!-- UPDATED: min/max bound to today -->
+          <input type="date" class="form-control" id="weighingDate" value="${today}" min="${today}" max="${today}" required>
+        </div>
+      </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg) *</label>
+            <input type="number" step="0.1" class="form-control" id="childWeight" placeholder="0.0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Height/Length (cm) *</label>
+            <input type="number" step="0.1" class="form-control" id="childHeight" placeholder="0.0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">WFL/H Assessment</label>
+            <input type="text" class="form-control" id="nutritionStatus" placeholder="Auto-calculated when weight and height are entered" readonly>
+            <input type="hidden" id="nutritionStatusId" name="wfl_ht_status_id">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Remarks</label>
+            <textarea class="form-control" id="remarks" rows="2" placeholder="Additional notes or observations"></textarea>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-3">
+          <button class="btn btn-success" id="saveNutritionRecord" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;">
+            <i class="bi bi-plus-lg me-1"></i> Add Weighing Record
+          </button>
+        </div>
+      </div>
+    `;
+
+    // History table placeholder; actual rows loaded by loadPreviousRecords(childId)
+    const history = `
+      <div class="form-section" style="margin-top:1rem;">
+        <div class="form-section-header">
+          <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;"><i class="bi bi-clipboard-data"></i></div>
+          <h3 class="form-section-title">📋 Previous Weighing Records</h3>
+        </div>
+        <div class="table-responsive" id="previousRecordsContainer">
+          <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+            <span class="spinner-border spinner-border-sm me-2"></span>Loading previous records...
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('weighRightPane').innerHTML = details + form + history;
+lockWeighingDateToToday(); // NEW: enforce today-only date
+setupAutoCalculation();
+wireWeighingSave(childId);
+loadPreviousRecords(childId);
+
+  }catch(e){
+    console.error(e);
+    document.getElementById('weighRightPane').innerHTML = `
+      <div class="tile">
+        <div class="text-center py-4" style="color:#dc3545;font-size:.7rem;">
+          <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:.5;"></i>
+          <div class="mt-1">Error loading child profile</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function wireWeighingSave(childId){
+  const btn = document.getElementById('saveNutritionRecord');
+  if (!btn) return;
+
+  if (btn.__handlerRef) {
+    btn.removeEventListener('click', btn.__handlerRef);
+  }
+
+  const onSave = async ()=>{
+    // Pull values
+    const weighingDate = document.getElementById('weighingDate')?.value;
+    const weight       = document.getElementById('childWeight')?.value;
+    const height       = document.getElementById('childHeight')?.value;
+    const statusId     = document.getElementById('nutritionStatusId')?.value || '';
+    const remarks      = document.getElementById('remarks')?.value || '';
+
+    // Frontend validation for weighing date
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    if (weighingDate !== today) {
+      alert('Date of Weighing must be today.');
+      return;
+    }
+
+    // Validate
+    const missing = [];
+    if (!weighingDate) missing.push('Date of Weighing');
+    if (!weight)       missing.push('Weight (kg)');
+    if (!height)       missing.push('Height/Length (cm)');
+    if (missing.length){
+      alert('Please fill in: ' + missing.join(', '));
+      return;
+    }
+
+    // Busy
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+    try{
+      // API expects form fields with CSRF (you already have window.__BNS_CSRF)
+      const fd = new FormData();
+      fd.append('csrf_token', window.__BNS_CSRF);
+      fd.append('child_id', childId);
+      fd.append('weighing_date', weighingDate);
+      fd.append('weight_kg', weight);
+      fd.append('length_height_cm', height);
+      if (statusId) fd.append('wfl_ht_status_id', statusId);
+      fd.append('remarks', remarks);
+
+      const res = await fetch(api.nutrition, {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': window.__BNS_CSRF },
+        body: fd
+      }).then(r=>r.json());
+
+      if (!res.success) throw new Error(res.error || 'Save failed');
+
+      // Success
+      alert('✅ Weighing record saved.');
+      // Clear weight/height/remarks; keep date
+      document.getElementById('childWeight').value = '';
+      document.getElementById('childHeight').value = '';
+      document.getElementById('remarks').value = '';
+      const ns = document.getElementById('nutritionStatus');
+      const nsid = document.getElementById('nutritionStatusId');
+      if (ns) {
+        ns.value = 'Auto-calculated when weight and height are entered';
+        ns.style.cssText = `
+          font-size:.72rem;padding:.65rem .85rem;border:1px solid var(--border-soft);
+          border-radius:8px;background:#f8f9fa;color:var(--muted);font-style:italic;font-weight:normal;
+        `;
+      }
+      if (nsid) nsid.value = '';
+
+      // Reload history for this child
+      loadPreviousRecords(childId);
+
+    }catch(err){
+      console.error(err);
+      alert('❌ Error saving record: ' + (err.message || err));
+    }finally{
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Weighing Record';
+    }
+  };
+
+  btn.addEventListener('click', onSave);
+  btn.__handlerRef = onSave;
 }
 
 // Initialize nutrition data entry functionality
@@ -2691,6 +2886,13 @@ function setupSaveRecordHandler() {
     const height = document.getElementById('childHeight')?.value;
     const status = document.getElementById('nutritionStatusId')?.value || document.getElementById('nutritionStatus')?.value;
     const remarks = document.getElementById('remarks')?.value || '';
+
+    // Frontend validation for weighing date
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    if (weighingDate !== today) {
+      alert('Date of Weighing must be today.');
+      return;
+    }
 
     // Validation
     if (!childId) { alert('Please select a child'); return; }
@@ -6412,6 +6614,26 @@ function getStatusDisplay(statusCode, statusDescription) {
   };
 }
 
+// Helper: lock the weighing date to today (PH time) and prevent changes
+function lockWeighingDateToToday() {
+  const el = document.getElementById('weighingDate');
+  if (!el) return;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+  el.value = today;
+  el.min = today;
+  el.max = today;
+  // If user tries to change (via typing or picker), snap back to today
+  const enforce = () => { if (el.value !== today) el.value = today; };
+  el.addEventListener('change', enforce);
+  el.addEventListener('input', enforce);
+}
+
+// Optional: Call locker after any dynamic render that includes #weighingDate
+document.addEventListener('DOMContentLoaded', ()=> {
+  // if date input exists on initial load
+  lockWeighingDateToToday();
+});
+
 // Proper event listener setup that actually works
 function setupAutoCalculation() {
   console.log('Setting up auto-calculation...');
@@ -6679,8 +6901,11 @@ function initializeNutritionDataEntry() {
   
   // Set today's date as default (Philippine timezone)
   const today = new Date().toLocaleDateString('en-CA', {timeZone: 'Asia/Manila'});
-  if (document.getElementById('weighingDate')) {
-    document.getElementById('weighingDate').value = today;
+  const d = document.getElementById('weighingDate');
+  if (d) {
+    d.value = today;
+    d.min = today;
+    d.max = today;
   }
   
   // Setup other handlers
@@ -6981,7 +7206,7 @@ function clearFilters() {
 const handlers={
   dashboard_home:renderDashboardHome,
   child_profiles:renderChildrenModule,
-  weighing_sessions:renderWeighingModule,
+  weighing_sessions:renderWeighingModuleSplit, // <- point to split layout
   nutrition_classification:renderNutritionClassificationModule,
   feeding_programs:renderFeedingProgramsModule,
   nutrition_calendar:renderNutritionCalendarModule,
@@ -7024,277 +7249,11 @@ document.addEventListener('click',e=>{
   }
 });
 
-
-
 /* Initial load */
 loadModule('dashboard_home','Dashboard');
 
-
-
-// Modal functionality for Register New Child
-document.addEventListener('DOMContentLoaded', function() {
-  const registerChildModal = document.getElementById('registerChildModal');
-  const saveChildBtn = document.getElementById('saveChildBtn');
-  const registerChildForm = document.getElementById('registerChildForm');
-
-  // Handle save button click
-  if (saveChildBtn) {
-    saveChildBtn.addEventListener('click', function() {
-      // Get form data
-      const formData = new FormData(registerChildForm);
-      const childData = Object.fromEntries(formData.entries());
-
-      console.log('Form data collected:', childData); // Debug log
-
-      // UPDATED VALIDATION - match your actual form fields
-      if (!childData.full_name || !childData.sex || !childData.birth_date || 
-          !childData.purok_id || !childData.address_details || 
-          !childData.mother_full_name || !childData.contact_number) {
-        
-        // More detailed validation feedback
-        const missingFields = [];
-        if (!childData.full_name) missingFields.push('Child Full Name');
-        if (!childData.sex) missingFields.push('Child Sex');
-        if (!childData.birth_date) missingFields.push('Child Birth Date');
-        if (!childData.purok_id) missingFields.push('Purok/Location');
-        if (!childData.address_details) missingFields.push('Complete Address');
-        if (!childData.mother_full_name) missingFields.push('Mother Full Name');
-        if (!childData.contact_number) missingFields.push('Contact Number');
-        
-        alert(`Please fill in the following required fields:\n• ${missingFields.join('\n• ')}`);
-        console.log('Missing fields:', missingFields); // Debug log
-        return;
-      }
-
-      // Validate contact number format
-      const contactPattern = /^09\d{9}$/;
-      if (!contactPattern.test(childData.contact_number.replace(/\s/g, ''))) {
-        alert('Please enter a valid contact number (09XXXXXXXXX).');
-        return;
-      }
-
-      // Show loading state
-      saveChildBtn.disabled = true;
-      saveChildBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Registering...';
-
-      // Prepare data matching your database structure exactly
-      const submitData = {
-        // Child data (matches children table structure)
-        child: {
-          full_name: childData.full_name,
-          sex: childData.sex, // enum('male', 'female')
-          birth_date: childData.birth_date
-        },
-        // Mother/Caregiver data (matches mothers_caregivers table structure exactly)
-        mother_caregiver: {
-          full_name: childData.mother_full_name,                     // varchar(255) NOT NULL
-          date_of_birth: childData.mother_date_of_birth || null,     // date (nullable)
-          emergency_contact_name: childData.emergency_contact_name || null,  // varchar(120) (nullable)
-          emergency_contact_number: childData.emergency_contact_number || null,  // varchar(40) (nullable)
-          purok_id: parseInt(childData.purok_id),                    // int(11) (nullable but required in form)
-          address_details: childData.address_details || '',          // text (nullable)
-          contact_number: childData.contact_number                   // varchar(20) (nullable but required in form)
-          // created_by and user_account_id will be set automatically from session
-        }
-      };
-
-      console.log('Submitting data:', submitData); // Debug log
-
-      // Submit to API endpoint
-      fetchJSON('bns_modules/api_children.php?action=register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submitData)
-      })
-      .then(response => {
-        console.log('API Response:', response); // Debug log
-        
-        if (response.success) {
-          // Success message with better UX
-          const successMessage = `✅ Child registered successfully!\n\nChild: ${childData.full_name}\nMother: ${childData.mother_full_name}\nPurok: ${childData.purok_id}`;
-          alert(successMessage);
-          
-          // Reset form
-          registerChildForm.reset();
-          
-          // Close modal with better animation
-          const modal = bootstrap.Modal.getInstance(registerChildModal);
-          modal.hide();
-          
-          // Refresh the children list if we're on the children management page
-          if (titleEl.textContent === 'Children Management') {
-            renderChildrenModule('Children Management');
-          }
-        } else {
-          throw new Error(response.error || 'Registration failed');
-        }
-      })
-      .catch(error => {
-        console.error('Registration error:', error);
-        alert('❌ Error registering child: ' + error.message);
-      })
-      .finally(() => {
-        // Reset button
-        saveChildBtn.disabled = false;
-        saveChildBtn.innerHTML = '<i class="bi bi-save me-1"></i> Register Child';
-      });
-    });
-  }
-
-  // Reset form when modal is closed
-  if (registerChildModal) {
-    registerChildModal.addEventListener('hidden.bs.modal', function() {
-      registerChildForm.reset();
-      saveChildBtn.disabled = false;
-      saveChildBtn.innerHTML = '<i class="bi bi-save me-1"></i> Register Child';
-    });
-  }
-
-  // Format contact numbers as user types
-  const contactInputs = document.querySelectorAll('input[name="contact_number"], input[name="emergency_contact_number"]');
-  contactInputs.forEach(input => {
-    input.addEventListener('input', function() {
-      // Remove all non-digits
-      let value = this.value.replace(/\D/g, '');
-      
-      // Limit to 11 digits for Philippine mobile numbers
-      if (value.length > 11) {
-        value = value.slice(0, 11);
-      }
-      
-      this.value = value;
-    });
-  });
-});
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Register New Child Modal -->
-<div class="modal fade" id="registerChildModal" tabindex="-1" aria-labelledby="registerChildModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content" style="border-radius:16px;border:1px solid var(--border-soft);box-shadow:0 10px 40px -10px rgba(15,32,23,.15);">
-      <!-- Modal Header -->
-      <div class="modal-header" style="border-bottom:1px solid var(--border-soft);padding:1.2rem 1.5rem;">
-        <div>
-          <h5 class="modal-title" id="registerChildModalLabel" style="font-size:.9rem;font-weight:700;color:var(--text);margin:0;">Register New Child</h5>
-          <p class="text-muted mb-0" style="font-size:.65rem;margin-top:.2rem;">Add a new child to the nutrition monitoring program</p>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size:.8rem;"></button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="modal-body" style="padding:1.5rem;">
-        <form id="registerChildForm">
-          <!-- Child Information Section -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <div class="form-section-icon child">
-                <i class="bi bi-person-plus"></i>
-              </div>
-              <h3 class="form-section-title">Child Information</h3>
-            </div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="full_name" placeholder="Child's complete name" maxlength="255" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Sex</label>
-                <select class="form-select" name="sex" required>
-                  <option value="">Select sex</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Birth Date</label>
-                <div class="date-input">
-                  <input type="date" class="form-control" name="birth_date" required>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Address Information Section -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <div class="form-section-icon address">
-                <i class="bi bi-geo-alt-fill"></i>
-              </div>
-              <h3 class="form-section-title">Address Information</h3>
-            </div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Purok/Location</label>
-                <select class="form-select" name="purok_id" required>
-                  <option value="">Select purok</option>
-                  <option value="1">Purok 1</option>
-                  <option value="2">Purok 2</option>
-                  <option value="3">Purok 3</option>
-                  <option value="4">Purok 4</option>
-                  <option value="5">Purok 5</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Complete Address</label>
-                <input type="text" class="form-control" name="address_details" placeholder="Street, barangay" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Household Number</label>
-                <input type="text" class="form-control" name="household_number" placeholder="HH-####">
-              </div>
-            </div>
-          </div>
-
-          <!-- Mother/Caregiver Details Section -->
-          <div class="form-section">
-            <div class="form-section-header">
-              <div class="form-section-icon mother">
-                <i class="bi bi-person-heart"></i>
-              </div>
-              <h3 class="form-section-title">Mother/Caregiver Details</h3>
-            </div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="mother_full_name" placeholder="Mother's complete name" maxlength="255" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Date of Birth</label>
-                <div class="date-input">
-                  <input type="date" class="form-control" name="mother_date_of_birth">
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Contact Number</label>
-                <input type="text" class="form-control" name="contact_number" placeholder="09XXXXXXXXX" maxlength="20" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Emergency Contact Name</label>
-                <input type="text" class="form-control" name="emergency_contact_name" placeholder="Emergency contact person" maxlength="120">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Emergency Contact Number</label>
-                <input type="text" class="form-control" name="emergency_contact_number" placeholder="09XXXXXXXXX" maxlength="40">
-              </div>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="modal-footer" style="border-top:1px solid var(--border-soft);padding:1rem 1.5rem;">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;">Cancel</button>
-        <button type="button" class="btn btn-success" id="saveChildBtn" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
-          <i class="bi bi-save me-1"></i> Register Child
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Schedule Event Modal -->
 <div class="modal fade" id="scheduleEventModal" tabindex="-1" aria-labelledby="scheduleEventModalLabel" aria-hidden="true">

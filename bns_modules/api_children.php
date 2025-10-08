@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 ob_start();
 
 try {
-    // Verify CSRF token
+    // Verify CSRF token (UI always sends window.__BNS_CSRF)
     $headers = function_exists('getallheaders') ? getallheaders() : [];
     $csrf_token = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? $_POST['csrf_token'] ?? '';
 
@@ -57,9 +57,7 @@ try {
             break;
 
         case 'register':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('POST method required');
-            }
+            assert_method('POST');
             $raw = file_get_contents('php://input');
             $data = json_decode($raw, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -74,17 +72,13 @@ try {
             ]);
             break;
 
-        // ADD: update action to save edits from the modal
         case 'update':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('POST method required');
-            }
+            assert_method('POST');
             $raw = file_get_contents('php://input');
             $data = json_decode($raw, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new Exception('Invalid JSON data');
             }
-
             $updated = updateChildAndMother($data);
             $child = getChildDetails((int)$data['child_id']);
 
@@ -112,11 +106,29 @@ try {
     ob_end_flush();
 }
 
+function assert_method($method) {
+    if ($_SERVER['REQUEST_METHOD'] !== $method) {
+        throw new Exception("$method method required");
+    }
+}
+
+/*
+ Consistent sa UI:
+ - Field names: mother_name, mother_contact, purok_name, address_details, last_weighing_formatted,
+   birth_date_formatted, current_age_months/years, nutrition_status
+ - Address format: "<house_number> <StreetName> Street, <Subdivision>"
+   (Ang "Street" ay idinadagdag kung wala pa; hindi sinasama ang Purok dito.)
+ - Fallback chain:
+   1) maternal_patients (house/street/subdivision)
+   2) mothers_caregivers (house/street/subdivision)
+   3) mothers_caregivers.address_details (free text)
+ - UI normalization: title case + clean spacing/commas
+*/
+
 function getChildrenList() {
     global $mysqli;
 
     try {
-        // Use MAX(weighing_date) join to get latest nutrition status per child (compat with MySQL/MariaDB)
         $sql = "
             SELECT 
                 c.child_id,
@@ -124,17 +136,65 @@ function getChildrenList() {
                 c.sex,
                 c.birth_date,
                 c.created_at,
-                mc.full_name AS mother_name,
-                mc.contact_number AS mother_contact,
-                p.purok_name,
-                mc.address_details,
+
+                -- Mother (prefer maternal_patients)
+                COALESCE(
+                    NULLIF(TRIM(CONCAT_WS(' ', mp.first_name, mp.middle_name, mp.last_name)), ''),
+                    mc.full_name
+                ) AS mother_name,
+                COALESCE(mp.contact_number, mc.contact_number) AS mother_contact,
+
+                -- Purok (prefer maternal_patients.purok_id)
+                COALESCE(p_mp.purok_name, p_mc.purok_name) AS purok_name,
+
+                -- Address composed (adds 'Street' if missing)
+                COALESCE(
+                    NULLIF(TRIM(CONCAT_WS(
+                        ', ',
+                        NULLIF(TRIM(CONCAT_WS(
+                            ' ',
+                            NULLIF(TRIM(mp.house_number), ''),
+                            NULLIF(TRIM(
+                                CASE
+                                  WHEN mp.street_name IS NULL OR TRIM(mp.street_name) = '' THEN ''
+                                  WHEN LOWER(TRIM(mp.street_name)) REGEXP '( street$| st\\.?$)' THEN TRIM(mp.street_name)
+                                  ELSE CONCAT(TRIM(mp.street_name), ' Street')
+                                END
+                            ), '')
+                        )), ''),
+                        NULLIF(TRIM(mp.subdivision_name), '')
+                    )), ''),
+                    NULLIF(TRIM(CONCAT_WS(
+                        ', ',
+                        NULLIF(TRIM(CONCAT_WS(
+                            ' ',
+                            NULLIF(TRIM(mc.house_number), ''),
+                            NULLIF(TRIM(
+                                CASE
+                                  WHEN mc.street_name IS NULL OR TRIM(mc.street_name) = '' THEN ''
+                                  WHEN LOWER(TRIM(mc.street_name)) REGEXP '( street$| st\\.?$)' THEN TRIM(mc.street_name)
+                                  ELSE CONCAT(TRIM(mc.street_name), ' Street')
+                                END
+                            ), '')
+                        )), ''),
+                        NULLIF(TRIM(mc.subdivision_name), '')
+                    )), ''),
+                    mc.address_details
+                ) AS address_details,
+
                 COALESCE(wfl.status_code, 'Not Available') AS nutrition_status,
                 COALESCE(nr_latest.weighing_date, 'Never') AS last_weighing_date,
+
                 TIMESTAMPDIFF(MONTH, c.birth_date, CURDATE()) AS current_age_months,
                 TIMESTAMPDIFF(YEAR, c.birth_date, CURDATE()) AS current_age_years
             FROM children c
             JOIN mothers_caregivers mc ON c.mother_id = mc.mother_id
-            LEFT JOIN puroks p ON mc.purok_id = p.purok_id
+            LEFT JOIN puroks p_mc ON p_mc.purok_id = mc.purok_id
+
+            LEFT JOIN maternal_patients mp ON mp.mother_id = c.mother_id
+            LEFT JOIN puroks p_mp ON p_mp.purok_id = mp.purok_id
+
+            -- latest nutrition status per child
             LEFT JOIN (
                 SELECT nr1.*
                 FROM nutrition_records nr1
@@ -145,6 +205,7 @@ function getChildrenList() {
                 ) mx ON mx.child_id = nr1.child_id AND mx.max_date = nr1.weighing_date
             ) nr_latest ON nr_latest.child_id = c.child_id
             LEFT JOIN wfl_ht_status_types wfl ON wfl.status_id = nr_latest.wfl_ht_status_id
+
             ORDER BY c.created_at DESC
         ";
 
@@ -152,10 +213,10 @@ function getChildrenList() {
         $children = [];
 
         while ($row = $res->fetch_assoc()) {
-            // Format dates
+            // Format dates for UI
             if (!empty($row['birth_date'])) {
                 $birth = new DateTime($row['birth_date']);
-                $row['birth_date_formatted'] = $birth->format('n/j/Y');
+                $row['birth_date_formatted'] = $birth->format('Y-m-d');
             } else {
                 $row['birth_date_formatted'] = 'Not Set';
             }
@@ -167,11 +228,14 @@ function getChildrenList() {
                 $row['last_weighing_formatted'] = 'Never';
             }
 
-            // Ensure defaults
-            $row['mother_name'] = $row['mother_name'] ?? 'Unknown';
+            // UI defaults
+            $row['mother_name'] = $row['mother_name'] ?: 'Unknown';
             $row['mother_contact'] = $row['mother_contact'] ?? '';
             $row['purok_name'] = $row['purok_name'] ?? 'Not Set';
             $row['nutrition_status'] = $row['nutrition_status'] ?? 'Not Available';
+
+            // Normalize address for consistent UI
+            $row['address_details'] = normalize_address_for_ui($row['address_details'] ?? '');
 
             $children[] = $row;
         }
@@ -191,16 +255,67 @@ function getChildDetails($child_id) {
         $sql = "
             SELECT 
                 c.*,
-                mc.full_name AS mother_name,
-                mc.contact_number AS mother_contact,
-                mc.emergency_contact_name,
-                mc.emergency_contact_number,
-                mc.date_of_birth AS mother_birth_date,
-                p.purok_name,
-                mc.address_details
+
+                -- Preferred mother full name and contact
+                COALESCE(
+                    NULLIF(TRIM(CONCAT_WS(' ', mp.first_name, mp.middle_name, mp.last_name)), ''),
+                    mc.full_name
+                ) AS mother_name,
+                COALESCE(mp.contact_number, mc.contact_number) AS mother_contact,
+
+                mp.first_name  AS mother_first_name,
+                mp.middle_name AS mother_middle_name,
+                mp.last_name   AS mother_last_name,
+
+                mp.emergency_contact_name,
+                mp.emergency_contact_number,
+
+                -- Purok (hiwalay na field)
+                COALESCE(p_mp.purok_name, p_mc.purok_name) AS purok_name,
+
+                -- Address composed (adds 'Street' if missing)
+                COALESCE(
+                    NULLIF(TRIM(CONCAT_WS(
+                        ', ',
+                        NULLIF(TRIM(CONCAT_WS(
+                            ' ',
+                            NULLIF(TRIM(mp.house_number), ''),
+                            NULLIF(TRIM(
+                                CASE
+                                  WHEN mp.street_name IS NULL OR TRIM(mp.street_name) = '' THEN ''
+                                  WHEN LOWER(TRIM(mp.street_name)) REGEXP '( street$| st\\.?$)' THEN TRIM(mp.street_name)
+                                  ELSE CONCAT(TRIM(mp.street_name), ' Street')
+                                END
+                            ), '')
+                        )), ''),
+                        NULLIF(TRIM(mp.subdivision_name), '')
+                    )), ''),
+                    NULLIF(TRIM(CONCAT_WS(
+                        ', ',
+                        NULLIF(TRIM(CONCAT_WS(
+                            ' ',
+                            NULLIF(TRIM(mc.house_number), ''),
+                            NULLIF(TRIM(
+                                CASE
+                                  WHEN mc.street_name IS NULL OR TRIM(mc.street_name) = '' THEN ''
+                                  WHEN LOWER(TRIM(mc.street_name)) REGEXP '( street$| st\\.?$)' THEN TRIM(mc.street_name)
+                                  ELSE CONCAT(TRIM(mc.street_name), ' Street')
+                                END
+                            ), '')
+                        )), ''),
+                        NULLIF(TRIM(mc.subdivision_name), '')
+                    )), ''),
+                    mc.address_details
+                ) AS address_details,
+
+                mp.date_of_birth AS mother_birth_date
             FROM children c
             JOIN mothers_caregivers mc ON c.mother_id = mc.mother_id
-            LEFT JOIN puroks p ON mc.purok_id = p.purok_id
+            LEFT JOIN puroks p_mc ON p_mc.purok_id = mc.purok_id
+
+            LEFT JOIN maternal_patients mp ON mp.mother_id = c.mother_id
+            LEFT JOIN puroks p_mp ON p_mp.purok_id = mp.purok_id
+
             WHERE c.child_id = ?
             LIMIT 1
         ";
@@ -211,6 +326,17 @@ function getChildDetails($child_id) {
         $res = $stmt->get_result();
         $row = $res->fetch_assoc();
         $stmt->close();
+
+        if ($row) {
+            // Fallbacks
+            $row['mother_name'] = $row['mother_name'] ?: (
+                ($row['mother_first_name'] || $row['mother_last_name'])
+                    ? trim(($row['mother_first_name'] ?? '').' '.($row['mother_middle_name'] ?? '').' '.($row['mother_last_name'] ?? ''))
+                    : 'Unknown'
+            );
+            $row['purok_name'] = $row['purok_name'] ?? 'Not Set';
+            $row['address_details'] = normalize_address_for_ui($row['address_details'] ?? '');
+        }
 
         return $row ?: null;
 
@@ -239,7 +365,7 @@ function registerNewChild($data) {
 
         $mysqli->begin_transaction();
 
-        // Check existing mother
+        // Find or create mother
         $stmt = $mysqli->prepare("SELECT mother_id FROM mothers_caregivers WHERE full_name = ? AND contact_number = ? LIMIT 1");
         $stmt->bind_param('ss', $mother_data['full_name'], $mother_data['contact_number']);
         $stmt->execute();
@@ -251,7 +377,6 @@ function registerNewChild($data) {
         $stmt->close();
 
         if (!$mother_id) {
-            // Insert mother/caregiver
             $sql = "INSERT INTO mothers_caregivers
                     (full_name, date_of_birth, emergency_contact_name, emergency_contact_number,
                      purok_id, address_details, contact_number, created_by, user_account_id)
@@ -305,17 +430,13 @@ function registerNewChild($data) {
         ];
 
     } catch (Throwable $e) {
-        if ($mysqli->errno || $mysqli->error) {
-            // leave as is
-        }
         try { $mysqli->rollback(); } catch (Throwable $ignored) {}
         error_log("Error in registerNewChild (mysqli): ".$e->getMessage());
         throw $e;
     }
 }
 
-/* NEW: helper + updater for edit modal */
-
+/* Update helper (used by Edit modal) */
 function updateChildAndMother(array $data): bool {
     global $mysqli;
 
@@ -336,7 +457,7 @@ function updateChildAndMother(array $data): bool {
         throw new Exception('Invalid birth date');
     }
 
-    // Validate mother fields (optional pero recommended)
+    // Optional mother fields (edit)
     $mother_name    = isset($data['mother_name'])    ? trim((string)$data['mother_name'])    : null;
     $mother_contact = isset($data['mother_contact']) ? trim((string)$data['mother_contact']) : null;
     $address        = isset($data['address_details'])? trim((string)$data['address_details']): null;
@@ -364,7 +485,7 @@ function updateChildAndMother(array $data): bool {
         if (!$stmt->execute()) throw new Exception('Child update failed: '.$stmt->error);
         $stmt->close();
 
-        // Update mother details if provided
+        // Update mother (mothers_caregivers) for UI consistency
         $sets = [];
         $vals = [];
         $types = '';
@@ -440,4 +561,35 @@ function resolveOrCreatePurokId(string $purok_name, int $user_id): ?int {
     $newId = (int)$ins->insert_id;
     $ins->close();
     return $newId;
+}
+
+/* --- Helpers --- */
+
+/**
+ * Normalize address string for consistent UI:
+ * - Trim and collapse spaces
+ * - Ensure comma+space separators
+ * - Title case words (keeps numbers)
+ * - Standardize 'St'/'St.' -> 'Street'
+ */
+function normalize_address_for_ui(?string $s): string {
+    $t = trim((string)$s);
+    if ($t === '') return '—';
+
+    // Normalize commas and spaces
+    $t = preg_replace('/\s+/', ' ', $t);
+    $t = preg_replace('/\s*,\s*/', ', ', $t);
+    $t = preg_replace('/,\s*,+/', ', ', $t);
+
+    // Standardize common abbreviations at end of street tokens
+    // (lightweight; avoids over-aggressive replacements)
+    $t = preg_replace('/\bSt\.?\b/i', 'Street', $t);
+
+    // Title case (but keep ALL-CAPS acronyms as-is is complex; simple approach is ok for addresses)
+    $t = ucwords(mb_strtolower($t, 'UTF-8'));
+
+    // Final tidy: remove duplicate spaces
+    $t = preg_replace('/\s+/', ' ', $t);
+
+    return $t;
 }
