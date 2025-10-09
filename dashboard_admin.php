@@ -8,7 +8,7 @@ require_role(['Admin']);
 if (session_status() === PHP_SESSION_NONE) {
     // Optional cookie scope tightening
     session_set_cookie_params([
-        'path' => '/brgy_sabang/',
+        'path' => '/',
         'httponly' => true,
         'samesite' => 'Lax'
     ]);

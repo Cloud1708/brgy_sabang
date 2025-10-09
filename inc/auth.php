@@ -5,10 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
 
 /*
  * I-define mo ang base URL path ng project mo.
- * Kung ang URL mo ay http://localhost/brgy_sabang/index.php
- * ibig sabihin base path = /brgy_sabang/
+ * Kung ang URL mo ay http://localhost/index.php
+ * ibig sabihin base path = /
  */
-define('APP_BASE_PATH', '/brgy_sabang/');  // IMPORTANT
+define('APP_BASE_PATH', '/');  // IMPORTANT
 
 function require_role(array $allowed) {
     if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
