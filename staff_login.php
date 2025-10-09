@@ -36,8 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     session_regenerate_id(true);
                     $_SESSION['user_id'] = (int)$row['user_id'];
                     $_SESSION['role'] = $row['role_name'];
-                    header('Location: /dashboard_bhw.php');
-                    exit;
+                    redirect_by_role($row['role_name']);
                 } else {
                     $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid username or password.</div>";
                 }
