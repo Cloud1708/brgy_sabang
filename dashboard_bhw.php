@@ -1305,6 +1305,254 @@ function loadChildrenPanel(){
   });
 }
 
+// Immunization Management - Vaccination Records panel
+function loadRecordsPanel(){
+  const panel=document.getElementById('immPanel');
+  panel.innerHTML=`
+    <div class="imm-card">
+      <div class="imm-recent-wrap">
+        <h6>Recent Vaccination Records</h6>
+        <div class="imm-recent-sub">All administered vaccines (latest first)</div>
+        
+        <!-- Search and Controls -->
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
+          <div class="d-flex align-items-center gap-2">
+            <input type="text" id="recordsSearch" class="form-control form-control-sm" 
+                   placeholder="Search child, vaccine, batch..." style="width:220px;font-size:.7rem;">
+            <button type="button" id="recordsSearchBtn" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button type="button" id="recordsClearBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <select id="recordsPageSize" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
+              <option value="20">20 per page</option>
+              <option value="50">50 per page</option>
+              <option value="100">100 per page</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="imm-scroll" style="max-height:430px;">
+          <table class="imm-table" id="immRecentTable">
+            <thead>
+              <tr>
+                <th>Child Name</th>
+                <th>Vaccine</th>
+                <th>Dose</th>
+                <th>Date Given</th>
+                <th>Batch No.</th>
+                <th>Expiry</th>
+                <th>Next Dose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="7" class="text-muted py-4 text-center">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <div class="imm-small-muted" id="recordsInfo">Showing records...</div>
+          <nav>
+            <ul class="pagination pagination-sm mb-0" id="recordsPagination">
+              <!-- Pagination buttons will be inserted here -->
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>`;
+
+  // Pagination state
+  let currentPage = 1;
+  let pageSize = 20;
+  let searchQuery = '';
+  let allRecords = [];
+  let filteredRecords = [];
+
+  // Load initial data
+  loadRecords();
+
+  // Event listeners
+  document.getElementById('recordsSearchBtn').addEventListener('click', performSearch);
+  document.getElementById('recordsClearBtn').addEventListener('click', clearSearch);
+  document.getElementById('recordsSearch').addEventListener('keypress', e => {
+    if (e.key === 'Enter') performSearch();
+  });
+  document.getElementById('recordsPageSize').addEventListener('change', e => {
+    pageSize = parseInt(e.target.value);
+    currentPage = 1;
+    renderTable();
+  });
+
+  function loadRecords() {
+    const body = panel.querySelector('#immRecentTable tbody');
+    body.innerHTML = '<tr><td colspan="7" class="text-muted py-4 text-center">Loading...</td></tr>';
+    
+    fetchJSON(api.immun+'?recent_vaccinations=1&limit=500').then(j=>{
+      if(!j.success){
+        body.innerHTML='<tr><td colspan="7" class="text-danger text-center py-4">Load failed.</td></tr>';
+        return;
+      }
+      allRecords = j.recent_vaccinations || [];
+      filteredRecords = [...allRecords];
+      currentPage = 1;
+      renderTable();
+      updateSearchSummary();
+    }).catch(err=>{
+      body.innerHTML=`<tr><td colspan="7" class="text-danger text-center py-4">Error: ${escapeHtml(err.message)}</td></tr>`;
+    });
+  }
+
+  function performSearch() {
+    searchQuery = document.getElementById('recordsSearch').value.trim().toLowerCase();
+    if (searchQuery === '') {
+      filteredRecords = [...allRecords];
+    } else {
+      filteredRecords = allRecords.filter(r => {
+        return (r.child_name || '').toLowerCase().includes(searchQuery) ||
+               (r.vaccine_code || '').toLowerCase().includes(searchQuery) ||
+               (r.vaccine_name || '').toLowerCase().includes(searchQuery) ||
+               (r.batch_lot_number || '').toLowerCase().includes(searchQuery);
+      });
+    }
+    currentPage = 1;
+    renderTable();
+    updateSearchSummary();
+  }
+
+  function clearSearch() {
+    document.getElementById('recordsSearch').value = '';
+    searchQuery = '';
+    filteredRecords = [...allRecords];
+    currentPage = 1;
+    renderTable();
+    updateSearchSummary();
+  }
+
+  function updateSearchSummary() {
+    const summaryEl = panel.querySelector('.imm-recent-sub');
+    if (searchQuery) {
+      const resultCount = filteredRecords.length;
+      summaryEl.innerHTML = `Found ${resultCount} record${resultCount !== 1 ? 's' : ''} matching "<strong>${escapeHtml(searchQuery)}</strong>"`;
+      summaryEl.className = 'imm-recent-sub text-info';
+    } else {
+      summaryEl.innerHTML = 'All administered vaccines (latest first)';
+      summaryEl.className = 'imm-recent-sub';
+    }
+  }
+
+  function renderTable() {
+    const body = panel.querySelector('#immRecentTable tbody');
+    const infoEl = document.getElementById('recordsInfo');
+    const paginationEl = document.getElementById('recordsPagination');
+
+    if (!filteredRecords.length) {
+      body.innerHTML = '<tr><td colspan="7" class="text-muted text-center py-4">No vaccination records found.</td></tr>';
+      infoEl.textContent = 'No records found';
+      paginationEl.innerHTML = '';
+      return;
+    }
+
+    // Calculate pagination
+    const totalRecords = filteredRecords.length;
+    const totalPages = Math.ceil(totalRecords / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalRecords);
+    const pageRecords = filteredRecords.slice(startIndex, endIndex);
+
+    // Render table rows
+    body.innerHTML = pageRecords.map(r => {
+      const doseOrd = ordinal(r.dose_number) + ' Dose';
+      const completed = r.next_dose_due_date === null || r.next_dose_due_date === '';
+      let nextHtml = '—';
+      if (completed) {
+        nextHtml = `<span class="imm-pill-completed">Completed</span>`;
+      } else if (r.next_dose_due_date) {
+        nextHtml = `<span class="imm-pill-date">${formatShortDate(r.next_dose_due_date)}</span>`;
+      }
+
+      const expiryHtml = r.vaccine_expiry_date ? formatShortDate(r.vaccine_expiry_date) : '—';
+
+      return `<tr>
+        <td>${escapeHtml(r.child_name||'')}</td>
+        <td>${escapeHtml(r.vaccine_code||'')}</td>
+        <td>${doseOrd}</td>
+        <td>${r.vaccination_date?formatShortDate(r.vaccination_date):'—'}</td>
+        <td>${escapeHtml(r.batch_lot_number||'')}</td>
+        <td>${expiryHtml}</td>
+        <td>${nextHtml}</td>
+      </tr>`;
+    }).join('');
+
+    // Update info text
+    infoEl.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalRecords} records`;
+
+    // Render pagination
+    renderPagination(currentPage, totalPages, paginationEl);
+  }
+
+  function renderPagination(page, totalPages, container) {
+    if (totalPages <= 1) {
+      container.innerHTML = '';
+      return;
+    }
+
+    let html = '';
+    
+    // Previous button
+    html += `<li class="page-item ${page <= 1 ? 'disabled' : ''}">
+      <a class="page-link" href="#" data-page="${page - 1}" style="font-size:.65rem;">Previous</a>
+    </li>`;
+
+    // Page numbers (show max 5 pages around current)
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+
+    if (startPage > 1) {
+      html += `<li class="page-item"><a class="page-link" href="#" data-page="1" style="font-size:.65rem;">1</a></li>`;
+      if (startPage > 2) {
+        html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      html += `<li class="page-item ${i === page ? 'active' : ''}">
+        <a class="page-link" href="#" data-page="${i}" style="font-size:.65rem;">${i}</a>
+      </li>`;
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
+      }
+      html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}" style="font-size:.65rem;">${totalPages}</a></li>`;
+    }
+
+    // Next button
+    html += `<li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+      <a class="page-link" href="#" data-page="${page + 1}" style="font-size:.65rem;">Next</a>
+    </li>`;
+
+    container.innerHTML = html;
+
+    // Add click listeners
+    container.querySelectorAll('a.page-link').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const newPage = parseInt(e.target.dataset.page);
+        if (newPage && newPage !== currentPage && newPage >= 1 && newPage <= totalPages) {
+          currentPage = newPage;
+          renderTable();
+        }
+      });
+    });
+  }
+
+  function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+}
+
 // Immunization Management - Vaccine Schedule panel
 function loadSchedulePanel(){
   const panel=document.getElementById('immPanel');
@@ -4930,260 +5178,7 @@ function loadParentNotifPanel(){
   }
 }
 
-// REPLACE the whole loadRecordsPanel() function inside renderVaccinationEntry with this version
-function loadRecordsPanel(){
-  const panel=document.getElementById('immPanel');
-  panel.innerHTML=`
-    <div class="imm-card">
-      <div class="imm-recent-wrap">
-        <h6>Recent Vaccination Records</h6>
-        <div class="imm-recent-sub">All administered vaccines (latest first)</div>
-        
-        <!-- Search and Controls -->
-        <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
-          <div class="d-flex align-items-center gap-2">
-            <input type="text" id="recordsSearch" class="form-control form-control-sm" 
-                   placeholder="Search child, vaccine, batch..." style="width:220px;font-size:.7rem;">
-            <button type="button" id="recordsSearchBtn" class="btn btn-outline-success btn-sm">
-              <i class="bi bi-search me-1"></i>Search
-            </button>
-            <button type="button" id="recordsClearBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <select id="recordsPageSize" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
-              <option value="20">20 per page</option>
-              <option value="50">50 per page</option>
-              <option value="100">100 per page</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="imm-scroll" style="max-height:430px;">
-          <table class="imm-table" id="immRecentTable">
-            <thead>
-              <tr>
-                <th>Child Name</th>
-                <th>Vaccine</th>
-                <th>Dose</th>
-                <th>Date Given</th>
-                <th>Batch No.</th>
-                <th>Expiry</th>
-                <th>Next Dose</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td colspan="7" class="text-muted py-4 text-center">Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="d-flex justify-content-between align-items-center mt-3">
-          <div class="imm-small-muted" id="recordsInfo">Showing records...</div>
-          <nav>
-            <ul class="pagination pagination-sm mb-0" id="recordsPagination">
-              <!-- Pagination buttons will be inserted here -->
-            </ul>
-          </nav>
-        </div>
-      </div>
-    </div>`;
-
-  const dosesRequiredMap={};
-  scheduleRaw.forEach(r=>{
-    if(r.vaccine_id && r.doses_required){dosesRequiredMap[r.vaccine_id]=r.doses_required;}
-    else if(r.vaccine_id && !dosesRequiredMap[r.vaccine_id]){dosesRequiredMap[r.vaccine_id]=r.doses_required||0;}
-  });
-
-  // Pagination state
-  let currentPage = 1;
-  let pageSize = 20;
-  let searchQuery = '';
-  let allRecords = [];
-  let filteredRecords = [];
-
-  // Load initial data
-  loadRecords();
-
-  // Event listeners
-  document.getElementById('recordsSearchBtn').addEventListener('click', performSearch);
-  document.getElementById('recordsClearBtn').addEventListener('click', clearSearch);
-  document.getElementById('recordsSearch').addEventListener('keypress', e => {
-    if (e.key === 'Enter') performSearch();
-  });
-  document.getElementById('recordsPageSize').addEventListener('change', e => {
-    pageSize = parseInt(e.target.value);
-    currentPage = 1;
-    renderTable();
-  });
-
-  function loadRecords() {
-    const body = panel.querySelector('#immRecentTable tbody');
-    body.innerHTML = '<tr><td colspan="7" class="text-muted py-4 text-center">Loading...</td></tr>';
-    
-    fetchJSON(api.immun+'?recent_vaccinations=1&limit=500').then(j=>{
-      if(!j.success){
-        body.innerHTML='<tr><td colspan="7" class="text-danger text-center py-4">Load failed.</td></tr>';
-        return;
-      }
-      allRecords = j.recent_vaccinations || [];
-      filteredRecords = [...allRecords];
-      currentPage = 1;
-      renderTable();
-      updateSearchSummary();
-    }).catch(err=>{
-      body.innerHTML=`<tr><td colspan="7" class="text-danger text-center py-4">Error: ${escapeHtml(err.message)}</td></tr>`;
-    });
-  }
-
-  function performSearch() {
-    searchQuery = document.getElementById('recordsSearch').value.trim().toLowerCase();
-    if (searchQuery === '') {
-      filteredRecords = [...allRecords];
-    } else {
-      filteredRecords = allRecords.filter(r => {
-        return (r.child_name || '').toLowerCase().includes(searchQuery) ||
-               (r.vaccine_code || '').toLowerCase().includes(searchQuery) ||
-               (r.vaccine_name || '').toLowerCase().includes(searchQuery) ||
-               (r.batch_lot_number || '').toLowerCase().includes(searchQuery);
-      });
-    }
-    currentPage = 1;
-    renderTable();
-    updateSearchSummary();
-  }
-
-  function clearSearch() {
-    document.getElementById('recordsSearch').value = '';
-    searchQuery = '';
-    filteredRecords = [...allRecords];
-    currentPage = 1;
-    renderTable();
-    updateSearchSummary();
-  }
-
-  function updateSearchSummary() {
-    const summaryEl = panel.querySelector('.imm-recent-sub');
-    if (searchQuery) {
-      const resultCount = filteredRecords.length;
-      summaryEl.innerHTML = `Found ${resultCount} record${resultCount !== 1 ? 's' : ''} matching "<strong>${escapeHtml(searchQuery)}</strong>"`;
-      summaryEl.className = 'imm-recent-sub text-info';
-    } else {
-      summaryEl.innerHTML = 'All administered vaccines (latest first)';
-      summaryEl.className = 'imm-recent-sub';
-    }
-  }
-
-  function renderTable() {
-    const body = panel.querySelector('#immRecentTable tbody');
-    const infoEl = document.getElementById('recordsInfo');
-    const paginationEl = document.getElementById('recordsPagination');
-
-    if (!filteredRecords.length) {
-      body.innerHTML = '<tr><td colspan="7" class="text-muted text-center py-4">No vaccination records found.</td></tr>';
-      infoEl.textContent = 'No records found';
-      paginationEl.innerHTML = '';
-      return;
-    }
-
-    // Calculate pagination
-    const totalRecords = filteredRecords.length;
-    const totalPages = Math.ceil(totalRecords / pageSize);
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = Math.min(startIndex + pageSize, totalRecords);
-    const pageRecords = filteredRecords.slice(startIndex, endIndex);
-
-    // Render table rows
-    body.innerHTML = pageRecords.map(r => {
-      const doseOrd = ordinal(r.dose_number) + ' Dose';
-      const dosesReq = dosesRequiredMap[r.vaccine_id] || null;
-      const completed = dosesReq && r.dose_number >= dosesReq;
-      let nextHtml = '—';
-      if (completed) {
-        nextHtml = `<span class="imm-pill-completed">Completed</span>`;
-      } else if (r.next_dose_due_date) {
-        nextHtml = `<span class="imm-pill-date">${formatShortDate(r.next_dose_due_date)}</span>`;
-      }
-
-      const expiryHtml = r.vaccine_expiry_date ? formatShortDate(r.vaccine_expiry_date) : '—';
-
-      return `<tr>
-        <td>${escapeHtml(r.child_name||'')}</td>
-        <td>${escapeHtml(r.vaccine_code||'')}</td>
-        <td>${doseOrd}</td>
-        <td>${r.vaccination_date?formatShortDate(r.vaccination_date):'—'}</td>
-        <td>${escapeHtml(r.batch_lot_number||'')}</td>
-        <td>${expiryHtml}</td>
-        <td>${nextHtml}</td>
-      </tr>`;
-    }).join('');
-
-    // Update info text
-    infoEl.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalRecords} records`;
-
-    // Render pagination
-    renderPagination(currentPage, totalPages, paginationEl);
-  }
-
-  function renderPagination(page, totalPages, container) {
-    if (totalPages <= 1) {
-      container.innerHTML = '';
-      return;
-    }
-
-    let html = '';
-    
-    // Previous button
-    html += `<li class="page-item ${page <= 1 ? 'disabled' : ''}">
-      <a class="page-link" href="#" data-page="${page - 1}" style="font-size:.65rem;">Previous</a>
-    </li>`;
-
-    // Page numbers (show max 5 pages around current)
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(totalPages, page + 2);
-
-    if (startPage > 1) {
-      html += `<li class="page-item"><a class="page-link" href="#" data-page="1" style="font-size:.65rem;">1</a></li>`;
-      if (startPage > 2) {
-        html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
-      }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      html += `<li class="page-item ${i === page ? 'active' : ''}">
-        <a class="page-link" href="#" data-page="${i}" style="font-size:.65rem;">${i}</a>
-      </li>`;
-    }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        html += `<li class="page-item disabled"><span class="page-link" style="font-size:.65rem;">...</span></li>`;
-      }
-      html += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}" style="font-size:.65rem;">${totalPages}</a></li>`;
-    }
-
-    // Next button
-    html += `<li class="page-item ${page >= totalPages ? 'disabled' : ''}">
-      <a class="page-link" href="#" data-page="${page + 1}" style="font-size:.65rem;">Next</a>
-    </li>`;
-
-    container.innerHTML = html;
-
-    // Add click listeners
-    container.querySelectorAll('a.page-link').forEach(link => {
-      link.addEventListener('click', e => {
-        e.preventDefault();
-        const newPage = parseInt(e.target.dataset.page);
-        if (newPage && newPage !== currentPage && newPage >= 1 && newPage <= totalPages) {
-          currentPage = newPage;
-          renderTable();
-        }
-      });
-    });
-  }
-
-  function ordinal(n){n=parseInt(n,10)||0;const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
-}
+// This function will be moved to global scope
 
 
     function metricCard(label,value,sub,icon){
@@ -5288,6 +5283,16 @@ function renderCreateParentAccounts(label){
         .pa-msg{font-size:.6rem;font-weight:600;margin-top:.7rem;display:none;}
         .pa-msg.ok{color:#0d7c4e;}
         .pa-msg.err{color:#b62419;}
+        
+        /* Mother Search Styles */
+        .pa-mother-search-section{margin-bottom:1rem;}
+        .pa-mother-search-section .form-label{font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .4rem;color:#2d4e53;}
+        .pa-search-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d9e4e8;border-radius:.65rem;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:1000;max-height:200px;overflow-y:auto;}
+        .pa-search-result-item{padding:.5rem .7rem;cursor:pointer;border-bottom:1px solid #f0f5f7;font-size:.7rem;transition:background-color .15s;}
+        .pa-search-result-item:hover{background:#f8fbfc;}
+        .pa-search-result-item:last-child{border-bottom:none;}
+        .pa-search-result-name{font-weight:600;color:#2d4e53;}
+        .pa-search-result-details{font-size:.6rem;color:#66747a;margin-top:.2rem;}
         @media (max-width:600px){
           #modalParentCreate .modal-dialog{margin:0;max-width:100%;height:100%;display:flex;}
           #modalParentCreate .modal-content{border-radius:0;flex:1;}
@@ -5394,10 +5399,25 @@ function renderCreateParentAccounts(label){
               <datalist id="paChildrenDatalist"></datalist>
               <div class="modal-body">
                 <div class="pa-form-section-title">Parent/Guardian Information</div>
+                
+                <!-- Mother Search Section -->
+                <div class="pa-mother-search-section mb-3">
+                  <label class="form-label">Search Registered Mother (Optional)</label>
+                  <div class="position-relative">
+                    <input type="text" id="paMotherSearch" class="form-control" placeholder="Type mother's name to search...">
+                    <div id="paMotherSearchResults" class="pa-search-results" style="display: none;"></div>
+                  </div>
+                  <div class="pa-small-hint">Search for registered mothers from maternal health records to auto-fill information</div>
+                </div>
+                
                 <div class="pa-grid">
                   <div>
                     <label>First Name *</label>
                     <input name="first_name" class="form-control" required>
+                  </div>
+                  <div>
+                    <label>Middle Name</label>
+                    <input name="middle_name" class="form-control">
                   </div>
                   <div>
                     <label>Last Name *</label>
@@ -5778,6 +5798,108 @@ function renderCreateParentAccounts(label){
         const val=e.target.value.trim().toLowerCase();
         if(val && childrenMap[val]) activateExistingChild(row, childrenMap[val]);
         else clearExistingChild(row);
+      });
+
+      /* ===== Mother Search Functionality (NEW) ===== */
+      const motherSearchInput = document.getElementById('paMotherSearch');
+      const motherSearchResults = document.getElementById('paMotherSearchResults');
+      let motherSearchTimeout = null;
+      let mothersCache = null;
+
+      function fetchMothersList(){
+        if(mothersCache !== null) return Promise.resolve(mothersCache);
+        return fetchJSON(api.maternal + '?list=1').then(j => {
+          if(!j.success) { mothersCache = []; return mothersCache; }
+          mothersCache = j.mothers || [];
+          return mothersCache;
+        }).catch(() => { mothersCache = []; return mothersCache; });
+      }
+
+      function searchMothers(query) {
+        if(!query || query.length < 2) {
+          motherSearchResults.style.display = 'none';
+          return;
+        }
+
+        fetchMothersList().then(mothers => {
+          const filtered = mothers.filter(mother => {
+            const fullName = `${mother.first_name || ''} ${mother.middle_name || ''} ${mother.last_name || ''}`.toLowerCase();
+            return fullName.includes(query.toLowerCase());
+          });
+
+          if(filtered.length === 0) {
+            motherSearchResults.innerHTML = '<div class="pa-search-result-item">No mothers found</div>';
+          } else {
+            motherSearchResults.innerHTML = filtered.map(mother => {
+              const fullName = `${mother.first_name || ''} ${mother.middle_name || ''} ${mother.last_name || ''}`.trim();
+              const details = [];
+              if(mother.contact_number) details.push(`Contact: ${mother.contact_number}`);
+              if(mother.date_of_birth) details.push(`DOB: ${formatShortDate(mother.date_of_birth)}`);
+              
+              return `
+                <div class="pa-search-result-item" data-mother-id="${mother.mother_id}">
+                  <div class="pa-search-result-name">${escapeHtml(fullName)}</div>
+                  <div class="pa-search-result-details">${details.join(' • ')}</div>
+                </div>
+              `;
+            }).join('');
+          }
+          motherSearchResults.style.display = 'block';
+        });
+      }
+
+      function selectMother(mother) {
+        // Auto-fill form fields
+        const firstNameInput = form.querySelector('[name="first_name"]');
+        const middleNameInput = form.querySelector('[name="middle_name"]');
+        const lastNameInput = form.querySelector('[name="last_name"]');
+        const contactInput = form.querySelector('[name="contact_number"]');
+        const birthdayInput = form.querySelector('[name="parent_birth_date"]');
+        const relationshipSelect = form.querySelector('[name="relationship_type"]');
+
+        if(firstNameInput) firstNameInput.value = mother.first_name || '';
+        if(middleNameInput) middleNameInput.value = mother.middle_name || '';
+        if(lastNameInput) lastNameInput.value = mother.last_name || '';
+        if(contactInput) contactInput.value = mother.contact_number || '';
+        if(birthdayInput && mother.date_of_birth) birthdayInput.value = mother.date_of_birth;
+        if(relationshipSelect) relationshipSelect.value = 'mother';
+
+        // Clear search
+        motherSearchInput.value = '';
+        motherSearchResults.style.display = 'none';
+      }
+
+      // Event listeners for mother search
+      motherSearchInput.addEventListener('input', (e) => {
+        clearTimeout(motherSearchTimeout);
+        const query = e.target.value.trim();
+        
+        if(query.length < 2) {
+          motherSearchResults.style.display = 'none';
+          return;
+        }
+
+        motherSearchTimeout = setTimeout(() => {
+          searchMothers(query);
+        }, 300);
+      });
+
+      motherSearchResults.addEventListener('click', (e) => {
+        const resultItem = e.target.closest('.pa-search-result-item');
+        if(!resultItem || !resultItem.dataset.motherId) return;
+
+        const motherId = resultItem.dataset.motherId;
+        const mother = mothersCache.find(m => m.mother_id == motherId);
+        if(mother) {
+          selectMother(mother);
+        }
+      });
+
+      // Hide search results when clicking outside
+      document.addEventListener('click', (e) => {
+        if(!motherSearchInput.contains(e.target) && !motherSearchResults.contains(e.target)) {
+          motherSearchResults.style.display = 'none';
+        }
       });
       addBtn.addEventListener('click',()=>addChildRow());
       addChildRow(); // first row
@@ -8232,7 +8354,105 @@ function renderVaccinationEntry(label){
         </div>
         <div id="immPanel"></div>
       </div>
-      <!-- (Keep existing modals & forms below – omitted here for brevity if unchanged) -->
+
+      <!-- Vaccination Record Entry Modal -->
+      <div class="modal fade" id="immRecordModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+          <div class="modal-content">
+            <div class="modal-vax-header">
+              <div>
+                <h5 class="vax-modal-title mb-1">Vaccination Record Entry</h5>
+                <div class="vax-modal-sub">Record vaccine administration details</div>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="immRecordForm" autocomplete="off">
+              <div class="modal-vax-body">
+                <div class="vax-form-grid">
+                  <div class="vax-field-group">
+                    <label class="vax-label">Select Child *</label>
+                    <select name="child_id" id="vaxChildSel" class="form-select" required>
+                      <option value="">Choose child</option>
+                    </select>
+                  </div>
+                  <div class="vax-field-group">
+                    <label class="vax-label">Date of Vaccination *</label>
+                    <input type="date" name="vaccination_date" class="form-control" value="${new Date().toISOString().slice(0,10)}" required>
+                  </div>
+
+                  <div class="vax-field-group">
+                    <label class="vax-label">Vaccine Name *</label>
+                    <select name="vaccine_id" id="vaxVaccineSel" class="form-select" required>
+                      <option value="">Select vaccine</option>
+                    </select>
+                  </div>
+                  <div class="vax-field-group">
+                    <label class="vax-label">Dose Number *</label>
+                    <select name="dose_number" id="vaxDoseSel" class="form-select" required>
+                      <option value="">Select dose</option>
+                    </select>
+                  </div>
+
+                  <div class="vax-field-group">
+                    <label class="vax-label">Batch/Lot Number</label>
+                    <input name="batch_lot_number" class="form-control" placeholder="e.g., HB-2025-089">
+                  </div>
+                  <div class="vax-field-group">
+                    <label class="vax-label">Expiry Date</label>
+                    <input type="date" name="vaccine_expiry_date" class="form-control" placeholder="mm/dd/yyyy">
+                  </div>
+
+                  <div class="vax-field-group">
+                    <label class="vax-label">Vaccination Site</label>
+                    <select name="vaccination_site" id="vaxSiteSel" class="form-select">
+                      <option value="">Select site</option>
+                      <option>Left Deltoid</option>
+                      <option>Right Deltoid</option>
+                      <option>Left Thigh</option>
+                      <option>Right Thigh</option>
+                      <option>Oral</option>
+                      <option value="OTHER">Other...</option>
+                    </select>
+                    <div id="vaxSiteOtherWrap" class="mt-2">
+                      <input type="text" id="vaxSiteOther" class="form-control" placeholder="Specify site">
+                    </div>
+                  </div>
+                  <div class="vax-field-group">
+                    <label class="vax-label">Administered By</label>
+                    <div class="vax-readonly">Health Worker</div>
+                  </div>
+
+                  <div class="vax-field-group">
+                    <label class="vax-label">Next Dose Date (if applicable)</label>
+                    <input type="date" name="next_dose_due_date" class="form-control" placeholder="mm/dd/yyyy">
+                    <div class="vax-subtext">Leave blank to auto-compute (if interval is defined)</div>
+                  </div>
+                  <div class="vax-field-group">
+                    <label class="vax-label">Adverse Reactions (if any)</label>
+                    <textarea name="adverse_reactions" rows="2" class="form-control" placeholder="Record any adverse reactions or complications"></textarea>
+                  </div>
+
+                  <div class="vax-field-group" style="grid-column:1/-1;">
+                    <label class="vax-label">Notes</label>
+                    <textarea name="notes" rows="2" class="form-control" placeholder="Optional notes"></textarea>
+                  </div>
+                </div>
+                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
+              </div>
+              <div class="modal-vax-footer d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="text-danger d-none vax-error" id="vaxErr"></span>
+                  <span class="text-success d-none vax-ok" id="vaxOk">Saved!</span>
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-outline-secondary btn-vax-cancel" data-bs-dismiss="modal">Cancel</button>
+                  <button class="btn-vax-save" id="btnVaxSave" type="submit"><i class="bi bi-save me-1"></i>Save Vaccination Record</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     `;
 
     if(typeof loadChildrenPanel==='function') loadChildrenPanel();
@@ -8240,7 +8460,88 @@ function renderVaccinationEntry(label){
     document.getElementById('immRecordBtn')?.addEventListener('click',()=>{
       const m=document.getElementById('immRecordModal');
       if(m) bootstrap.Modal.getOrCreateInstance(m)?.show();
-      if(typeof preloadVaccinationForm==='function') preloadVaccinationForm();
+      preloadVaccinationForm();
+    });
+
+    /* Form dynamic data caches */
+    let vaccineMeta = []; // store list from API for doses_required mapping
+
+    function preloadVaccinationForm(){
+      // Children
+      fetchJSON(api.immun+'?children=1').then(j=>{
+        const sel=document.getElementById('vaxChildSel');
+        if(!j.success){ sel.innerHTML='<option value="">Error loading children</option>'; return;}
+        sel.innerHTML='<option value="">Choose child</option>'+ (j.children||[]).map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.age_months}m)</option>`).join('');
+      }).catch(()=>{});
+      // Vaccines
+      fetchJSON(api.immun+'?vaccines=1').then(j=>{
+        const sel=document.getElementById('vaxVaccineSel');
+        if(!j.success){ sel.innerHTML='<option value="">Error loading vaccines</option>'; return;}
+        vaccineMeta = j.vaccines||[];
+        sel.innerHTML='<option value="">Select vaccine</option>' + vaccineMeta.map(v=>`<option value="${v.vaccine_id}" data-doses="${v.doses_required||1}" data-interval="${v.interval_between_doses_days||''}">${escapeHtml(v.vaccine_code)} - ${escapeHtml(v.vaccine_name)}</option>`).join('');
+      }).catch(()=>{});
+    }
+
+    // Vaccine selection changes dose options
+    document.getElementById('vaxVaccineSel')?.addEventListener('change',e=>{
+      const sel=e.target;
+      const doseSel=document.getElementById('vaxDoseSel');
+      if(!doseSel) return;
+      const selected=sel.options[sel.selectedIndex];
+      const doses=parseInt(selected.dataset.doses||'1');
+      doseSel.innerHTML='<option value="">Select dose</option>';
+      for(let i=1;i<=doses;i++){
+        doseSel.innerHTML+=`<option value="${i}">Dose ${i}</option>`;
+      }
+    });
+
+    // Site selection shows/hides custom input
+    document.getElementById('vaxSiteSel')?.addEventListener('change',e=>{
+      const sel=e.target;
+      const otherWrap=document.getElementById('vaxSiteOtherWrap');
+      if(sel.value==='OTHER'){
+        otherWrap.style.display='block';
+      } else {
+        otherWrap.style.display='none';
+        document.getElementById('vaxSiteOther').value='';
+      }
+    });
+
+    // Submit vaccination form
+    document.getElementById('immRecordForm')?.addEventListener('submit',e=>{
+      e.preventDefault();
+      const form=e.target;
+      const fd=new FormData(form);
+
+      // If site OTHER chosen, replace vaccination_site with custom value
+      const siteSel=form.querySelector('#vaxSiteSel');
+      if(siteSel && siteSel.value==='OTHER'){
+        const custom=form.querySelector('#vaxSiteOther').value.trim();
+        fd.set('vaccination_site', custom);
+      }
+
+      // If next dose date left blank, backend will auto-compute; else passes override
+      // Expiry date optional (backend will insert only if column exists)
+
+      fetch(api.immun,{method:'POST',body:fd})
+        .then(parseJSONSafe)
+        .then(j=>{
+          if(!j.success) throw new Error(j.error||'Save failed');
+          form.querySelector('#vaxErr').classList.add('d-none');
+          const ok=form.querySelector('#vaxOk');
+          ok.classList.remove('d-none');
+          setTimeout(()=>ok.classList.add('d-none'),1400);
+          // refresh records tab if active
+          const activeTab=document.querySelector('#immTabs .nav-link.active[data-tab="records"]');
+          if(activeTab && typeof loadRecordsPanel==='function') loadRecordsPanel();
+          // Optionally clear some fields
+          form.reset();
+        }).catch(err=>{
+          const er=form.querySelector('#vaxErr');
+          er.textContent=err.message;
+          er.classList.remove('d-none');
+          setTimeout(()=>er.classList.add('d-none'),4000);
+        });
     });
     document.getElementById('immTabs')?.addEventListener('click',e=>{
       const b=e.target.closest('.nav-link'); if(!b) return;

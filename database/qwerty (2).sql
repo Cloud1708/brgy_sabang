@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 08, 2025 at 10:37 AM
+-- Generation Time: Oct 08, 2025 at 06:08 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -113,12 +113,10 @@ CREATE TABLE `account_creation_log` (
 INSERT INTO `account_creation_log` (`log_id`, `created_user_id`, `created_by_user_id`, `account_type`, `creation_reason`, `created_at`) VALUES
 (7, 9, 2, 'BHW', 'Account created via admin/BNS interface', '2025-10-06 08:34:30'),
 (8, 9, 2, 'BHW', 'New BHW account created', '2025-10-06 08:34:30'),
-(9, 10, 2, 'BHW', 'Account created via admin/BNS interface', '2025-10-08 05:19:15'),
-(10, 10, 2, 'BHW', 'New BHW account created', '2025-10-08 05:19:15'),
-(11, 12, 2, 'BNS', 'Account created via admin/BNS interface', '2025-10-08 05:21:02'),
-(12, 12, 2, 'BNS', 'New BNS account created', '2025-10-08 05:21:02'),
-(13, 14, 2, 'BNS', 'Account created via admin/BNS interface', '2025-10-08 05:30:41'),
-(14, 14, 2, 'BNS', 'New BNS account created', '2025-10-08 05:30:41');
+(9, 10, 2, 'BHW', 'Account created via admin/BNS interface', '2025-10-08 07:36:03'),
+(10, 10, 2, 'BHW', 'New BHW account created', '2025-10-08 07:36:03'),
+(11, 11, 2, 'BNS', 'Account created via admin/BNS interface', '2025-10-08 07:38:06'),
+(12, 11, 2, 'BNS', 'New BNS account created', '2025-10-08 07:38:06');
 
 -- --------------------------------------------------------
 
@@ -191,8 +189,8 @@ CREATE TABLE `children` (
 --
 
 INSERT INTO `children` (`child_id`, `first_name`, `middle_name`, `last_name`, `sex`, `weight_kg`, `height_cm`, `birth_date`, `mother_id`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'Baby', 'Test', 'Example', 'male', NULL, NULL, '2025-01-01', 1, 9, '2025-10-08 05:13:06', '2025-10-08 05:13:06'),
-(2, 'Brian', 'C', 'Marvic', 'male', 3.50, 45.00, '2025-10-08', 2, 10, '2025-10-08 07:56:35', '2025-10-08 07:56:35');
+(1, 'Baby', 'Test', 'Example', 'male', NULL, NULL, '2025-01-01', 1, 9, '2025-10-08 05:37:41', '2025-10-08 05:37:41'),
+(2, 'Sepp', 'Bernard', 'Consulta', 'female', 3.50, 45.00, '2025-04-16', 1, 10, '2025-10-08 07:39:27', '2025-10-08 07:39:27');
 
 -- --------------------------------------------------------
 
@@ -284,8 +282,8 @@ CREATE TABLE `health_records` (
 INSERT INTO `health_records` (`health_record_id`, `mother_id`, `consultation_date`, `age`, `height_cm`, `last_menstruation_date`, `expected_delivery_date`, `pregnancy_age_weeks`, `vaginal_bleeding`, `urinary_infection`, `weight_kg`, `blood_pressure_systolic`, `blood_pressure_diastolic`, `high_blood_pressure`, `fever_38_celsius`, `pallor`, `abnormal_abdominal_size`, `abnormal_presentation`, `absent_fetal_heartbeat`, `swelling`, `vaginal_infection`, `hgb_result`, `urine_result`, `vdrl_result`, `other_lab_results`, `recorded_by`, `created_at`, `updated_at`) VALUES
 (2, 29, '2025-10-07', 25, 150.00, '2025-10-01', '2025-10-31', 7, 0, 0, 45.00, 110, 80, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:01:36', '2025-10-06 17:01:36'),
 (3, 29, '2025-10-07', 25, 250.00, '2025-10-08', '2025-10-08', NULL, 0, 0, 55.00, 110, 70, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:11:59', '2025-10-06 17:11:59'),
-(4, 31, '2025-10-08', 25, 145.00, '2025-10-08', '2025-10-30', 7, 0, 0, 45.00, 110, 90, 0, 0, 0, 0, 0, 0, 0, 0, '12.5', 'Normal', 'Non', NULL, 10, '2025-10-08 05:33:45', '2025-10-08 05:33:45'),
-(5, 32, '2025-10-08', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 10, '2025-10-08 07:44:52', '2025-10-08 07:44:52');
+(4, 31, '2025-10-08', 20, 152.00, '2025-10-09', '2025-10-31', 12, 1, 0, 50.00, 10, 10, 0, 0, 0, 0, 0, 0, 1, 1, 'haha', 'uti', 'hahahah', 'hahah', 10, '2025-10-08 08:48:34', '2025-10-08 08:48:34'),
+(5, 32, '2025-10-08', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 9, '2025-10-08 15:44:39', '2025-10-08 15:44:39');
 
 -- --------------------------------------------------------
 
@@ -328,7 +326,9 @@ CREATE TABLE `maternal_patients` (
   `user_account_id` int(10) UNSIGNED DEFAULT NULL,
   `house_number` varchar(50) DEFAULT NULL,
   `street_name` varchar(150) DEFAULT NULL,
+  `purok_name` varchar(100) DEFAULT NULL,
   `subdivision_name` varchar(150) DEFAULT NULL,
+  `purok_id` int(10) UNSIGNED DEFAULT NULL,
   `legacy_full_name_backup` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Maternal patients registry';
 
@@ -336,16 +336,16 @@ CREATE TABLE `maternal_patients` (
 -- Dumping data for table `maternal_patients`
 --
 
-INSERT INTO `maternal_patients` (`mother_id`, `first_name`, `middle_name`, `last_name`, `date_of_birth`, `gravida`, `para`, `blood_type`, `emergency_contact_name`, `emergency_contact_number`, `contact_number`, `created_by`, `created_at`, `updated_at`, `user_account_id`, `house_number`, `street_name`, `subdivision_name`, `legacy_full_name_backup`) VALUES
-(1, 'Althea', 'G', 'Reyes', '2004-11-11', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 08:44:29', '2025-10-06 08:44:29', NULL, NULL, NULL, NULL, NULL),
-(2, 'Brian', 'Marvic', 'Maines', '2000-12-31', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 09:17:14', '2025-10-06 09:17:14', NULL, NULL, NULL, NULL, NULL),
-(3, 'weq', 'ewq', 'weq', '2000-11-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 09:34:22', '2025-10-06 09:34:22', NULL, NULL, NULL, NULL, NULL),
-(4, 'wqe', 'q', 'wqe', '2000-01-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 16:09:24', '2025-10-06 16:09:24', NULL, NULL, NULL, NULL, NULL),
-(5, 'eqwe', 'wq', 'weq', '2000-02-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 16:38:43', '2025-10-06 16:38:43', NULL, NULL, NULL, NULL, NULL),
-(29, 'qweq', 'wqe', 'weqe', '2000-02-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:01:36', '2025-10-06 17:01:36', NULL, NULL, NULL, NULL, NULL),
-(30, 'sdasda', 'weq', 'weq', '2004-12-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:36:54', '2025-10-06 17:36:54', NULL, NULL, NULL, NULL, NULL),
-(31, 'abcd', 'e', 'fg', '2000-02-02', 0, 0, 'A', 'weq', '09952604071', '09952604071', 10, '2025-10-08 05:33:45', '2025-10-08 05:33:45', NULL, '123', 'w', 'q', NULL),
-(32, 'sd', 'sda', 'sd', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 10, '2025-10-08 07:44:52', '2025-10-08 07:44:52', NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `maternal_patients` (`mother_id`, `first_name`, `middle_name`, `last_name`, `date_of_birth`, `gravida`, `para`, `blood_type`, `emergency_contact_name`, `emergency_contact_number`, `contact_number`, `created_by`, `created_at`, `updated_at`, `user_account_id`, `house_number`, `street_name`, `purok_name`, `subdivision_name`, `purok_id`, `legacy_full_name_backup`) VALUES
+(1, 'Althea', 'G', 'Reyes', '2004-11-11', 3, 4, 'O', 'Sepp Bernard', '09622360874', '09958167775', 9, '2025-10-06 08:44:29', '2025-10-08 15:44:11', NULL, '3333', 'rosas', 'Purok 1', 'lynville', 1, NULL),
+(2, 'Brian', 'Marvic', 'Maines', '2000-12-31', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 09:17:14', '2025-10-06 09:17:14', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(3, 'weq', 'ewq', 'weq', '2000-11-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 09:34:22', '2025-10-06 09:34:22', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(4, 'wqe', 'q', 'wqe', '2000-01-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 16:09:24', '2025-10-06 16:09:24', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(5, 'eqwe', 'wq', 'weq', '2000-02-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 16:38:43', '2025-10-06 16:38:43', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(29, 'qweq', 'wqe', 'weqe', '2000-02-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:01:36', '2025-10-06 17:01:36', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(30, 'sdasda', 'weq', 'weq', '2004-12-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:36:54', '2025-10-06 17:36:54', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(31, 'Gabrielle', 'gab', 'Resuello', '2004-11-11', 4, 5, 'A', 'Althea Gabrielle Reyes', '09958167775', '09992223324', 10, '2025-10-08 08:48:34', '2025-10-08 09:27:11', NULL, '2301', 'Sampaguita', NULL, 'Silverlas', 1, NULL),
+(32, 'qwe', 'wqe', 'qwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-08 15:44:39', '2025-10-08 15:44:39', NULL, NULL, NULL, 'Purok 2', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -380,8 +380,7 @@ CREATE TABLE `mothers_caregivers` (
 --
 
 INSERT INTO `mothers_caregivers` (`mother_id`, `first_name`, `middle_name`, `last_name`, `full_name`, `date_of_birth`, `emergency_contact_name`, `emergency_contact_number`, `purok_id`, `address_details`, `contact_number`, `created_by`, `created_at`, `updated_at`, `user_account_id`, `house_number`, `street_name`, `subdivision_name`, `legacy_full_name_backup`) VALUES
-(1, NULL, NULL, NULL, 'Placeholder Mother', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-08 05:13:05', '2025-10-08 05:13:05', NULL, NULL, NULL, NULL, NULL),
-(2, 'Brian', 'Marvic', 'Maines', 'Brian Marvic Maines', '2000-12-31', NULL, NULL, NULL, NULL, NULL, 10, '2025-10-08 07:56:35', '2025-10-08 07:56:35', NULL, NULL, NULL, NULL, NULL);
+(1, NULL, NULL, NULL, 'Placeholder Mother', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -402,6 +401,14 @@ CREATE TABLE `nutrition_records` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Nutrition measurement records';
+
+--
+-- Dumping data for table `nutrition_records`
+--
+
+INSERT INTO `nutrition_records` (`record_id`, `child_id`, `weighing_date`, `age_in_months`, `weight_kg`, `length_height_cm`, `wfl_ht_status_id`, `remarks`, `recorded_by`, `created_at`, `updated_at`) VALUES
+(1, 2, '2025-10-08', 5, 5.00, 45.00, NULL, 'abay mataba', 11, '2025-10-08 11:36:23', '2025-10-08 11:36:23'),
+(5, 2, '2025-10-09', 5, 3.50, 45.00, 1, '', 11, '2025-10-08 16:00:39', '2025-10-08 16:00:39');
 
 -- --------------------------------------------------------
 
@@ -582,8 +589,8 @@ CREATE TABLE `puroks` (
 --
 
 INSERT INTO `puroks` (`purok_id`, `purok_name`, `barangay`, `created_at`) VALUES
-(1, 'Purok 1', 'Sabang', '2025-10-08 05:13:05'),
-(2, 'Purok 2', 'Sabang', '2025-10-08 05:13:05');
+(1, 'Purok 1', 'Sabang', '2025-10-08 05:37:41'),
+(2, 'Purok 2', 'Sabang', '2025-10-08 05:37:41');
 
 -- --------------------------------------------------------
 
@@ -603,10 +610,10 @@ CREATE TABLE `roles` (
 --
 
 INSERT INTO `roles` (`role_id`, `role_name`, `role_description`, `created_at`) VALUES
-(1, 'Admin', 'Barangay-level administrator with full system access', '2025-10-08 05:13:05'),
-(2, 'BHW', 'Barangay Health Worker - focused on health data and services', '2025-10-08 05:13:05'),
-(3, 'BNS', 'Barangay Nutrition Scholar - focused on nutrition programs and records', '2025-10-08 05:13:05'),
-(4, 'Parent', 'Parent/Guardian with access to view their child information', '2025-10-08 05:13:05');
+(1, 'Admin', 'Barangay-level administrator with full system access', '2025-10-08 05:37:40'),
+(2, 'BHW', 'Barangay Health Worker - focused on health data and services', '2025-10-08 05:37:40'),
+(3, 'BNS', 'Barangay Nutrition Scholar - focused on nutrition programs and records', '2025-10-08 05:37:40'),
+(4, 'Parent', 'Parent/Guardian with access to view their child information', '2025-10-08 05:37:40');
 
 -- --------------------------------------------------------
 
@@ -654,11 +661,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `email`, `password`, `password_hash`, `first_name`, `last_name`, `role_id`, `barangay`, `is_active`, `created_at`, `updated_at`, `last_login_at`, `created_by_user_id`) VALUES
-(2, 'admin', NULL, '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', '', '', 1, NULL, 1, '2025-10-08 05:13:05', '2025-10-08 05:13:05', NULL, NULL),
-(9, 'cris', 'sdasd@gmail.com', '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', 'Cris', 'Hernandez', 2, 'Sabang', 1, '2025-10-08 05:13:05', '2025-10-08 05:13:05', NULL, 2),
-(10, 'brianes', 'brian@gmail.com', 'maines29191', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', 'Brian', 'Maines', 2, 'Sabang', 1, '2025-10-08 05:19:15', '2025-10-08 05:31:59', NULL, 2),
-(12, 'carloez', 'carlo@gmail.com', 'hernandez65613', '$2y$10$P1e9qETl9BNY3RzX7ESMg.YmdfKIRavRjZwb7DZKz4IKf/CJoOsja', 'Carlo', 'Hernandez', 3, 'Sabang', 1, '2025-10-08 05:21:02', '2025-10-08 05:21:02', NULL, 2),
-(14, 'abcdez', 'abcd@gmail.com', 'hernandez25877', '$2y$10$Ds/7QYLs089UqPWkh/9t..XE5X0fah9ApqVcMMUm7bAmNyW82BhVa', 'abcd', 'Hernandez', 3, 'Sabang', 1, '2025-10-08 05:30:41', '2025-10-08 05:30:41', NULL, 2);
+(2, 'admin', NULL, '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', '', '', 1, NULL, 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, NULL),
+(9, 'cris', 'sdasd@gmail.com', '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', 'Cris', 'Hernandez', 2, 'Sabang', 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, 2),
+(10, 'bnsses', 'bns@gmail.com', 'reyes77488', '$2y$10$BziwBgsgBhk3ZUIm3qS3dutrp0FJn/KuRxOK2Rmp6zgFlhHTVTWjy', 'bnss', 'reyes', 2, 'Sabang', 1, '2025-10-08 07:36:03', '2025-10-08 07:36:03', NULL, 2),
+(11, 'althea gabriellees', 'raltheagabrielle@gmail.com', 'reyes49341', '$2y$10$p.qXQF4FkaE/4RJstceFE.cjk5GVpHdkRkTuCGCnvRwA6gFwUucH2', 'Althea Gabrielle', 'Reyes', 3, 'Sabang', 1, '2025-10-08 07:38:06', '2025-10-08 07:38:06', NULL, 2);
 
 --
 -- Triggers `users`
@@ -710,6 +716,22 @@ CREATE TABLE `vaccine_types` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Vaccine type catalog';
 
+--
+-- Dumping data for table `vaccine_types`
+--
+
+INSERT INTO `vaccine_types` (`vaccine_id`, `vaccine_code`, `vaccine_name`, `vaccine_description`, `target_age_group`, `vaccine_category`, `doses_required`, `interval_between_doses_days`, `is_active`, `created_at`) VALUES
+(1, 'BCG', 'BCG Vaccine', NULL, '0', 'birth', 1, NULL, 1, '2025-10-01 11:02:34'),
+(2, 'HEPB', 'Hepatitis B Vaccine', NULL, '0', 'birth', 1, NULL, 1, '2025-10-01 11:02:34'),
+(3, 'PENTA', 'Pentavalent Vaccine (DPT-Hep B-HIB)', NULL, NULL, 'infant', 3, NULL, 1, '2025-10-01 11:02:34'),
+(4, 'OPV', 'Oral Polio Vaccine (OPV)', NULL, '1 1/2, 2 1/2, 3 1/2', 'infant', 3, NULL, 1, '2025-10-01 11:02:34'),
+(5, 'IPV', 'Inactivated Polio Vaccine (IPV)', NULL, '3 1/2 & 9', 'infant', 2, NULL, 1, '2025-10-01 11:02:34'),
+(6, 'PCV', 'Pneumococcal Conjugate Vaccine (PCV)', NULL, NULL, 'infant', 3, NULL, 1, '2025-10-01 11:02:34'),
+(7, 'MMR', 'Measles, Mumps, Rubella Vaccine (MMR)', NULL, NULL, 'child', 2, NULL, 1, '2025-10-01 11:02:34'),
+(8, 'MCV', 'Measles Containing Vaccine (MCV) MR/MMR Booster', NULL, NULL, 'child', 1, NULL, 1, '2025-10-01 11:02:34'),
+(9, 'TD', 'Tetanus Diphtheria (TD)', NULL, NULL, 'booster', 2, NULL, 1, '2025-10-01 11:02:34'),
+(10, 'HPV', 'Human Papillomavirus Vaccine (HPV)', NULL, NULL, 'booster', 2, NULL, 1, '2025-10-01 11:02:34');
+
 -- --------------------------------------------------------
 
 --
@@ -723,6 +745,19 @@ CREATE TABLE `wfl_ht_status_types` (
   `status_category` enum('underweight','normal','overweight','obese','stunted','wasted') NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Weight-for-length/height status taxonomy';
+
+--
+-- Dumping data for table `wfl_ht_status_types`
+--
+
+INSERT INTO `wfl_ht_status_types` (`status_id`, `status_code`, `status_description`, `status_category`, `created_at`) VALUES
+(1, 'NOR', 'Normal', 'normal', '2025-10-08 11:40:48'),
+(2, 'MAM', 'Moderate Acute Malnutrition', 'wasted', '2025-10-08 11:40:48'),
+(3, 'SAM', 'Severe Acute Malnutrition', 'wasted', '2025-10-08 11:40:48'),
+(4, 'OW', 'Overweight', 'overweight', '2025-10-08 11:40:48'),
+(5, 'OB', 'Obese', 'obese', '2025-10-08 11:40:48'),
+(6, 'ST', 'Stunted', 'stunted', '2025-10-08 11:40:48'),
+(7, 'UW', 'Underweight', 'underweight', '2025-10-08 11:40:48');
 
 -- --------------------------------------------------------
 
@@ -822,7 +857,8 @@ ALTER TABLE `immunization_schedule`
 ALTER TABLE `maternal_patients`
   ADD PRIMARY KEY (`mother_id`),
   ADD KEY `idx_mp_created_by` (`created_by`),
-  ADD KEY `idx_mp_user_account` (`user_account_id`);
+  ADD KEY `idx_mp_user_account` (`user_account_id`),
+  ADD KEY `idx_mp_purok` (`purok_id`);
 
 --
 -- Indexes for table `mothers_caregivers`
@@ -954,7 +990,7 @@ ALTER TABLE `wfl_ht_status_types`
 -- AUTO_INCREMENT for table `account_creation_log`
 --
 ALTER TABLE `account_creation_log`
-  MODIFY `log_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `log_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `children`
@@ -996,13 +1032,13 @@ ALTER TABLE `maternal_patients`
 -- AUTO_INCREMENT for table `mothers_caregivers`
 --
 ALTER TABLE `mothers_caregivers`
-  MODIFY `mother_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `mother_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `nutrition_records`
 --
 ALTER TABLE `nutrition_records`
-  MODIFY `record_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `record_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `overdue_notifications`
@@ -1056,7 +1092,7 @@ ALTER TABLE `supplementation_records`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `user_login_log`
@@ -1068,13 +1104,13 @@ ALTER TABLE `user_login_log`
 -- AUTO_INCREMENT for table `vaccine_types`
 --
 ALTER TABLE `vaccine_types`
-  MODIFY `vaccine_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `vaccine_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `wfl_ht_status_types`
 --
 ALTER TABLE `wfl_ht_status_types`
-  MODIFY `status_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `status_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables
@@ -1126,6 +1162,7 @@ ALTER TABLE `immunization_schedule`
 --
 ALTER TABLE `maternal_patients`
   ADD CONSTRAINT `fk_mp_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_mp_purok` FOREIGN KEY (`purok_id`) REFERENCES `puroks` (`purok_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_mp_user_account` FOREIGN KEY (`user_account_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --

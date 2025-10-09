@@ -1,11 +1,46 @@
 <?php
-require_once __DIR__.'/../inc/db.php';
+// Prevent any output before JSON response
+ob_start();
+
+// Start session first
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Handle database connection errors gracefully
+try {
+    require_once __DIR__.'/../inc/db.php';
+    if (!$mysqli) {
+        throw new Exception('Database connection failed');
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Database connection failed']);
+    exit;
+}
+
 require_once __DIR__.'/../inc/auth.php';
 require_once __DIR__.'/../inc/mail.php';
-require_role(['BHW']);
 
-if (session_status() === PHP_SESSION_NONE) session_start();
+// Check authentication and return JSON error if not authenticated
+if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+    exit;
+}
+if (!in_array($_SESSION['role'], ['BHW', 'Admin'], true)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Access denied']);
+    exit;
+}
+
 header('Content-Type: application/json; charset=utf-8');
+
+ini_set('display_errors','0');
+error_reporting(E_ALL);
+
+// Clear any output buffer content
+ob_clean();
 
 function fail($m,$c=400){ http_response_code($c); echo json_encode(['success'=>false,'error'=>$m]); exit; }
 function ok($d=[]){ echo json_encode(array_merge(['success'=>true],$d)); exit; }

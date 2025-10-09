@@ -1622,6 +1622,11 @@ async function viewChild(childId) {
     if (!res.success || !res.child) throw new Error(res.error || 'Not found');
     const c = res.child;
 
+    // Build "Purok + Address"
+    const purok = (c.purok_name && c.purok_name !== 'Not Set') ? String(c.purok_name).trim() : '';
+    const baseAddr = (c.address_details && c.address_details !== '—') ? String(c.address_details).trim() : '';
+    const combinedAddress = purok ? (baseAddr ? `${purok}, ${baseAddr}` : purok) : (baseAddr || '—');
+
     const body = document.querySelector('#childProfileViewModal .modal-body');
     body.innerHTML = `
       <div class="row g-3">
@@ -1645,7 +1650,7 @@ async function viewChild(childId) {
           <div class="tile-sub">Mother/Caregiver</div>
           <div style="font-size:.7rem;"><strong>Name:</strong> ${escapeHtml(c.mother_name||'—')}</div>
           <div style="font-size:.7rem;"><strong>Contact:</strong> ${escapeHtml(c.mother_contact||'—')}</div>
-          <div style="font-size:.7rem;"><strong>Address:</strong> ${escapeHtml(c.address_details||'—')}</div>
+          <div style="font-size:.7rem;"><strong>Address:</strong> ${escapeHtml(combinedAddress)}</div>
         </div>
       </div>
     `;
@@ -1957,7 +1962,12 @@ async function loadWeighRightPane(childId){
           <div class="col-md-6"><strong>Birth Date:</strong> ${escapeHtml(c.birth_date||'—')}</div>
           <div class="col-md-6"><strong>Mother/Caregiver:</strong> ${escapeHtml(c.mother_name||'—')}</div>
           <div class="col-md-6"><strong>Contact:</strong> ${escapeHtml(c.mother_contact||'—')}</div>
-          <div class="col-md-6"><strong>Address:</strong> ${escapeHtml(c.address_details||'—')}</div>
+          <div class="col-md-6"><strong>Address:</strong> ${(() => {
+            const purok = (c.purok_name && c.purok_name !== 'Not Set') ? String(c.purok_name).trim() : '';
+            const baseAddr = (c.address_details && c.address_details !== '—') ? String(c.address_details).trim() : '';
+            const combined = purok ? (baseAddr ? `${purok}, ${baseAddr}` : purok) : (baseAddr || '—');
+            return escapeHtml(combined);
+          })()}</div>
         </div>
       </div>
     `;
@@ -2374,6 +2384,11 @@ async function loadProfileDetails(childId) {
     if (!res.success || !res.child) throw new Error(res.error || 'Failed to load');
     const c = res.child;
 
+    // Build "Purok + Address" combined string (include Purok when available)
+    const purok = (c.purok_name && c.purok_name !== 'Not Set') ? String(c.purok_name).trim() : '';
+    const baseAddr = (c.address_details && c.address_details !== '—') ? String(c.address_details).trim() : '';
+    const combinedAddress = purok ? (baseAddr ? `${purok}, ${baseAddr}` : purok) : (baseAddr || '—');
+
     const field = (label, val) => `
       <div class="d-flex justify-content-between align-items-center" style="padding:.45rem .65rem;border:1px solid #e9efeb;border-radius:8px;background:#fbfdfb;margin-bottom:.4rem;">
         <span style="font-size:.62rem;color:#5f7464;font-weight:700;">${label}</span>
@@ -2386,12 +2401,11 @@ async function loadProfileDetails(childId) {
       ${field('Full Name', c.full_name)}
       ${field('Sex', c.sex)}
       ${field('Birth Date', c.birth_date)}
-      ${field('Purok', c.purok_name || 'Not Set')}
 
       <div class="tile-sub" style="margin:.8rem 0 .5rem;">Mother/Caregiver</div>
       ${field('Full Name', c.mother_name)}
       ${field('Contact', c.mother_contact || '—')}
-      ${field('Address', c.address_details || '—')}
+      ${field('Address', combinedAddress)}
     `;
 
     ph.style.display = 'none';
