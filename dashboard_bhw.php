@@ -8785,11 +8785,11 @@ async function onNext(){
           <input type="number" name="blood_pressure_diastolic" class="form-control">
         </div>
         <div class="col-md-3">
-          <label>HULING REGLA (LMP) (LMP)</label>
+          <label>HULING REGLA (LMP)</label>
           <input type="date" name="last_menstruation_date" class="form-control">
         </div>
         <div class="col-md-3">
-          <label>TINATAYANG PETSA NG PANGANGANAK (EDD) (EDD)</label>
+          <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
           <input type="date" name="expected_delivery_date" class="form-control">
         </div>
         <label>MGA PAGSUSURI (LABS)</label>
