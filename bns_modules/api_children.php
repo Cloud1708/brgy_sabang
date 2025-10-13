@@ -302,6 +302,7 @@ function getChildrenList() {
 function getChildDetails($child_id) {
     global $mysqli;
 
+    
     try {
         $sql = "
             SELECT 
