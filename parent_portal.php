@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 session_start();
  
 // Get current view from URL parameter, default to dashboard

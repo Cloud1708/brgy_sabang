@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 // Database connection (adjust credentials)
 $DB_HOST = 'mysql.hostinger.com';
 $DB_USER = 'u689218423_brgysabang';

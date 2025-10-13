@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 require_once __DIR__.'/../inc/db.php';
 require_once __DIR__.'/../inc/auth.php';
 require_role(['BHW']);
@@ -259,9 +260,34 @@ if ($method === 'POST') {
     $age         = ($_POST['age'] !== '' ? (int)$_POST['age'] : null);
     $height_cm   = ($_POST['height_cm'] !== '' ? (float)$_POST['height_cm'] : null);
     $weight_kg   = ($_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null);
-    // LMP and EDD should come from mother's registration data, not from consultation form
-    $lmp         = null; // Will be set from mother's data if needed
-    $edd         = null; // Will be set from mother's data if needed
+    // LMP and EDD from consultation form with date validation
+    $lmp_raw     = trim($_POST['last_menstruation_date'] ?? '');
+    $edd_raw     = trim($_POST['expected_delivery_date'] ?? '');
+    
+    // Debug: Log received LMP and EDD data
+    error_log('Health Records API - LMP raw: ' . $lmp_raw . ', EDD raw: ' . $edd_raw);
+    
+    $lmp = null;
+    if ($lmp_raw !== '') {
+        // Validate date format (YYYY-MM-DD)
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $lmp_raw)) {
+            $lmp = $lmp_raw;
+            error_log('Health Records API - LMP validated and set: ' . $lmp);
+        } else {
+            error_log('Health Records API - LMP format invalid: ' . $lmp_raw);
+        }
+    }
+    
+    $edd = null;
+    if ($edd_raw !== '') {
+        // Validate date format (YYYY-MM-DD)
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $edd_raw)) {
+            $edd = $edd_raw;
+            error_log('Health Records API - EDD validated and set: ' . $edd);
+        } else {
+            error_log('Health Records API - EDD format invalid: ' . $edd_raw);
+        }
+    }
     $preg_weeks  = ($_POST['pregnancy_age_weeks'] !== '' ? (int)$_POST['pregnancy_age_weeks'] : null);
 
     $bp_sys      = ($_POST['blood_pressure_systolic'] !== '' ? (int)$_POST['blood_pressure_systolic'] : null);

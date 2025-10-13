@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 // Prevent any output before JSON response
 ob_start();
 
