@@ -21,6 +21,7 @@ $stmt = $mysqli->prepare("
          event_date, event_time, location, created_at
   FROM events
   WHERE is_published = 1
+    AND (is_completed = 0 OR is_completed IS NULL)
     AND event_date BETWEEN (CURDATE() - INTERVAL 30 DAY) AND (CURDATE() + INTERVAL 90 DAY)
   ORDER BY event_date ASC, event_time ASC
   LIMIT 20

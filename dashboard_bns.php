@@ -37,6 +37,14 @@ $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), arra
   box-shadow: var(--shadow-sm);
 }
 
+/* Growth charts (Individual Child) */
+.gm-chart-wrap{border:1px solid var(--border-soft);border-radius:12px;background:#fff;padding:.6rem .8rem;}
+.gm-chart-title{font-size:.72rem;font-weight:800;color:#18432b;margin:0 0 .35rem;}
+.gm-legend{display:flex;gap:1rem;flex-wrap:wrap;margin-top:.3rem;}
+.gm-legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+.gm-legend .swatch{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.gm-legend span{font-size:.62rem;color:#5f7464;font-weight:700;display:inline-flex;align-items:center;gap:.4rem;}
+
 .form-section-header {
   display: flex;
   align-items: center;
@@ -271,6 +279,32 @@ body{
 
 .nav-menu{list-style:none;margin:0;padding:0 .85rem 1.1rem;font-size:.8rem;}
 .nav-menu li{margin-bottom:5px;}
+.nav-submenu{
+  list-style:none;margin:.25rem 0 .6rem .5rem;padding:0 .4rem 0 2.1rem;display:none;
+}
+.nav-submenu.show{display:block;}
+.nav-submenu .submenu-link{
+  display:flex;align-items:center;gap:.55rem;
+  padding:.55rem .75rem;
+  border-radius:10px;
+  font-size:.74rem;
+  font-weight:600;
+  color:#2a4a35;
+  text-decoration:none;
+}
+.nav-submenu .submenu-link:hover{background:#eaf4ee;color:#0b532d;}
+.nav-submenu .submenu-link.active-sub{
+  background:#dff2e7;color:#0a4e2b;
+  border:1px solid #cfe7da;
+}
+.nav-link-toggle{
+  display:flex;align-items:center;gap:.65rem;
+  padding:.72rem .9rem;width:100%;
+  border-radius:14px;font-size:.8rem;font-weight:600;
+  color:#1f4129;text-decoration:none;
+}
+.nav-link-toggle .chev{margin-left:auto;transition:.15s transform;opacity:.7;}
+.nav-link-toggle[aria-expanded="true"] .chev{transform:rotate(180deg);}
 .nav-link-bns{
   display:flex;align-items:center;gap:.65rem;
   padding:.72rem .9rem;
@@ -368,6 +402,19 @@ body{
   flex-shrink:0;
 }
 .btn-toggle{display:none;}
+/* NEW: current module title in the navbar */
+.topbar-title{
+  font-size:.9rem;
+  font-weight:700;
+  color:#0a3a1e;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:60vw;
+}
+@media (max-width: 576px){
+  .topbar-title{ max-width:48vw; font-size:.85rem; }
+}
 @media (max-width: 992px){
   .sidebar{
     position:fixed;
@@ -918,6 +965,37 @@ h1.page-title{
   border-color:#1c79d022;
 }
 
+/* Combobox (typeahead) styles */
+.combobox { position: relative; }
+.combobox .combobox-icon {
+  left:.8rem; top:50%; transform:translateY(-50%); font-size:.75rem; color:var(--muted);
+  pointer-events:none;
+}
+/* Add padding for gmChildInput so the search icon won't overlap */
+.combobox input#gmChildInput { padding-left:2.2rem; }
+.combobox input#suppChildInput { padding-left:2.2rem; }
+.combobox .combobox-clear{
+  position:absolute; right:.45rem; top:50%; transform:translateY(-50%);
+  border:none; background:transparent; color:#8aa093; padding:.2rem; border-radius:6px; display:none;
+}
+.combobox .combobox-clear:hover{ background:#edf5ef; }
+.combobox-list{
+  position:absolute; z-index:1056; /* higher than modal body */
+  left:0; right:0; top: calc(100% + 4px);
+  background:#fff; border:1px solid var(--border-soft); border-radius:10px;
+  box-shadow: var(--shadow-sm);
+  max-height:240px; overflow:auto; padding:.25rem;
+}
+.combobox-item{
+  display:flex; align-items:center; gap:.55rem;
+  padding:.45rem .55rem; border-radius:8px; cursor:pointer;
+  font-size:.72rem; color:#1e3e27;
+}
+.combobox-item:hover, .combobox-item[aria-selected="true"], .combobox-item.active{
+  background:#f0f8f1;
+}
+.combobox-item .sub{ font-size:.6rem; color:#6a7a6d; }
+
 </style>
 </head>
 <body class="font-lg">
@@ -936,11 +1014,97 @@ h1.page-title{
     <div class="nav-section-title">Navigation</div>
     <ul class="nav-menu">
       <li><a href="#" class="nav-link-bns active" data-module="dashboard_home" data-label="Dashboard"><span class="ico"><i class="bi bi-speedometer2"></i></span><span>Dashboard</span></a></li>
-      <li><a href="#" class="nav-link-bns" data-module="child_profiles" data-label="Children Management"><span class="ico"><i class="bi bi-people"></i></span><span>Children Management</span></a></li>
+      <!-- Children Management with dropdown submenu -->
+      <li class="has-submenu" id="childrenMenu">
+        <a href="#" id="navChildrenToggle" class="nav-link-toggle nav-link-bns"
+           data-module="child_profiles" data-label="Children Management" aria-expanded="false">
+          <span class="ico"><i class="bi bi-people"></i></span>
+          <span>Children Management</span>
+          <i class="bi bi-chevron-down chev"></i>
+        </a>
+        <ul class="nav-submenu" id="childrenSubmenu">
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="child_profiles" data-label="Children Management" data-child-tab="profiles">
+              <i class="bi bi-person-vcard"></i> Profile Management
+            </a>
+          </li>
+        </ul>
+      </li>
       <li><a href="#" class="nav-link-bns" data-module="weighing_sessions" data-label="Nutrition Data Entry"><span class="ico"><i class="bi bi-clipboard2-data"></i></span><span>Nutrition Data Entry</span></a></li>
-      <li><a href="#" class="nav-link-bns" data-module="nutrition_classification" data-label="Growth Monitoring"><span class="ico"><i class="bi bi-graph-up"></i></span><span>Growth Monitoring</span></a></li>
-      <li><a href="#" class="nav-link-bns" data-module="feeding_programs" data-label="Supplementation"><span class="ico"><i class="bi bi-capsule-pill"></i></span><span>Supplementation</span></a></li>
-      <li><a href="#" class="nav-link-bns" data-module="nutrition_calendar" data-label="Event Scheduling"><span class="ico"><i class="bi bi-calendar3"></i></span><span>Event Scheduling</span></a></li>
+      <li class="has-submenu" id="gmMenu">
+        <a href="#" id="navGmToggle" class="nav-link-toggle nav-link-bns"
+           data-module="nutrition_classification" data-label="Growth Monitoring" aria-expanded="false">
+          <span class="ico"><i class="bi bi-graph-up"></i></span>
+          <span>Growth Monitoring</span>
+          <i class="bi bi-chevron-down chev"></i>
+        </a>
+        <ul class="nav-submenu" id="gmSubmenu">
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="nutrition_classification" data-label="Growth Monitoring" data-gm-tab="population">
+              <i class="bi bi-graph-up-arrow"></i> Population Trends
+            </a>
+          </li>
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="nutrition_classification" data-label="Growth Monitoring" data-gm-tab="wfl">
+              <i class="bi bi-scales"></i> WFL/H Assessment
+            </a>
+          </li>
+        </ul>
+      </li>
+      <!-- Sidebar > Supplementation submenu -->
+      <li class="has-submenu" id="suppMenu">
+        <a href="#" id="navSuppToggle" class="nav-link-toggle nav-link-bns"
+           data-module="feeding_programs" data-label="Supplementation" aria-expanded="false">
+          <span class="ico"><i class="bi bi-capsule-pill"></i></span>
+          <span>Supplementation</span>
+          <i class="bi bi-chevron-down chev"></i>
+        </a>
+        <ul class="nav-submenu" id="suppSubmenu">
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="feeding_programs" data-label="Supplementation" data-supp-tab="schedule">
+              <i class="bi bi-calendar3"></i> Schedule
+            </a>
+          </li>
+        </ul>
+      </li>
+      <!-- Event Scheduling with dropdown submenu -->
+      <li class="has-submenu" id="eventsMenu">
+        <a href="#" id="navEventsToggle" class="nav-link-toggle nav-link-bns" data-module="nutrition_calendar" data-label="Event Scheduling" aria-expanded="false">
+          <span class="ico"><i class="bi bi-calendar3"></i></span>
+          <span>Event Scheduling</span>
+          <i class="bi bi-chevron-down chev"></i>
+        </a>
+        <ul class="nav-submenu" id="eventsSubmenu">
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="nutrition_calendar" data-label="Event Scheduling" data-cal-tab="health">
+              <i class="bi bi-clipboard-data"></i> Health Sessions
+            </a>
+          </li>
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="nutrition_calendar" data-label="Event Scheduling" data-cal-tab="feeding">
+              <i class="bi bi-cup-hot"></i> Feeding Programs
+            </a>
+          </li>
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="nutrition_calendar" data-label="Event Scheduling" data-cal-tab="weighing">
+              <i class="bi bi-clipboard2-data"></i> Weighing Schedules
+            </a>
+          </li>
+          <li>
+            <a href="#" class="submenu-link nav-link-bns"
+               data-module="nutrition_calendar" data-label="Event Scheduling" data-cal-tab="nutrition">
+              <i class="bi bi-book"></i> Nutrition Education
+            </a>
+          </li>
+        </ul>
+      </li>
       <li><a href="#" class="nav-link-bns" data-module="report_status_distribution" data-label="Nutrition Reports"><span class="ico"><i class="bi bi-file-bar-graph"></i></span><span>Nutrition Reports</span></a></li>
     </ul>
 
@@ -957,7 +1121,7 @@ h1.page-title{
     </div>
 
     <div class="sidebar-logout" style="padding:1rem 1.1rem;">
-      <a href="logout" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+      <a href="logout.php" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
         <i class="bi bi-box-arrow-right me-1"></i> Logout
       </a>
     </div>
@@ -968,11 +1132,13 @@ h1.page-title{
 
   <!-- Main content area -->
   <div class="content-area">
-<!-- REPLACE the whole header.topbar with this simplified version -->
 <header class="topbar">
   <button class="btn btn-outline-success btn-sm btn-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
     <i class="bi bi-list"></i>
   </button>
+
+  <!-- NEW: navbar module title -->
+  <div class="topbar-title" id="navCurrentTitle">Dashboard</div>
 
   <!-- spacer so user-chip stays on the right -->
   <div class="ms-auto"></div>
@@ -988,7 +1154,6 @@ h1.page-title{
 </header>
 
     <main id="mainRegion">
-      <h1 class="page-title" id="currentModuleTitle">Dashboard</h1>
       <div id="moduleContent">
         <div class="loading-state">
           <div class="spinner"></div>
@@ -1001,9 +1166,280 @@ h1.page-title{
 
 <script>
 /* BASIC JS (zoom controls removed) */
+
+// Submenu accordion: only one open at a time (persists via localStorage)
+const __submenuRegistry = [
+  { key: 'childrenSubmenuOpen', toggleId: 'navChildrenToggle', submenuId: 'childrenSubmenu' },
+  { key: 'gmSubmenuOpen',       toggleId: 'navGmToggle',       submenuId: 'gmSubmenu' },
+  { key: 'suppSubmenuOpen',     toggleId: 'navSuppToggle',     submenuId: 'suppSubmenu' },
+  { key: 'eventsSubmenuOpen',   toggleId: 'navEventsToggle',   submenuId: 'eventsSubmenu' }
+];
+
+function closeOtherSubmenus(currentKey){
+  __submenuRegistry.forEach(({key, toggleId, submenuId})=>{
+    if (key === currentKey) return;
+    const submenu = document.getElementById(submenuId);
+    const toggle  = document.getElementById(toggleId);
+    if (submenu) submenu.classList.remove('show');
+    if (toggle)  toggle.setAttribute('aria-expanded','false');
+    localStorage.setItem(key, '0');
+  });
+}
+
+// Optional: enforce single-open on initial load if may naiwan sa storage na >1 open
+function enforceSingleOpenFromStorage(){
+  const openKeys = __submenuRegistry.filter(s => localStorage.getItem(s.key) === '1').map(s => s.key);
+  if (openKeys.length <= 1) return;
+  const keep = openKeys[openKeys.length - 1]; // panatilihin ang huling “open”
+  closeOtherSubmenus(keep);
+}
+
+// Global: Growth Monitoring child combobox (typeahead)
+function setupGmChildCombobox(children, opts = {}) {
+  const all = Array.isArray(children) ? children : [];
+
+  const combo   = document.getElementById('gmChildCombo');
+  const input   = document.getElementById('gmChildInput');
+  const list    = document.getElementById('gmChildListbox');
+  const idEl    = document.getElementById('gmChildId');
+  const clearBtn= document.getElementById('gmChildClear');
+
+  if (!combo || !input || !list || !idEl) return;
+
+  // Reset state
+  input.value = '';
+  idEl.value  = idEl.value || '';
+  list.innerHTML = '';
+  list.hidden = true;
+  input.setAttribute('aria-expanded','false');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  let activeIndex = -1;
+
+  const render = (items) => {
+    if (!items.length) {
+      list.innerHTML = `<div class="combobox-item" aria-disabled="true" style="color:#6a7a6d;">No matches</div>`;
+      list.hidden = false;
+      input.setAttribute('aria-expanded','true');
+      activeIndex = -1;
+      return;
+    }
+    list.innerHTML = items.map((c, idx) => `
+      <div class="combobox-item" role="option" data-id="${c.child_id}" data-index="${idx}">
+        <div style="width:22px;height:22px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+          <i class="bi ${c.sex==='male'?'bi-gender-male':'bi-gender-female'}" style="font-size:.65rem;color:${c.sex==='male'?'#1c79d0':'#e91e63'};"></i>
+        </div>
+        <div class="d-flex flex-column">
+          <div style="font-weight:700;">${escapeHtml(c.full_name)}</div>
+          <div class="sub">${escapeHtml(c.mother_name || '')}${c.purok_name ? ' • ' + escapeHtml(c.purok_name) : ''}</div>
+        </div>
+      </div>
+    `).join('');
+    list.hidden = false;
+    input.setAttribute('aria-expanded','true');
+    activeIndex = -1;
+
+    list.querySelectorAll('.combobox-item[role="option"]').forEach(item=>{
+      item.addEventListener('click', ()=>{
+        const cid = item.getAttribute('data-id');
+        const c = items.find(x => String(x.child_id) === String(cid));
+        if (c) selectChild(c);
+      });
+    });
+  };
+
+  const filter = (q) => {
+    const s = q.trim().toLowerCase();
+    if (!s) { list.hidden = true; input.setAttribute('aria-expanded','false'); return; }
+    const words = s.split(/\s+/).filter(Boolean);
+    const out = all.filter(c=>{
+      const hay = `${c.full_name||''} ${c.mother_name||''} ${c.purok_name||''}`.toLowerCase();
+      return words.every(w => hay.includes(w));
+    }).slice(0, 12);
+    render(out);
+  };
+
+  function selectChild(c){
+    input.value = c.full_name || '';
+    idEl.value  = c.child_id || '';
+    if (clearBtn) clearBtn.style.display = input.value ? 'inline-flex' : 'none';
+    list.hidden = true;
+    input.setAttribute('aria-expanded','false');
+    if (typeof opts.onSelect === 'function') {
+      opts.onSelect(c.child_id, c);
+    }
+  }
+
+  // Typing + keyboard nav
+  input.addEventListener('input', () => filter(input.value));
+  input.addEventListener('focus', () => { if (input.value) filter(input.value); });
+  input.addEventListener('keydown', (e)=>{
+    if (list.hidden) return;
+    const options = Array.from(list.querySelectorAll('.combobox-item[role="option"]'));
+    if (!options.length) return;
+
+    if (e.key==='ArrowDown' || e.key==='Down') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % options.length;
+      options.forEach(o=>o.classList.remove('active'));
+      options[activeIndex].classList.add('active');
+      options[activeIndex].scrollIntoView({block:'nearest'});
+    } else if (e.key==='ArrowUp' || e.key==='Up') {
+      e.preventDefault();
+      activeIndex = (activeIndex <= 0) ? options.length-1 : activeIndex-1;
+      options.forEach(o=>o.classList.remove('active'));
+      options[activeIndex].classList.add('active');
+      options[activeIndex].scrollIntoView({block:'nearest'});
+    } else if (e.key==='Enter') {
+      if (activeIndex >= 0) {
+        e.preventDefault();
+        options[activeIndex].click();
+      }
+    } else if (e.key==='Escape') {
+      list.hidden = true;
+      input.setAttribute('aria-expanded','false');
+    }
+  });
+
+  // Clear
+  clearBtn?.addEventListener('click', ()=>{
+    input.value = '';
+    idEl.value  = '';
+    clearBtn.style.display = 'none';
+    input.focus();
+    list.hidden = true;
+    input.setAttribute('aria-expanded','false');
+  });
+
+  // Click-outside
+  document.addEventListener('click', (ev)=>{
+    if (!document.getElementById('gmChildCombo')) return;
+    if (!document.getElementById('gmChildCombo').contains(ev.target)) {
+      list.hidden = true;
+      input.setAttribute('aria-expanded','false');
+    }
+  }, { capture:true });
+
+  // Default selection (no auto-trigger to avoid double load)
+  // const defId = Number(opts.defaultId || idEl.value || 0);
+  // if (defId) {
+  //   const c = all.find(x => Number(x.child_id) === defId);
+  //   if (c) {
+  //     input.value = c.full_name || '';
+  //     idEl.value  = c.child_id || '';
+  //     if (clearBtn) clearBtn.style.display = input.value ? 'inline-flex' : 'none';
+  //   }
+  // }
+}
+// Sidebar: Event Scheduling toggle (dropdown)
+// Sidebar: Event Scheduling toggle (dropdown)
+(function wireEventsDropdown() {
+  const toggle = document.getElementById('navEventsToggle');
+  const submenu = document.getElementById('eventsSubmenu');
+  if (!toggle || !submenu) return;
+
+  // Restore persisted open state
+  const open = localStorage.getItem('eventsSubmenuOpen') === '1';
+  if (open) {
+    submenu.classList.add('show');
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+
+  toggle.addEventListener('click', function (e) {
+    e.preventDefault();
+    const isOpen = submenu.classList.toggle('show');
+    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    localStorage.setItem('eventsSubmenuOpen', isOpen ? '1' : '0');
+
+    // NEW: accordion behavior
+    if (isOpen) closeOtherSubmenus('eventsSubmenuOpen');
+
+    // Reset calendar type and open-form intent, then load calendar module
+    window.__calendarDefaultType = '';
+    window.__calendarOpenForm = false;
+
+    if (typeof setActive === 'function') setActive(toggle);
+    if (typeof loadModule === 'function') loadModule('nutrition_calendar', 'Event Scheduling');
+    if (window.innerWidth < 992) {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.remove('show');
+    }
+  });
+})();
+
+// Sidebar: Children Management toggle (dropdown)
+(function wireChildrenDropdown() {
+  const toggle = document.getElementById('navChildrenToggle');
+  const submenu = document.getElementById('childrenSubmenu');
+  if (!toggle || !submenu) return;
+
+  // Restore persisted open state
+  const open = localStorage.getItem('childrenSubmenuOpen') === '1';
+  if (open) {
+    submenu.classList.add('show');
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+
+  toggle.addEventListener('click', function (e) {
+    e.preventDefault();
+    const isOpen = submenu.classList.toggle('show');
+    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    localStorage.setItem('childrenSubmenuOpen', isOpen ? '1' : '0');
+
+    // NEW: accordion behavior
+    if (isOpen) closeOtherSubmenus('childrenSubmenuOpen');
+
+    // Load Children module, default to database
+    window.__childDefaultTab = '';
+    if (typeof setActive === 'function') setActive(toggle);
+    if (typeof loadModule === 'function') loadModule('child_profiles', 'Children Management');
+
+    if (window.innerWidth < 992) {
+      document.getElementById('sidebar')?.classList.remove('show');
+    }
+  });
+})();
+
+// Sidebar: Growth Monitoring toggle (dropdown)
+(function wireGmDropdown() {
+  const toggle = document.getElementById('navGmToggle');
+  const submenu = document.getElementById('gmSubmenu');
+  if (!toggle || !submenu) return;
+
+  // Restore persisted open state
+  const open = localStorage.getItem('gmSubmenuOpen') === '1';
+  if (open) {
+    submenu.classList.add('show');
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+
+  toggle.addEventListener('click', function (e) {
+    e.preventDefault();
+    const isOpen = submenu.classList.toggle('show');
+    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    localStorage.setItem('gmSubmenuOpen', isOpen ? '1' : '0');
+
+    // NEW: accordion behavior
+    if (isOpen) closeOtherSubmenus('gmSubmenuOpen');
+
+    // Load Individual Child by default when parent is clicked
+    window.__gmDefaultTab = '';
+    if (typeof setActive === 'function') setActive(toggle);
+    if (typeof loadModule === 'function') loadModule('nutrition_classification', 'Growth Monitoring');
+
+    if (window.innerWidth < 992) {
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.remove('show');
+    }
+  });
+})();
+
+  // NEW: Sidebar — Supplementation toggle + submenu (persistent open state)
+  // wireSuppDropdown IIFE deleted as requested
 window.__BNS_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
 const moduleContent = document.getElementById('moduleContent');
 const titleEl = document.getElementById('currentModuleTitle');
+const navTitleEl = document.getElementById('navCurrentTitle');
 
 const api = {
   mothers: 'bns_modules/api_mothers.php',
@@ -1018,13 +1454,425 @@ const api = {
 };
 
 function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch','X-CSRF-Token':window.__BNS_CSRF, 'Accept':'application/json'},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+
+// --- Supplementation Child combobox (typeahead) ---
+let __suppChildrenCache = [];     // full list from API
+let __suppCbActiveIndex = -1;     // keyboard highlight index
+
+function setupSuppChildCombobox(children){
+  __suppChildrenCache = Array.isArray(children) ? children : [];
+  const input = document.getElementById('suppChildInput');
+  const list  = document.getElementById('suppChildListbox');
+  const idEl  = document.getElementById('suppChildId');
+  const clearBtn = document.getElementById('suppChildClear');
+
+  if (!input || !list || !idEl) return;
+
+  // Reset state
+  input.value = '';
+  idEl.value = '';
+  list.innerHTML = '';
+  list.hidden = true;
+  input.setAttribute('aria-expanded','false');
+  clearBtn.style.display = 'none';
+
+  const render = (items) => {
+    if (!items.length) {
+      list.innerHTML = `<div class="combobox-item" aria-disabled="true" style="color:#6a7a6d;">No matches</div>`;
+      __suppCbActiveIndex = -1;
+      list.hidden = false;
+      input.setAttribute('aria-expanded','true');
+      return;
+    }
+    list.innerHTML = items.map((c, idx) => `
+      <div class="combobox-item" role="option" data-id="${c.child_id}" data-index="${idx}">
+        <div style="width:22px;height:22px;background:#e8f5ea;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+          <i class="bi ${c.sex==='male' ? 'bi-gender-male' : 'bi-gender-female'}" style="font-size:.65rem;color:${c.sex==='male'?'#1c79d0':'#e91e63'};"></i>
+        </div>
+        <div class="d-flex flex-column">
+          <div style="font-weight:700;">${escapeHtml(c.full_name)}</div>
+          <div class="sub">${escapeHtml(c.mother_name || '')}${c.purok_name ? ' • ' + escapeHtml(c.purok_name) : ''}</div>
+        </div>
+      </div>
+    `).join('');
+    list.hidden = false;
+    input.setAttribute('aria-expanded','true');
+    __suppCbActiveIndex = -1;
+
+    // Bind clicks
+    list.querySelectorAll('.combobox-item[role="option"]').forEach(item=>{
+      item.addEventListener('click', ()=>{
+        const cid = item.getAttribute('data-id');
+        const c = items.find(x => String(x.child_id) === String(cid));
+        if (c) selectChildInCombobox(c);
+      });
+    });
+  };
+
+  const filter = (q) => {
+    const s = q.trim().toLowerCase();
+    if (!s) { list.hidden = true; input.setAttribute('aria-expanded','false'); return; }
+    const words = s.split(/\s+/).filter(Boolean);
+    const out = __suppChildrenCache.filter(c=>{
+      const hay = `${c.full_name||''} ${c.mother_name||''} ${c.purok_name||''}`.toLowerCase();
+      return words.every(w => hay.includes(w));
+    }).slice(0, 12);
+    render(out);
+  };
+
+  const selectChildInCombobox = (c) => {
+  input.value = c.full_name || '';
+  idEl.value = c.child_id || '';
+  // NEW: notify listeners for duplicate-check logic
+  try { idEl.dispatchEvent(new Event('change')); } catch(_) {}
+  list.hidden = true;
+  input.setAttribute('aria-expanded','false');
+  clearBtn.style.display = input.value ? 'inline-flex' : 'none';
+  };
+  window.__selectChildInCombobox = selectChildInCombobox; // expose for edit mode
+
+  // Typing and keyboard nav
+  input.addEventListener('input', () => filter(input.value));
+  input.addEventListener('focus', () => { if (input.value) filter(input.value); });
+  input.addEventListener('keydown', (e)=>{
+    if (list.hidden) return;
+    const options = Array.from(list.querySelectorAll('.combobox-item[role="option"]'));
+    if (!options.length) return;
+
+    if (e.key==='ArrowDown' || e.key==='Down') {
+      e.preventDefault();
+      __suppCbActiveIndex = (__suppCbActiveIndex + 1) % options.length;
+      options.forEach(o=>o.classList.remove('active'));
+      options[__suppCbActiveIndex].classList.add('active');
+      options[__suppCbActiveIndex].scrollIntoView({block:'nearest'});
+    } else if (e.key==='ArrowUp' || e.key==='Up') {
+      e.preventDefault();
+      __suppCbActiveIndex = (__suppCbActiveIndex <= 0) ? options.length-1 : __suppCbActiveIndex-1;
+      options.forEach(o=>o.classList.remove('active'));
+      options[__suppCbActiveIndex].classList.add('active');
+      options[__suppCbActiveIndex].scrollIntoView({block:'nearest'});
+    } else if (e.key==='Enter') {
+      if (__suppCbActiveIndex >= 0) {
+        e.preventDefault();
+        options[__suppCbActiveIndex].click();
+      }
+    } else if (e.key==='Escape') {
+      list.hidden = true;
+      input.setAttribute('aria-expanded','false');
+    }
+  });
+
+  // Clear button
+  clearBtn.addEventListener('click', ()=>{
+    input.value = '';
+    idEl.value = '';
+    clearBtn.style.display = 'none';
+    input.focus();
+    list.hidden = true;
+    input.setAttribute('aria-expanded','false');
+  });
+
+  // Click outside closes list
+  document.addEventListener('click', (ev)=>{
+    if (!document.getElementById('suppChildCombo')) return;
+    if (!document.getElementById('suppChildCombo').contains(ev.target)) {
+      list.hidden = true;
+      input.setAttribute('aria-expanded','false');
+    }
+  }, { capture:true });
+}
 function escapeHtml(s){if(s==null)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* NEW: Age formatting helper (OA rule) */
+// Global: Baseline card renderer for child profile
+function renderBaselineCardFromChild(child){
+  if (!child) return '';
+  const hasAny = (child.weight_kg != null && child.weight_kg !== '') || (child.height_cm != null && child.height_cm !== '');
+  if (!hasAny) return '';
+
+  const dateStr = child.last_weighing_date || child.updated_at || child.created_at || '';
+  const dateHTML = dateStr
+    ? `<div class="text-muted small">${new Date(dateStr).toLocaleDateString('en-PH')}</div>`
+    : `<div class="text-muted small">No date available</div>`;
+
+  return `
+    <div class="card mb-2">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-semibold">Baseline (from Child Profile)</div>
+            <div class="text-muted small">Shown for reference until a weighing record is added</div>
+          </div>
+          ${dateHTML}
+        </div>
+        <div class="mt-2 d-flex gap-4 flex-wrap">
+          <div><span class="text-muted">Weight:</span> ${child.weight_kg != null ? Number(child.weight_kg).toFixed(2) + ' kg' : '—'}</div>
+          <div><span class="text-muted">Height/Length:</span> ${child.height_cm != null ? Number(child.height_cm).toFixed(1) + ' cm' : '—'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function formatAgeDisplay(ageMonths) {
+  const n = Number(ageMonths);
+  if (Number.isFinite(n) && n > 59) return 'OA';
+  if (ageMonths === null || ageMonths === undefined || ageMonths === '') return '—';
+  return String(n);
+}
+
+/* NEW: Age in months calculator */
+function calcAgeMonthsFromBirthDate(birthDate) {
+  if (!birthDate) return null;
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let months = (today.getFullYear() - birth.getFullYear()) * 12;
+  months += today.getMonth() - birth.getMonth();
+  if (today.getDate() < birth.getDate()) months--;
+  return Math.max(0, months);
+}
+// NEW: Search & Filter logic for Profile Management list
+function setupProfileListFilters(children) {
+  // cache source list
+  window.__pmAllChildren = Array.isArray(children) ? children.slice() : [];
+
+  // Populate dynamic Purok options from data (include “Not Set” if needed)
+  const purokSel = document.getElementById('pmPurokFilter');
+  if (purokSel) {
+    const puroks = Array.from(new Set(
+      window.__pmAllChildren.map(c => (c.purok_name && c.purok_name !== 'Not Set') ? c.purok_name : 'Not Set')
+    ))
+    .filter(Boolean)
+    .sort((a,b)=>String(a).localeCompare(String(b)));
+    purokSel.innerHTML = `<option value="">All Purok</option>` +
+      puroks.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  }
+
+  const searchEl = document.getElementById('pmSearchInput');
+  const statusEl = document.getElementById('pmStatusFilter');
+  const purokEl  = document.getElementById('pmPurokFilter');
+
+  function apply() {
+    const q  = (searchEl?.value || '').trim().toLowerCase();
+    const st = statusEl?.value || '';
+    const pk = purokEl?.value  || '';
+
+    const filtered = window.__pmAllChildren.filter(c => {
+      const hay = `${c.full_name||''} ${c.mother_name||''} ${c.purok_name||''}`.toLowerCase();
+      const matchesQ  = !q || hay.includes(q);
+      const matchesSt = !st || (c.nutrition_status === st);
+      const normP     = (c.purok_name && c.purok_name !== 'Not Set') ? c.purok_name : 'Not Set';
+      const matchesPk = !pk || normP === pk;
+      return matchesQ && matchesSt && matchesPk;
+    });
+
+    populateProfileList(filtered);
+  }
+
+  // Wire events
+  searchEl?.addEventListener('input', apply);
+  statusEl?.addEventListener('change', apply);
+  purokEl?.addEventListener('change', apply);
+
+  // Initial render uses the full list; populateProfileList(children) is called right after this function
+}
 function setActive(el){document.querySelectorAll('.nav-link-bns.active').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
 function showLoading(label){moduleContent.innerHTML=`<div class="loading-state"><div class="spinner"></div><div>Loading ${escapeHtml(label)}...</div></div>`;}
 
 function renderDashboardHome(label){
+    // 6‑month trend (dedup by child per month; latest record wins)
+    function aggregateMonthlyTrend(recent, lastN = 6){
+      const byMonth = new Map(); // ym -> Map(child->status)
+      const sorted = (recent||[]).slice().sort((a,b)=>String(a.weighing_date||'').localeCompare(String(b.weighing_date||'')));
+      for (const r of sorted){
+        const d = r.weighing_date; if (!d) continue;
+        const ym = String(d).slice(0,7);
+        if (!byMonth.has(ym)) byMonth.set(ym, new Map());
+        const childKey = r.child_name || `#${r.child_id||0}`;
+        byMonth.get(ym).set(childKey, r.status_code || 'UNSET');
+      }
+      const allYms = Array.from(byMonth.keys()).sort();
+      const yms = allYms.slice(-lastN);
+
+      const labels = [];
+      const NOR=[], MAM=[], SAM=[];
+      for (const ym of yms){
+        labels.push(formatYm(ym));
+        let n=0, m=0, s=0;
+        byMonth.get(ym).forEach(code=>{
+          if (code==='NOR') n++;
+          else if (code==='MAM') m++;
+          else if (code==='SAM') s++;
+        });
+        NOR.push(n); MAM.push(m); SAM.push(s);
+      }
+      return { labels, NOR, MAM, SAM };
+
+      function formatYm(ym){
+        const [Y,M] = ym.split('-').map(Number);
+        return new Date(Y, M-1, 1).toLocaleDateString('en-PH',{month:'short'});
+      }
+    }
+
+    // Multi-series line chart (Normal, MAM, SAM)
+    function buildTrendMulti(recent){
+      const data = aggregateMonthlyTrend(recent, 6);
+      if (!data.labels.length){
+        return `<div class="chart-placeholder">No trend data available</div>`;
+      }
+      const VB = { w: 120, h: 70 };
+      const pad = { l: 10, r: 6, t: 8, b: 16 };
+      const CW = VB.w - pad.l - pad.r;
+      const CH = VB.h - pad.t - pad.b;
+
+      const series = [
+        { key:'MAM',  values:data.MAM,  color:'#f4a400', width:1.6 },
+        { key:'NOR',  values:data.NOR,  color:'#0b7a43', width:1.8 },
+        { key:'SAM',  values:data.SAM,  color:'#d23d3d', width:1.6 }
+      ];
+      const allVals = series.flatMap(s=>s.values);
+      const yMax = Math.max(1, ...allVals);
+      const xStep = data.labels.length>1 ? CW/(data.labels.length-1) : 0;
+      const yFor = v => pad.t + CH - (v / yMax) * CH;
+      const xFor = i => pad.l + i * xStep;
+
+      // Grid (4 ticks)
+      let grid = '';
+      for (let i=0;i<=4;i++){
+        const y = pad.t + CH - (i/4)*CH;
+        grid += `<line x1="${pad.l}" y1="${y.toFixed(2)}" x2="${(VB.w-pad.r).toFixed(2)}" y2="${y.toFixed(2)}" stroke="#e6ede9" stroke-width=".4" vector-effect="non-scaling-stroke"></line>`;
+      }
+
+      const paths = series.map(s=>{
+        const pts = s.values.map((v,i)=>`${xFor(i).toFixed(2)},${yFor(v).toFixed(2)}`).join(' ');
+        const dots = s.values.map((v,i)=>`<circle cx="${xFor(i).toFixed(2)}" cy="${yFor(v).toFixed(2)}" r="1.2" fill="${s.color}"></circle>`).join('');
+        return `<polyline fill="none" stroke="${s.color}" stroke-width="${s.width}" points="${pts}"></polyline>${dots}`;
+      }).join('');
+
+      const xlabels = data.labels.map((lab,i)=>{
+        const x = xFor(i), y = VB.h - 3;
+        return `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="2.6" fill="#637668" text-anchor="middle">${lab}</text>`;
+      }).join('');
+
+      const legend = `
+        <div class="d-flex align-items-center gap-3 mt-1" style="flex-wrap:wrap;">
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#f4a400;display:inline-block;"></span> MAM
+          </span>
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#0b7a43;display:inline-block;"></span> Normal
+          </span>
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#d23d3d;display:inline-block;"></span> SAM
+          </span>
+        </div>`;
+
+      return `
+        <div style="width:100%;position:relative;">
+          <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+               style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+            ${grid}
+            ${paths}
+            ${xlabels}
+          </svg>
+          ${legend}
+        </div>
+      `;
+    }
+
+    // Donut chart for distribution (Normal, MAM, SAM, Underweight, Stunted, Overweight[OW+OB])
+    function buildStatusDonut(classification){
+      const get = code => (classification.find(x => x.status_code===code)?.child_count) || 0;
+      const normal = get('NOR');
+      const mam = get('MAM');
+      const sam = get('SAM');
+      const uw = get('UW');
+      const st = get('ST');
+      const ow = get('OW');
+      const ob = get('OB');
+
+      const items = [
+        { label:'Normal',      count: normal, color:'#0b7a43' },
+        { label:'MAM',         count: mam,    color:'#f4a400' },
+        { label:'SAM',         count: sam,    color:'#d23d3d' },
+        { label:'Underweight', count: uw,     color:'#ffb84d' },
+        { label:'Stunted',     count: st,     color:'#ff6b6b' },
+        { label:'Overweight',  count: ow,     color:'#8e44ad' },
+        { label:'Obese',       count: ob,     color:'#6c3483' }
+      ];
+
+      const total = items.reduce((s,i)=>s+i.count,0);
+      if (!total){
+        return `<div class="chart-placeholder">No data available</div>`;
+      }
+
+      const VB = { w: 120, h: 80 };
+      const cx = 40, cy = 40, R = 26, r = 15;
+      let a = -Math.PI/2;
+      const arcs = [], labels = [];
+      items.forEach(i=>{
+        const sweep = (i.count/total)*Math.PI*2;
+        const start = a, end = a + sweep; a = end;
+        arcs.push(`<path d="${arcPath(cx,cy,R,r,start,end)}" fill="${i.color}">
+          <title>${i.label}: ${((i.count/total)*100).toFixed(1)}%</title></path>`);
+        if (i.count > 0) {
+          const mid = (start+end)/2;
+          const lx = cx + (R+10)*Math.cos(mid);
+          const ly = cy + (R+10)*Math.sin(mid);
+          const anchor = Math.cos(mid) >= 0 ? 'start' : 'end';
+          labels.push(`<text x="${lx.toFixed(2)}" y="${ly.toFixed(2)}" font-size="3" fill="${i.color}" text-anchor="${anchor}" dominant-baseline="middle">${i.label} ${(i.count/total*100).toFixed(0)}%</text>`);
+        }
+      });
+
+      const top = items.slice().sort((a,b)=>b.count-a.count)[0];
+      const center = `
+        <text x="${cx}" y="${cy-2}" font-size="4.8" text-anchor="middle" fill="#0b7a43" font-weight="700">${(top.count/total*100).toFixed(0)}%</text>
+        <text x="${cx}" y="${cy+4.2}" font-size="3" text-anchor="middle" fill="#5f7464">${top.label}</text>
+      `;
+
+      const legend = `
+        <div class="row g-2 mt-2">
+          ${items.map(i => `
+            <div class="col-6">
+              <div class="d-flex align-items-center justify-content-between" style="background:#fbfdfb;border:1px solid #e4ebe5;border-radius:10px;padding:.45rem .6rem;">
+                <div class="d-flex align-items-center gap-2">
+                  <span style="width:12px;height:12px;border-radius:3px;background:${i.color};display:inline-block;"></span>
+                  <span style="font-size:.65rem;font-weight:700;color:#1e3e27;">${i.label}</span>
+                </div>
+                <span style="font-size:.62rem;color:#5f7464;font-weight:700;">${i.count}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      return `
+        <div style="width:100%;position:relative;">
+          <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+               style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+            ${arcs.join('')}
+            ${center}
+            ${labels.join('')}
+          </svg>
+          ${legend}
+        </div>
+      `;
+
+      function arcPath(cx,cy,R,r,start,end){
+        const large = (end-start) > Math.PI ? 1 : 0;
+        const x0 = cx + R*Math.cos(start), y0 = cy + R*Math.sin(start);
+        const x1 = cx + R*Math.cos(end),   y1 = cy + R*Math.sin(end);
+        const x2 = cx + r*Math.cos(end),   y2 = cy + r*Math.sin(end);
+        const x3 = cx + r*Math.cos(start), y3 = cy + r*Math.sin(start);
+        return [
+          `M ${x0.toFixed(3)} ${y0.toFixed(3)}`,
+          `A ${R} ${R} 0 ${large} 1 ${x1.toFixed(3)} ${y1.toFixed(3)}`,
+          `L ${x2.toFixed(3)} ${y2.toFixed(3)}`,
+          `A ${r} ${r} 0 ${large} 0 ${x3.toFixed(3)} ${y3.toFixed(3)}`,
+          'Z'
+        ].join(' ');
+      }
+    }
   showLoading(label);
-  
+
   Promise.all([
     fetchJSON(api.children+'?action=list').catch(err => {
       console.error('Children API error:', err);
@@ -1037,15 +1885,61 @@ function renderDashboardHome(label){
     fetchJSON(api.nutrition+'?recent=1').catch(err => {
       console.error('Recent API error:', err);
       return { records: [] };
+    }),
+    // NEW: pull supplementation records
+    fetchJSON(api.supplementation+'?list=1').catch(err => {
+      console.error('Supplementation API error:', err);
+      return { records: [] };
     })
-  ]).then(([childRes, classRes, recentRes]) => {
+  ]).then(([childRes, classRes, recentRes, suppRes]) => {
     const children = childRes.children || [];
-    const classification = classRes.summary || [];
+    // Normalize classification for dashboard: fixed order, remove UNSET
+    const classificationRaw = classRes.summary || [];
+    const allowedOrder = ['NOR','MAM','SAM','UW','OW','OB','ST'];
+    const countsMap = {};
+    classificationRaw.forEach(c => {
+      const code = String(c.status_code || '').toUpperCase();
+      const cnt = parseInt(c.child_count || 0, 10);
+      if (allowedOrder.includes(code)) {
+        countsMap[code] = (countsMap[code] || 0) + (Number.isFinite(cnt) ? cnt : 0);
+      }
+    });
+    // Rebuild in fixed order with zeros for missing codes
+    const classification = allowedOrder.map(code => ({
+      status_code: code,
+      child_count: countsMap[code] || 0
+    }));
     const recent = recentRes.records || [];
+
+    // ---------- Supplements (This quarter) ----------
+    const suppAll = suppRes.records || [];
+    // PH quarter start
+    const nowPH = new Date(new Date().toLocaleString('en-US',{ timeZone:'Asia/Manila' }));
+    const qIndex = Math.floor(nowPH.getMonth() / 3); // 0..3
+    const qStart = new Date(nowPH.getFullYear(), qIndex*3, 1);
+    const qStartStr = qStart.toLocaleDateString('en-CA',{ timeZone:'Asia/Manila' }); // YYYY-MM-DD
+
+    const normType = (t) => {
+      const s = String(t||'').toLowerCase();
+      if (s.includes('vit'))  return 'Vitamin A';
+      if (s.includes('iron')) return 'Iron';
+      if (s.includes('deworm')) return 'Deworming';
+      return t || '';
+    };
+
+    const suppQ = suppAll.filter(r => r.supplement_date && r.supplement_date >= qStartStr);
+    const suppCounts = { 'Vitamin A': 0, 'Iron': 0, 'Deworming': 0 };
+    suppQ.forEach(r => {
+      const key = normType(r.supplement_type);
+      if (suppCounts[key] == null) suppCounts[key] = 0;
+      suppCounts[key] += 1;
+    });
+    const suppTotal = suppQ.length;
+
+    // ---------- Children + classification ----------
     const total = children.length;
     const malCodes = new Set(['SAM','MAM','UW']);
     let normal = 0, mal = 0, mam = 0, sam = 0;
-    
     classification.forEach(c => {
       const cnt = parseInt(c.child_count || 0, 10);
       if(c.status_code === 'NOR') normal += cnt;
@@ -1053,12 +1947,13 @@ function renderDashboardHome(label){
       if(c.status_code === 'MAM') mam = cnt;
       if(c.status_code === 'SAM') sam = cnt;
     });
-    
-    // Update sidebar stats
+
+    // Update sidebar quick stats
     document.getElementById('qsChildren').textContent = total;
     document.getElementById('qsMal').textContent = mal;
     document.getElementById('qsNormal').textContent = normal;
 
+    // Priority list from recent malnutrition
     const priority = [];
     const seen = new Set();
     recent.forEach(r => {
@@ -1068,13 +1963,23 @@ function renderDashboardHome(label){
       }
     });
 
-    const trendSvg = buildTrend(recent);
+  const trendSvg = buildTrendMulti(recent);
+  const statusDonutHtml = buildStatusDonut(classification);
 
     moduleContent.innerHTML = `
       <div class="fade-in">
         <div class="stat-grid">
           ${statCard('Children Monitored', total,'Active in monitoring program','green', true)}
-          ${statCard('Supplements Given','342','This quarter','amber', false,'<span class="pill">Vit A: 120</span><span class="pill">Iron: 142</span><span class="pill">Deworm: 80</span>')}
+          ${statCard(
+            'Supplements Given',
+            String(suppTotal),
+            'This quarter',
+            'amber',
+            false,
+            '<span class="pill">Vit A: '+(suppCounts['Vitamin A']||0)+'</span>'
+              +'<span class="pill">Iron: '+(suppCounts['Iron']||0)+'</span>'
+              +'<span class="pill">Deworm: '+(suppCounts['Deworming']||0)+'</span>'
+          )}
           ${statCard('Malnutrition Cases', mal,'Requiring intervention','red', false,'<span class="pill amber">MAM: '+mam+'</span><span class="pill red">SAM: '+sam+'</span>')}
           ${statCard('Growth Trend','+5.2%','Normal status increase','blue',false,'<span class="pill blue"><i class="bi bi-arrow-trend-up"></i> Improving</span>')}
         </div>
@@ -1110,16 +2015,83 @@ function renderDashboardHome(label){
               <h5><i class="bi bi-pie-chart text-success"></i> Nutrition Status Distribution</h5>
             </div>
             <p class="tile-sub">Current classification breakdown</p>
-            <div>
-              ${
-                classification.map(c=>distRow(c.status_code||'UNSET',c.child_count)).join('') ||
-                '<div class="text-muted" style="font-size:.55rem;">No data available.</div>'
-              }
-            </div>
+            ${statusDonutHtml}
           </div>
         </div>
       </div>
     `;
+
+    // helpers inside renderDashboardHome stay the same (statCard, iconFor, badge, distRow, buildTrend)
+    function statCard(t,val,desc,color,progress=false,extras=''){
+      return `<div class="stat-card ${color}">
+        <div class="stat-title"><i class="bi ${iconFor(t)}"></i>${escapeHtml(t)}</div>
+        <div class="stat-val">${escapeHtml(val)}</div>
+        ${progress?'<div class="progress-thin"><span></span></div>':''}
+        <div class="stat-desc">${escapeHtml(desc)}</div>
+        ${extras?'<div class="stat-pills">'+extras+'</div>':''}
+      </div>`;
+    }
+    function iconFor(t){
+      if(/Children/i.test(t)) return 'bi-people-fill';
+      if(/Supplements/i.test(t)) return 'bi-capsule-pill';
+      if(/Malnutrition/i.test(t)) return 'bi-exclamation-triangle-fill';
+      if(/Growth Trend/i.test(t)) return 'bi-graph-up';
+      return 'bi-circle';
+    }
+    function priorityItem(r){
+      return `<div class="case-item">
+        <div class="case-left">
+          <div class="case-avatar"><i class="bi bi-exclamation"></i></div>
+          <div class="case-info">
+            <span class="name">${escapeHtml(r.child_name)}</span>
+            <span class="meta">${r.age_in_months} mos • Status: ${escapeHtml(r.status_code||'')}</span>
+          </div>
+        </div>
+        <div class="case-controls">
+          ${badge(r.status_code)}
+          <button class="btn-view">View</button>
+        </div>
+      </div>`;
+    }
+    function badge(s){
+      if(!s) return `<span class="badge-status">—</span>`;
+      return `<span class="badge-status badge-${escapeHtml(s)}">${escapeHtml(s)}</span>`;
+    }
+    function distRow(code,count){
+      return `<div class="dist-row">
+        <div class="dist-left">${badge(code)}<span>${escapeHtml(code)}</span></div>
+        <span style="font-size:.52rem;font-weight:700;">${count}</span>
+      </div>`;
+    }
+    function buildTrend(recent){
+      const map = {};
+      recent.forEach(r => {
+        if(!r.weighing_date) return;
+        const ym = r.weighing_date.slice(0,7);
+        if(!map[ym]) map[ym] = {NOR:0};
+        if(r.status_code === 'NOR') map[ym].NOR++;
+      });
+      const arr = Object.entries(map).sort((a,b) => a[0] > b[0] ? 1 : -1).slice(-6)
+        .map(([ym,o]) => ({label:ym.slice(5), value:o.NOR}));
+      if(!arr.length) return `<div class="chart-placeholder">No trend data available</div>`;
+      const max = Math.max(...arr.map(d => d.value)) || 1;
+      const pts = arr.map((d,i) => {
+        const x = (i/(arr.length-1)) * 100;
+        const y = 100 - (d.value/max) * 85 - 7;
+        return {x, y, label: d.label};
+      });
+      const poly = pts.map(p => `${p.x},${p.y}`).join(' ');
+      const circles = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
+      return `<div style="width:100%;position:relative;">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:140px;">
+          <polyline fill="none" stroke="#0b7a43" stroke-width="1.4" points="${poly}" />
+          ${circles}
+        </svg>
+        <div class="d-flex justify-content-between" style="margin-top:-10px;">
+          ${pts.map(p => `<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
+        </div>
+      </div>`;
+    }
   }).catch(err => {
     console.error('Dashboard error:', err);
     moduleContent.innerHTML = `
@@ -1130,202 +2102,117 @@ function renderDashboardHome(label){
       </div>
     `;
   });
-
-  // Helper functions (keep these the same)
-  function statCard(t,val,desc,color,progress=false,extras=''){
-    return `<div class="stat-card ${color}">
-      <div class="stat-title"><i class="bi ${iconFor(t)}"></i>${escapeHtml(t)}</div>
-      <div class="stat-val">${escapeHtml(val)}</div>
-      ${progress?'<div class="progress-thin"><span></span></div>':''}
-      <div class="stat-desc">${escapeHtml(desc)}</div>
-      ${extras?'<div class="stat-pills">'+extras+'</div>':''}
-    </div>`;
-  }
-  
-  function iconFor(t){
-    if(/Children/i.test(t)) return 'bi-people-fill';
-    if(/Supplements/i.test(t)) return 'bi-capsule-pill';
-    if(/Malnutrition/i.test(t)) return 'bi-exclamation-triangle-fill';
-    if(/Growth Trend/i.test(t)) return 'bi-graph-up';
-    return 'bi-circle';
-  }
-  
-  function priorityItem(r){
-    return `<div class="case-item">
-      <div class="case-left">
-        <div class="case-avatar"><i class="bi bi-exclamation"></i></div>
-        <div class="case-info">
-          <span class="name">${escapeHtml(r.child_name)}</span>
-          <span class="meta">${r.age_in_months} mos • Status: ${escapeHtml(r.status_code||'')}</span>
-        </div>
-      </div>
-      <div class="case-controls">
-        ${badge(r.status_code)}
-        <button class="btn-view">View</button>
-      </div>
-    </div>`;
-  }
-  
-  function badge(s){
-    if(!s) return `<span class="badge-status">—</span>`;
-    return `<span class="badge-status badge-${escapeHtml(s)}">${escapeHtml(s)}</span>`;
-  }
-  
-  function distRow(code,count){
-    return `<div class="dist-row">
-      <div class="dist-left">${badge(code)}<span>${escapeHtml(code)}</span></div>
-      <span style="font-size:.52rem;font-weight:700;">${count}</span>
-    </div>`;
-  }
-  
-  function buildTrend(recent){
-    const map = {};
-    recent.forEach(r => {
-      if(!r.weighing_date) return;
-      const ym = r.weighing_date.slice(0,7);
-      if(!map[ym]) map[ym] = {NOR:0};
-      if(r.status_code === 'NOR') map[ym].NOR++;
-    });
-    
-    const arr = Object.entries(map).sort((a,b) => a[0] > b[0] ? 1 : -1).slice(-6)
-      .map(([ym,o]) => ({label:ym.slice(5), value:o.NOR}));
-    
-    if(!arr.length) return `<div class="chart-placeholder">No trend data available</div>`;
-    
-    const max = Math.max(...arr.map(d => d.value)) || 1;
-    const pts = arr.map((d,i) => {
-      const x = (i/(arr.length-1)) * 100;
-      const y = 100 - (d.value/max) * 85 - 7;
-      return {x, y, label: d.label};
-    });
-    
-    const poly = pts.map(p => `${p.x},${p.y}`).join(' ');
-    const circles = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="2" fill="#0b7a43"></circle>`).join('');
-    
-    return `<div style="width:100%;position:relative;">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:140px;">
-        <polyline fill="none" stroke="#0b7a43" stroke-width="1.4" points="${poly}" />
-        ${circles}
-      </svg>
-      <div class="d-flex justify-content-between" style="margin-top:-10px;">
-        ${pts.map(p => `<span style="font-size:.5rem;color:#637668;">${p.label}</span>`).join('')}
-      </div>
-    </div>`;
-  }
 }
 
 /* Placeholder modules (replace with real content later) */
+// Children Management: NO TABS — render by intent (database | profiles)
+// Children Management: NO TABS — render by intent (database | profiles)
 function renderChildrenModule(label) {
   showLoading(label);
-  
-  // Fetch real data from API
+
   fetchJSON(api.children + '?action=list')
     .then(response => {
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch children data');
+      if (!response.success) throw new Error(response.error || 'Failed to fetch children data');
+
+      // helper: apply fallback for Last Weighing
+      function applyLastWeighingFallback(list) {
+        return (list || []).map(c => {
+          const hasWeigh = c.last_weighing_date && c.last_weighing_date !== 'Never';
+          if (hasWeigh) return c;
+
+          const created = c.child_created_at || c.created_at || null;
+          if (!created) return c;
+
+          // PH time formatting for UI consistency
+          const ph = new Date(new Date(created).toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+          const ymd = ph.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });   // YYYY-MM-DD
+          const mdy = ph.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' });   // MM/DD/YYYY
+
+          return Object.assign({}, c, {
+            last_weighing_date: ymd,
+            last_weighing_formatted: mdy
+          });
+        });
       }
-      
-      const children = response.children || [];
 
-      window.__childrenCache = children; // cache for tab switching back to Child Database
-      
-      moduleContent.innerHTML = `
-<div class="d-flex justify-content-between align-items-start mb-3">
-  <div>
-    <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
-      👶 Children Management
-    </h1>
-    <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Manage child records and profiles</p>
-  </div>
-</div>
+      const childrenRaw = response.children || [];
+      const children = applyLastWeighingFallback(childrenRaw);
+      window.__childrenCache = children;
 
-      <!-- Tab Navigation - Removed Mother-Child Linking Tab -->
-      <div class="mb-3">
-        <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
-          <li class="nav-item">
-            <a class="nav-link active children-tab" href="#" data-tab="database" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
-              Child Database
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link children-tab" href="#" data-tab="profiles" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-              Profile Management
-            </a>
-          </li>
-        </ul>
-      </div>
+      // Decide view from sidebar intent; default to database when parent is clicked
+      const intent = (window.__childDefaultTab || '').trim();
+      const view = intent === 'profiles' ? 'profiles' : 'database';
 
-      <!-- Search & Filter Section -->
-      <div class="tile mb-4">
-        <div class="tile-header mb-3">
-          <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">SEARCH & FILTER</h5>
-        </div>
-        
-        <div class="row g-3 align-items-end">
-          <!-- Search Input -->
-          <div class="col-md-3">
-            <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Search</label>
-            <div class="position-relative">
-              <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
-              <input type="text" class="form-control" id="childSearchInput" placeholder="Name, mother..." style="font-size:.7rem;padding:.6rem .8rem .6rem 2.2rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+      if (view === 'profiles') {
+        // Profile Management (left list + right details), with Search & Filter
+        moduleContent.innerHTML = renderProfileManagementShell();
+        // NEW: wire filters for the list
+        setupProfileListFilters(children);
+        populateProfileList(children);
+      } else {
+        // Child Database (search + table), no tabs
+        moduleContent.innerHTML = `
+          <!-- Search & Filter Section -->
+          <div class="tile mb-4">
+            <div class="tile-header mb-3">
+              <h5 style="font-size:.72rem;font-weight:800;color:var(--18432b, #18432b);margin:0;">SEARCH & FILTER</h5>
+            </div>
+            <div class="row g-3 align-items-end">
+              <div class="col-md-3">
+                <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Search</label>
+                <div class="position-relative">
+                  <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
+                  <input type="text" class="form-control" id="childSearchInput" placeholder="Name, mother..." style="font-size:.7rem;padding:.6rem .8rem .6rem 2.2rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Nutrition Status</label>
+                <select class="form-select" id="nutritionStatusFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                  <option value="">All Status</option>
+                  <option value="NOR">Normal (NOR)</option>
+                  <option value="UW">Underweight (UW)</option>
+                  <option value="MAM">Moderate Acute Malnutrition (MAM)</option>
+                  <option value="SAM">Severe Acute Malnutrition (SAM)</option>
+                  <option value="OW">Overweight (OW)</option>
+                  <option value="OB">Obese (OB)</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Purok</label>
+                <select class="form-select" id="purokFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
+                  <option value="">All Purok</option>
+                  <option value="Purok 1">Purok 1</option>
+                  <option value="Purok 2">Purok 2</option>
+                  <option value="Purok 3">Purok 3</option>
+                  <option value="Purok 4">Purok 4</option>
+                  <option value="Purok 5">Purok 5</option>
+                </select>
+              </div>
+              <div class="col-md-3 d-flex justify-content-end">
+                <button class="btn btn-outline-success" onclick="exportChildrenData()" style="font-size:.65rem;font-weight:600;padding:.6rem 1rem;border-radius:8px;border:1px solid var(--green);color:var(--green);">
+                  <i class="bi bi-download me-1"></i> Export CSV
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Nutrition Status Dropdown -->
-          <div class="col-md-3">
-            <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Nutrition Status</label>
-            <select class="form-select" id="nutritionStatusFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
-              <option value="">All Status</option>
-              <option value="NOR">Normal (NOR)</option>
-              <option value="UW">Underweight (UW)</option>
-              <option value="MAM">Moderate Acute Malnutrition (MAM)</option>
-              <option value="SAM">Severe Acute Malnutrition (SAM)</option>
-              <option value="OW">Overweight (OW)</option>
-              <option value="OB">Obese (OB)</option>
-            </select>
+          <!-- Content -->
+          <div id="children-tab-content">
+            ${renderChildrenTable(children)}
           </div>
+        `;
+        setupChildrenFilters(children);
+      }
 
-          <!-- Purok Dropdown -->
-          <div class="col-md-3">
-            <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;">Purok</label>
-            <select class="form-select" id="purokFilter" style="font-size:.7rem;padding:.6rem .8rem;border:1px solid var(--border-soft);border-radius:8px;background:var(--surface);">
-              <option value="">All Purok</option>
-              <option value="Purok 1">Purok 1</option>
-              <option value="Purok 2">Purok 2</option>
-              <option value="Purok 3">Purok 3</option>
-              <option value="Purok 4">Purok 4</option>
-              <option value="Purok 5">Purok 5</option>
-            </select>
-          </div>
-
-          <!-- Export Button -->
-          <div class="col-md-3 d-flex justify-content-end">
-            <button class="btn btn-outline-success" onclick="exportChildrenData()" style="font-size:.65rem;font-weight:600;padding:.6rem 1rem;border-radius:8px;border:1px solid var(--green);color:var(--green);">
-              <i class="bi bi-download me-1"></i> Export CSV
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab Content - DEFAULT TO CHILD DATABASE -->
-      <div id="children-tab-content">
-        ${renderChildrenTable(children)}
-      </div>
-    </div>
-  `;
-
-      // Add search and filter functionality
-      setupChildrenFilters(children);
-      
-      // Add tab switching functionality (updated to handle only 2 tabs)
-      setupChildrenTabsUpdated();
+      // Clear navigation intent after rendering
+      window.__childDefaultTab = '';
     })
     .catch(error => {
-      console.error('Error fetching children data:', error);
+      console.error('Error loading Children Management:', error);
       moduleContent.innerHTML = `
         <div class="alert alert-danger" style="font-size:.7rem;">
           <i class="bi bi-exclamation-triangle me-2"></i>
-          Error loading children data: ${escapeHtml(error.message)}
+          Error loading children data: ${escapeHtml(error.message || String(error))}
         </div>
       `;
     });
@@ -1387,17 +2274,20 @@ function renderChildrenTable(children) {
   const totalChildren = children.length;
   
   // REPLACE the empty-state in renderChildrenTable(children)
-if (totalChildren === 0) {
-  return `
-    <div class="tile">
-      <div class="text-center py-5">
-        <i class="bi bi-people text-muted" style="font-size:3rem;opacity:0.3;"></i>
-        <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Children Found</h6>
-        <p class="text-muted small mb-0" style="font-size:.65rem;">No children available. Try adjusting your filters.</p>
+  if (totalChildren === 0) {
+    return `
+      <div class="tile">
+        <div class="text-center py-5">
+          <i class="bi bi-people text-muted" style="font-size:3rem;opacity:0.3;"></i>
+          <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No Children Found</h6>
+          <p class="text-muted small mb-0" style="font-size:.65rem;">No children have been registered yet.</p>
+          <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#registerChildModal">
+            <i class="bi bi-plus-lg me-1"></i> Register First Child
+          </button>
+        </div>
       </div>
-    </div>
-  `;
-}
+    `;
+  }
   
   return `
     <!-- Child Registry Header -->
@@ -1469,13 +2359,14 @@ if (totalChildren === 0) {
         <table class="table table-hover mb-0" style="font-size:.7rem;">
           <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
             <tr>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Sex</th>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Birth Date</th>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Purok</th>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Mother/Caregiver</th>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Nutrition Status</th>
-              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Last Weighing</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Child Name</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Sex</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Birth Date</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Purok</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Mother/Caregiver</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Nutrition Status</th>
+                <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Last Weighing</th>
             </tr>
           </thead>
           <tbody>
@@ -1491,7 +2382,37 @@ function renderChildRow(child) {
   const statusBadge = getNutritionStatusBadge(child.nutrition_status);
   const sexIcon = child.sex === 'male' ? 'bi-gender-male' : 'bi-gender-female';
   const sexColor = child.sex === 'male' ? '#1c79d0' : '#e91e63';
-  
+  const ageDisplay = formatAgeDisplay(child.current_age_months);
+  const ageIsOA = ageDisplay === 'OA';
+
+  // Baseline card helper
+  function renderBaselineHistoryFromChild(child) {
+    if (!child) return '';
+    const hasAnyAnthro = (child.weight_kg != null && child.weight_kg !== '') || (child.height_cm != null && child.height_cm !== '');
+    if (!hasAnyAnthro) return '';
+    const dateStr = child.last_weighing_date || child.updated_at || child.created_at || '';
+    const dateHTML = dateStr
+      ? `<div class="text-muted small">${new Date(dateStr).toLocaleDateString()}</div>`
+      : `<div class="text-muted small">No date available</div>`;
+    return `
+      <div class="card mb-2">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">Baseline (from Child Profile)</div>
+              <div class="text-muted small">Shown for reference until a weighing record is added</div>
+            </div>
+            ${dateHTML}
+          </div>
+          <div class="mt-2 d-flex gap-4 flex-wrap">
+            <div><span class="text-muted">Weight:</span> ${child.weight_kg != null ? Number(child.weight_kg).toFixed(2) + ' kg' : '—'}</div>
+            <div><span class="text-muted">Height/Length:</span> ${child.height_cm != null ? Number(child.height_cm).toFixed(1) + ' cm' : '—'}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <tr style="border-bottom:1px solid #f0f4f1;" data-child-id="${child.child_id}">
       <td style="padding:.8rem;border:none;">
@@ -1501,9 +2422,11 @@ function renderChildRow(child) {
           </div>
           <span style="font-weight:600;color:#1e3e27;">${escapeHtml(child.full_name)}</span>
         </div>
+        ${renderBaselineHistoryFromChild(child)}
       </td>
       <td style="padding:.8rem;border:none;color:#586c5d;">${escapeHtml(child.sex)}</td>
       <td style="padding:.8rem;border:none;color:#586c5d;">${child.birth_date_formatted}</td>
+      <td style="padding:.8rem;border:none;${ageIsOA ? 'color:#d32f2f;font-weight:700;' : 'color:#586c5d;'}">${ageDisplay}</td>
       <td style="padding:.8rem;border:none;color:#586c5d;">${escapeHtml(child.purok_name || 'Not Set')}</td>
       <td style="padding:.8rem;border:none;">
         <div>
@@ -1803,20 +2726,12 @@ let __WEIGH_ALL_CHILDREN = [];
 })();
 
 function renderWeighingModuleSplit(label){
-  titleEl.textContent = label || 'Nutrition Data Entry';
-  showLoading('Nutrition Data Entry');
+  if (titleEl) titleEl.textContent = label || 'Nutrition Data Entry';
+  showLoading(label || 'Nutrition Data Entry');
 
-  // Build the split-view shell
+  // Build the split-view shell (NO page-header block)
   moduleContent.innerHTML = `
     <div class="fade-in">
-      <div class="page-header">
-        <div class="page-header-icon"><i class="bi bi-clipboard2-data"></i></div>
-        <div class="page-header-text">
-          <h1>Nutrition Data Entry</h1>
-          <p>Record comprehensive nutrition and growth measurements</p>
-        </div>
-      </div>
-
       <div class="row g-3">
         <!-- Left Pane: Children list -->
         <div class="col-12 col-lg-4">
@@ -1858,8 +2773,7 @@ function renderWeighingModuleSplit(label){
       const children = res.children || [];
       __WEIGH_ALL_CHILDREN = children;
       renderWeighingChildrenList(children);
-      // Auto-select first child for faster flow
-      if (children.length) selectWeighChild(children[0].child_id);
+  // Do not auto-select any child; wait for user selection
     })
     .catch(err=>{
       console.error('Children load error', err);
@@ -2033,10 +2947,40 @@ async function loadWeighRightPane(childId){
     `;
 
     document.getElementById('weighRightPane').innerHTML = details + form + history;
-lockWeighingDateToToday(); // NEW: enforce today-only date
+    lockWeighingDateToToday(); // NEW: enforce today-only date
+
+    // OA logic: show banner and disable form if child is over age
+    const ageMonths = calcAgeMonthsFromBirthDate(c.birth_date);
+    const isOverAge = Number.isFinite(ageMonths) && ageMonths > 59;
+
+    // Remove any previous banner
+    document.getElementById('weighingOABanner')?.remove();
+
+    if (isOverAge) {
+      // Show OA banner
+      const oa = document.createElement('div');
+      oa.id = 'weighingOABanner';
+      oa.className = 'alert alert-warning d-flex align-items-start gap-2 mb-3';
+      oa.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>
+          Child is OA (over age). You may view previous records, but cannot add a new record.
+        </div>`;
+      // Prepend to the weighing right pane container
+      document.getElementById('weighRightPane')?.prepend(oa);
+
+      // Disable New Weighing form controls
+      document.getElementById('saveNutritionRecord')?.setAttribute('disabled', 'disabled');
+      document.querySelectorAll('#weighingForm input, #weighingForm select, #weighingForm textarea')
+        .forEach(el => el.setAttribute('disabled', 'disabled'));
+    } else {
+      // Enable form controls
+      document.getElementById('saveNutritionRecord')?.removeAttribute('disabled');
+      document.querySelectorAll('#weighingForm input, #weighingForm select, #weighingForm textarea')
+        .forEach(el => el.removeAttribute('disabled'));
+    }
 setupAutoCalculation();
 wireWeighingSave(childId);
-loadPreviousRecords(childId);
+loadPreviousRecords(childId, c);
 
   }catch(e){
     console.error(e);
@@ -2097,6 +3041,13 @@ function wireWeighingSave(childId){
       fd.append('weight_kg', weight);
       fd.append('length_height_cm', height);
       if (statusId) fd.append('wfl_ht_status_id', statusId);
+
+      // Safe optional call: only if Supplementation’s duplicate-check helper exists
+      if (typeof updateDupUI === 'function' && updateDupUI()) {
+        // Warning is already shown by updateDupUI()
+        return;
+      }
+
       fd.append('remarks', remarks);
 
       const res = await fetch(api.nutrition, {
@@ -2125,7 +3076,14 @@ function wireWeighingSave(childId){
       if (nsid) nsid.value = '';
 
       // Reload history for this child
-      loadPreviousRecords(childId);
+      try {
+        const prof = await fetchJSON(`${api.children}?action=get&child_id=${childId}`)
+                          .then(x => x.child)
+                          .catch(() => null);
+        loadPreviousRecords(childId, prof);
+      } catch (_) {
+        loadPreviousRecords(childId);
+      }
 
     }catch(err){
       console.error(err);
@@ -2259,9 +3217,42 @@ function setupChildSelectionHandler() {
 function renderProfileManagementShell() {
   return `
     <div class="row g-3 fade-in">
-      <!-- Left: list only (no search) -->
+      <!-- Left: list with Search & Filter -->
       <div class="col-12 col-lg-6">
-        <div class="tile" id="pmListTile" style="padding:0;overflow:hidden;">
+        <div class="tile" id="pmListTile" style="padding:1rem;">
+          <div class="tile-header mb-2">
+            <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">CHILDREN LIST</h5>
+          </div>
+
+          <!-- Search & Filter -->
+          <div class="row g-2 align-items-end mb-2">
+            <div class="col-12 col-md-6">
+              <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.35rem;">Search</label>
+              <div class="position-relative">
+                <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
+                <input type="text" class="form-control" id="pmSearchInput" placeholder="Name, mother..." style="font-size:.7rem;padding:.55rem .8rem .55rem 2.2rem;">
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.35rem;">Status</label>
+              <select class="form-select" id="pmStatusFilter" style="font-size:.7rem;padding:.55rem .8rem;">
+                <option value="">All</option>
+                <option value="NOR">NOR</option>
+                <option value="UW">UW</option>
+                <option value="MAM">MAM</option>
+                <option value="SAM">SAM</option>
+                <option value="OW">OW</option>
+                <option value="OB">OB</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.35rem;">Purok</label>
+              <select class="form-select" id="pmPurokFilter" style="font-size:.7rem;padding:.55rem .8rem;">
+                <option value="">All Purok</option>
+              </select>
+            </div>
+          </div>
+
           <div class="table-responsive" id="pmListContainer">
             <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
               <div class="spinner-border spinner-border-sm me-2" role="status" style="width:1rem;height:1rem;border-width:2px;"></div>
@@ -2314,6 +3305,8 @@ function populateProfileList(children) {
         ${children.map(c => {
           const sexIcon = c.sex === 'male' ? 'bi-gender-male' : 'bi-gender-female';
           const sexColor = c.sex === 'male' ? '#1c79d0' : '#e91e63';
+          const ageDisplay = formatAgeDisplay(c.current_age_months);
+          const ageIsOA = ageDisplay === 'OA';
           return `
             <tr style="border-bottom:1px solid #f0f4f1;">
               <td style="padding:.75rem .8rem;border:none;">
@@ -2331,7 +3324,7 @@ function populateProfileList(children) {
                 </div>
               </td>
               <td style="padding:.75rem .8rem;border:none;color:#586c5d;">${escapeHtml(c.sex)}</td>
-              <td style="padding:.75rem .8rem;border:none;color:#586c5d;">${c.current_age_months ?? '—'}</td>
+              <td style="padding:.75rem .8rem;border:none;${ageIsOA ? 'color:#d32f2f;font-weight:700;' : 'color:#586c5d;'}">${ageDisplay}</td>
               <td style="padding:.75rem .8rem;border:none;color:#586c5d;">${escapeHtml(c.purok_name || 'Not Set')}</td>
               <td style="padding:.6rem .8rem;border:none;">
                 <div class="d-flex align-items-center gap-2">
@@ -2438,17 +3431,24 @@ function loadChildrenForSelection() {
           const option = document.createElement('option');
           option.value = child.child_id;
           option.textContent = child.full_name;
-          
-          // Ensure all necessary data is included
+
+          // Ensure all necessary data is included, including baseline anthropometrics and dates
           const childDataForStorage = {
             child_id: child.child_id,
             full_name: child.full_name,
             sex: child.sex,
             birth_date: child.birth_date,
             mother_name: child.mother_name,
-            current_age_months: child.current_age_months
+            current_age_months: child.current_age_months,
+            // Baseline anthropometrics for fallback card
+            weight_kg: child.weight_kg ?? null,
+            height_cm: child.height_cm ?? null,
+            // Useful dates
+            created_at: child.created_at ?? null,
+            updated_at: child.updated_at ?? null,
+            last_weighing_date: child.last_weighing_date ?? null
           };
-          
+
           option.dataset.childData = JSON.stringify(childDataForStorage);
           childSelect.appendChild(option);
         });
@@ -2851,30 +3851,75 @@ function loadPreviousRecords(childId) {
       Loading previous records...
     </div>
   `;
-  
+
   // Simulate loading previous records - replace with actual API call
   setTimeout(() => {
-    container.innerHTML = `
-      <table class="table table-hover mb-0" style="font-size:.7rem;">
-        <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
-          <tr>
-            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date</th>
-            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
-            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Weight (kg)</th>
-            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Height (cm)</th>
-            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
-            <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Remarks</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="6" style="padding:2rem;text-align:center;color:var(--muted);font-size:.65rem;">
-              No previous records found for this child
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    `;
+    // Simulated: get child object and history array
+    const c = window.__childrenCache?.find(x => String(x.child_id) === String(childId));
+    const history = []; // Simulate no history
+    const hasHistory = Array.isArray(history) && history.length > 0;
+
+    if (!hasHistory) {
+      // Baseline card logic
+      function renderBaselineHistoryFromChild(child) {
+        if (!child) return '';
+        const hasAnyAnthro = (child.weight_kg != null && child.weight_kg !== '') || (child.height_cm != null && child.height_cm !== '');
+        if (!hasAnyAnthro) return '';
+        const dateStr = child.last_weighing_date || child.updated_at || child.created_at || '';
+        const dateHTML = dateStr
+          ? `<div class="text-muted small">${new Date(dateStr).toLocaleDateString()}</div>`
+          : `<div class="text-muted small">No date available</div>`;
+        return `
+          <div class="card mb-2">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">Baseline (from Child Profile)</div>
+                  <div class="text-muted small">Shown for reference until a weighing record is added</div>
+                </div>
+                ${dateHTML}
+              </div>
+              <div class="mt-2 d-flex gap-4 flex-wrap">
+                <div><span class="text-muted">Weight:</span> ${child.weight_kg != null ? Number(child.weight_kg).toFixed(2) + ' kg' : '—'}</div>
+                <div><span class="text-muted">Height/Length:</span> ${child.height_cm != null ? Number(child.height_cm).toFixed(1) + ' cm' : '—'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      const baselineHTML = renderBaselineHistoryFromChild(c);
+      if (baselineHTML) {
+        container.innerHTML = baselineHTML;
+      } else {
+        container.innerHTML = `
+          <div class="text-center text-muted py-4">
+            No previous records found for this child
+          </div>
+        `;
+      }
+    } else {
+      container.innerHTML = `
+        <table class="table table-hover mb-0" style="font-size:.7rem;">
+          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+            <tr>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Weight (kg)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Height (cm)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="6" style="padding:2rem;text-align:center;color:var(--muted);font-size:.65rem;">
+                No previous records found for this child
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
   }, 1000);
 }
 
@@ -2908,6 +3953,14 @@ function setupSaveRecordHandler() {
       return;
     }
 
+    // OA guard: prevent save if child is over age
+    const selectedChild = __WEIGH_ALL_CHILDREN?.find(c => String(c.child_id) === String(childId));
+    const ageMonthsGuard = calcAgeMonthsFromBirthDate(selectedChild?.birth_date);
+    if (Number.isFinite(ageMonthsGuard) && ageMonthsGuard > 59) {
+      alert('Child is OA (over age). Adding a new record is not allowed.');
+      return;
+    }
+
     // Validation
     if (!childId) { alert('Please select a child'); return; }
     if (!weighingDate || !weight || !height) {
@@ -2923,6 +3976,7 @@ function setupSaveRecordHandler() {
     const formData = new FormData();
     formData.append('csrf_token', window.__BNS_CSRF);
     formData.append('child_id', childId);
+
     formData.append('weighing_date', weighingDate);
     formData.append('weight_kg', weight);
     formData.append('length_height_cm', height);
@@ -3014,75 +4068,55 @@ function renderNutritionClassificationModule(label){
     const {stableCount, improvedCount} = computeStabilityAndImprovement(recent);
     const firstChildId = children[0]?.child_id || null;
  
+    // Decide which panel to show based on navigation intent
+    const requested = (window.__gmDefaultTab || '').trim();
+    const view = requested === 'population' ? 'population'
+               : requested === 'wfl'        ? 'wfl'
+               : 'individual';
+
     moduleContent.innerHTML = `
       <div class="fade-in">
-        <div class="page-header">
-          <div class="page-header-icon"><i class="bi bi-clipboard2-pulse"></i></div>
-          <div class="page-header-text">
-            <h1>Growth Monitoring</h1>
-            <p>Track child development and nutrition status trends</p>
-          </div>
-        </div>
- 
-        <!-- Overview Cards -->
+        <!-- Overview Cards (kept the same for UI consistency) -->
         <div class="stat-grid" style="margin-top:.4rem;">
           ${statCard('Normal Growth', normalCount, '↑ vs last month','green', true)}
           ${statCard('Below Normal', belowNormal, '↓ vs last month','amber', false)}
           ${statCard('Stable Cases', stableCount, 'No change','blue', false)}
           ${statCard('Improved', improvedCount, 'This month','green', false)}
         </div>
- 
-        <!-- Tabs -->
-        <div class="mb-3">
-          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
-            <li class="nav-item">
-              <a class="nav-link active gm-tab" href="#" data-tab="individual" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
-                Individual Child
-              </a>
-            </li>
-            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="population" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Population Trends</a></li>
-            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="wfl" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">WFL/H Assessment</a></li>
-            <li class="nav-item"><a class="nav-link gm-tab" href="#" data-tab="progress" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Progress Documentation</a></li>
-          </ul>
-        </div>
- 
-        <!-- Tab Content -->
-        <div id="gm-tab-content">
-          ${renderIndividualChildPanel(children, firstChildId)}
-        </div>
+
+        <!-- Single-view container (no tabs) -->
+        <div id="gm-single-content"></div>
       </div>
     `;
- 
-    // Wire up tabs
-    document.querySelectorAll('.gm-tab').forEach(tab=>{
-      tab.addEventListener('click',e=>{
-        e.preventDefault();
-        document.querySelectorAll('.gm-tab').forEach(t=>{t.classList.remove('active');t.style.color='var(--muted)';t.style.borderBottom='none';});
-        tab.classList.add('active');
-        tab.style.color='var(--green)';
-        tab.style.borderBottom='2px solid var(--green)';
- 
-        const type = tab.dataset.tab;
-        const container = document.getElementById('gm-tab-content');
-        if(type==='individual'){
-          container.innerHTML = renderIndividualChildPanel(children, document.getElementById('gmChildSelect')?.value || firstChildId);
-          attachIndividualHandlers(children);
-          const id = parseInt(document.getElementById('gmChildSelect').value,10);
-          if(id) loadAndRenderChildSeries(id);
-        } else if (type==='population') {
-          container.innerHTML = renderPopulationPanel(summary, recent, children);
-        } else if (type==='wfl') {
-          container.innerHTML = renderWFLPanel(summary);
-          } else {
-          container.innerHTML = renderProgressDocsPanel(children, recent);
-          attachProgressHandlersProgress();
-        }
-      });
-    });
+
+    const host = document.getElementById('gm-single-content');
+    if (!host) return;
+
+    if (view === 'population') {
+      host.innerHTML = renderPopulationPanel(summary, recent, children);
+    } else if (view === 'wfl') {
+      host.innerHTML = renderWFLPanel(summary);
+    } else {
+      // Individual Child (default)
+      host.innerHTML = renderIndividualChildPanel(children, null);
+      attachIndividualHandlers(children);
+      // Do not auto-load child series; wait for user selection
+    }
+
+    // Clear the intent after rendering
+    window.__gmDefaultTab = '';
  
     // Initialize Individual panel
-    attachIndividualHandlers(children);
-    if(firstChildId) loadAndRenderChildSeries(firstChildId);
+    // attachIndividualHandlers(children); // already called above
+    // Do not auto-load child series; wait for user selection
+
+    // NEW: open requested tab
+    const def = (window.__gmDefaultTab || '').trim();
+    if (def) {
+      const tgt = document.querySelector(`.gm-tab[data-tab="${def}"]`);
+      if (tgt) tgt.click();
+    }
+    window.__gmDefaultTab = '';
  
     // ===== Helpers (scoped to this module) =====
  
@@ -3125,7 +4159,6 @@ function renderNutritionClassificationModule(label){
  
     // UI renderers for tabs
     function renderIndividualChildPanel(children, selectedId){
-      const options = children.map(c=>`<option value="${c.child_id}" ${String(c.child_id)===String(selectedId)?'selected':''}>${escapeHtml(c.full_name)}</option>`).join('');
       return `
         <div class="tile">
           <div class="d-flex align-items-center justify-content-between mb-3">
@@ -3136,7 +4169,30 @@ function renderNutritionClassificationModule(label){
               <p class="tile-sub" style="margin:.2rem 0 0;">Quick analysis from the child’s latest records</p>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <select id="gmChildSelect" class="form-select" style="font-size:.72rem;min-width:220px;">${options}</select>
+              <!-- Searchable combobox (consistent with Supplementation UI) -->
+              <div class="combobox" id="gmChildCombo" style="min-width:260px;">
+                <div class="position-relative">
+                  <i class="bi bi-search position-absolute combobox-icon"></i>
+                  <input
+                    type="text"
+                    id="gmChildInput"
+                    class="form-control"
+                    placeholder="Search child..."
+                    role="combobox"
+                    aria-expanded="false"
+                    aria-controls="gmChildListbox"
+                    aria-autocomplete="list"
+                    autocomplete="off"
+                    style="font-size:.72rem;"
+                  />
+                  <button type="button" id="gmChildClear" class="combobox-clear" aria-label="Clear selection">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                  <input type="hidden" id="gmChildId" value="${selectedId || ''}">
+                </div>
+                <div id="gmChildListbox" role="listbox" class="combobox-list" hidden></div>
+              </div>
+
               <button id="gmExportBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:600;border-radius:8px;">
                 <i class="bi bi-download me-1"></i> Export
               </button>
@@ -3167,10 +4223,9 @@ function renderNutritionClassificationModule(label){
           <!-- Classification history -->
           <div>
             <div style="font-size:.72rem;font-weight:700;color:#18432b;margin:0 0 .4rem;">Classification History</div>
-            <div id="gmHistoryChips" style="display:flex;flex-wrap:wrap;gap:.4rem;">
-              <!-- Filled dynamically -->
-            </div>
+            <div id="gmHistoryChips" style="display:flex;flex-wrap:wrap;gap:.4rem;"></div>
           </div>
+          <div class="mt-3" id="gmCharts"></div>
         </div>
       `;
     }
@@ -3801,21 +4856,207 @@ function attachProgressHandlersProgress(){
   });
 }
     function attachIndividualHandlers(children){
-      const sel = document.getElementById('gmChildSelect');
-      const btn = document.getElementById('gmExportBtn');
-      if(sel){
-        sel.addEventListener('change', ()=> loadAndRenderChildSeries(parseInt(sel.value,10)));
-      }
-      if(btn){
-        btn.addEventListener('click', ()=>{
-          const id = parseInt(document.getElementById('gmChildSelect').value,10);
-          if(!id) return;
+      // Set up the GM combobox with default selection from hidden field; onSelect loads series
+      const defaultId = parseInt(document.getElementById('gmChildId')?.value || '0', 10);
+      setupGmChildCombobox(children, {
+        defaultId,
+        onSelect: (id)=> { if (id) loadAndRenderChildSeries(parseInt(id,10)); }
+      });
+
+      const exportBtn = document.getElementById('gmExportBtn');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', ()=>{
+          const id = parseInt(document.getElementById('gmChildId')?.value || '0', 10);
+          if (!id) { alert('Please select a child first.'); return; }
           exportChildSeriesCSV(id);
         });
       }
     }
  
     function loadAndRenderChildSeries(childId){
+    // Chart builder functions for growth charts
+    function buildGrowthCharts(rows){
+  const d = rows.slice().map(r => ({
+    date: r.weighing_date,
+    label: r.weighing_date ? new Date(r.weighing_date+'T00:00:00').toLocaleDateString('en-PH',{month:'short'}) : '',
+    w: (r.weight_kg!=null)? Number(r.weight_kg) : null,
+    h: (r.length_height_cm!=null)? Number(r.length_height_cm) : null
+  }));
+
+  const weightSeries = d.filter(x=>x.w!=null);
+  const heightSeries = d.filter(x=>x.h!=null);
+
+  const weightChart = weightSeries.length ? buildWeightChart(weightSeries) :
+    `<div class="gm-chart-wrap"><div class="gm-chart-title">Weight Progression</div><div class="chart-placeholder">No weight data available</div></div>`;
+
+  const heightChart = heightSeries.length ? buildHeightChart(heightSeries) :
+    `<div class="gm-chart-wrap"><div class="gm-chart-title">Height/Length Progression</div><div class="chart-placeholder">No height data available</div></div>`;
+
+  // NEW: show the two charts side-by-side (responsive)
+  return `
+    <div class="row g-2">
+      <div class="col-12 col-lg-6">${weightChart}</div>
+      <div class="col-12 col-lg-6">${heightChart}</div>
+    </div>
+  `;
+    }
+
+    function buildWeightChart(series){
+      const BMI_REF = 15.5;
+      const points = series.map(x => ({
+        label: x.label,
+        w: x.w,
+      }));
+      const hMap = new Map();
+      series.forEach(x => { if (x.h!=null && x.date) hMap.set(x.date, x.h); });
+      const withNorm = series.map(x => {
+        const h = x.h ?? hMap.get(x.date) ?? null;
+        let norm = null;
+        if (h && h>0) {
+          const m = h/100;
+          norm = +(BMI_REF * m * m).toFixed(2);
+        }
+        return { label:x.label, w:x.w, norm };
+      });
+
+      const labels = withNorm.map(p=>p.label);
+      const yVals = withNorm.flatMap(p => [p.w, p.norm].filter(v => v!=null));
+      const yMin = Math.max(0, Math.min(...yVals) - 1);
+      const yMax = Math.max(...yVals) + 1;
+
+      const svg = lineChartSVG({
+        title: 'Weight Progression',
+        labels,
+        series: [
+          { key:'Actual Weight', color:'#0b7a43', stroke:'#0b7a43', width:1.6, dots:true, data: withNorm.map(p=>p.w) },
+          { key:'Normal Range',  color:'#18a558', stroke:'#18a558', width:1.2, dash:'3 2', dots:false, data: withNorm.map(p=>p.norm) }
+        ],
+        yLabel: 'Weight (kg)',
+        yMin, yMax
+      });
+
+      const legend = `
+        <div class="gm-legend">
+          <span><span class="dot" style="background:#0b7a43"></span> Actual Weight</span>
+          <span><span class="swatch" style="background:transparent;border:2px dashed #18a558;"></span> Normal Range</span>
+        </div>
+      `;
+
+      return `<div class="gm-chart-wrap">
+        <div class="gm-chart-title">Weight Progression</div>
+        ${svg}
+        ${legend}
+      </div>`;
+    }
+
+    function buildHeightChart(series){
+      const labels = series.map(p=>p.label);
+      const vals = series.map(p=>p.h);
+      const yMin = Math.max(0, Math.min(...vals) - 2);
+      const yMax = Math.max(...vals) + 2;
+
+      const svg = lineChartSVG({
+        title: 'Height/Length Progression',
+        labels,
+        series: [
+          { key:'Height', color:'#f4a400', stroke:'#f4a400', width:1.6, fill:'#f4a400', fillAlpha:0.18, dots:false, data: vals }
+        ],
+        yLabel: 'Height (cm)',
+        yMin, yMax,
+        area: true
+      });
+
+      const legend = `
+        <div class="gm-legend">
+          <span><span class="swatch" style="background:#f4a400"></span> Height</span>
+        </div>
+      `;
+
+      return `<div class="gm-chart-wrap">
+        <div class="gm-chart-title">Height/Length Progression</div>
+        ${svg}
+        ${legend}
+      </div>`;
+    }
+
+    function lineChartSVG(opts){
+      const VB = { w: 140, h: 80 };
+      const pad = { l: 10, r: 6, t: 8, b: 18 };
+      const CW = VB.w - pad.l - pad.r;
+      const CH = VB.h - pad.t - pad.b;
+
+      const labels = opts.labels || [];
+      const S = (opts.series || []).map(s => ({...s}));
+
+      const yMin = (Number.isFinite(opts.yMin) ? opts.yMin : 0);
+      const yMax = (Number.isFinite(opts.yMax) ? opts.yMax : 1);
+      const yRange = Math.max(1e-6, yMax - yMin);
+
+      const xStep = labels.length>1 ? CW/(labels.length-1) : 0;
+
+      // Gridlines (5 ticks)
+      let grid = '';
+      const ticks = 5;
+      for(let i=0;i<=ticks;i++){
+        const y = pad.t + CH - (i/ticks)*CH;
+        grid += `<line x1="${pad.l}" y1="${y.toFixed(2)}" x2="${(VB.w-pad.r).toFixed(2)}" y2="${y.toFixed(2)}" stroke="#e6ede9" stroke-width=".4" vector-effect="non-scaling-stroke"/>`;
+      }
+
+      // X labels
+      const xlabels = labels.map((lab,i)=>{
+        const x = pad.l + i*xStep;
+        const y = VB.h - 4;
+        return `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="2.6" fill="#637668" text-anchor="middle">${lab}</text>`;
+      }).join('');
+
+      // Build polylines + optional area
+      function yFor(v){ return pad.t + CH - ((v - yMin)/yRange)*CH; }
+      function xFor(i){ return pad.l + i*xStep; }
+
+      let defs = '';
+      if (opts.area) {
+        defs = `
+          <defs>
+            <linearGradient id="gmAreaOrange" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%"  stop-color="#f4a400" stop-opacity=".28"/>
+              <stop offset="100%" stop-color="#f4a400" stop-opacity=".04"/>
+            </linearGradient>
+          </defs>
+        `;
+      }
+
+      const paths = S.map(s=>{
+        const pts = s.data.map((v,i) => (Number.isFinite(v) ? [xFor(i), yFor(v)] : null));
+        // Build polyline path
+        const linePts = pts.map(p => p ? `${p[0].toFixed(2)},${p[1].toFixed(2)}` : '').filter(Boolean).join(' ');
+        const line = `<polyline fill="none" stroke="${s.stroke}" stroke-width="${(s.width||1.2)}" ${s.dash?`stroke-dasharray="${s.dash}"`:''} points="${linePts}"></polyline>`;
+
+        // Optional dots
+        const dots = (s.dots? pts.map(p => p? `<circle cx="${p[0].toFixed(2)}" cy="${p[1].toFixed(2)}" r="1.4" fill="${s.stroke}"></circle>`:'').join('') : '');
+
+        // Optional area (first series only)
+        let area = '';
+        if (opts.area && s.fill) {
+          const top = pts.filter(Boolean).map(p=>`${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
+          const bottom = `${(pad.l+CW).toFixed(2)},${(pad.t+CH).toFixed(2)} ${pad.l.toFixed(2)},${(pad.t+CH).toFixed(2)}`;
+          area = `<polygon fill="url(#gmAreaOrange)" points="${top} ${bottom}"></polygon>`;
+        }
+
+        return `${area}${line}${dots}`;
+      }).join('');
+
+      return `
+        <div style="width:100%;position:relative;">
+          <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+               style="display:block;width:100%;height:auto;">
+            ${defs}
+            ${grid}
+            ${paths}
+            ${xlabels}
+          </svg>
+        </div>
+      `;
+    }
       const insightsEl = document.getElementById('gmInsights');
       const historyEl = document.getElementById('gmHistoryChips');
       const statusEl = document.getElementById('gmCurrentStatus');
@@ -3917,6 +5158,12 @@ function attachProgressHandlersProgress(){
           </span>`;
         };
         if (historyEl) historyEl.innerHTML = last6.map(chip).join('');
+
+        // NEW: render charts (last up to 12 points)
+        const chartHost = document.getElementById('gmCharts');
+        if (chartHost) {
+          chartHost.innerHTML = buildGrowthCharts(records.slice(-12));
+        }
  
       }).catch(()=>{
         if (insightsEl) insightsEl.innerHTML = `<div class="col-12 text-center py-4" style="color:var(--red);font-size:.65rem;">Error loading data</div>`;
@@ -3990,15 +5237,56 @@ function attachProgressHandlersProgress(){
 // REPLACE the whole renderFeedingProgramsModule(...) with this version
 // REPLACE the whole renderFeedingProgramsModule(...) with this version
 // REPLACE the whole renderFeedingProgramsModule(...) with this version
+// REPLACE the whole renderFeedingProgramsModule(...) with this version (no tabs; nav decides view)
 function renderFeedingProgramsModule(label) {
-  showLoading(label);
-
   // State
   let allSuppRecords = [];
   let currentFilters = { q: '', type: '', status: '' };
-  let currentView = 'table'; // 'table' | 'schedule'
+  // 'table' = All Records, 'schedule' = Schedule
+  let currentView = 'table';
 
   // Helpers
+  function normalizeSuppType(t){
+    const s = String(t||'').toLowerCase();
+    if (s.includes('vit')) return 'Vitamin A';
+    if (s.includes('iron')) return 'Iron';
+    if (s.includes('deworm')) return 'Deworming';
+    return t || '';
+  }
+
+  function hasDuplicateSupp(childId, type){
+    if (!childId || !type) return false;
+    const normType = normalizeSuppType(type);
+    return (allSuppRecords || []).some(r =>
+      Number(r.child_id) === Number(childId) &&
+      normalizeSuppType(r.supplement_type) === normType
+    );
+  }
+
+  // UI helper na ginagamit din ng ibang module (pang-ballistic check)
+  function updateDupUI(){
+    const childId = parseInt(document.getElementById('suppChildId')?.value || '0', 10);
+    const type    = document.getElementById('suppType')?.value || '';
+    const warn    = document.getElementById('suppDuplicateWarn');
+    const txt     = document.getElementById('suppDuplicateText');
+    const btn     = document.getElementById('saveSuppRecordBtn');
+
+    const dup = hasDuplicateSupp(childId, type);
+    if (warn && txt && btn){
+      if (dup){
+        txt.textContent = type
+          ? `This child already has a ${type} record.`
+          : `This child already has a record for this supplement type.`;
+        warn.classList.remove('d-none'); warn.classList.add('d-flex');
+        btn.disabled = true; btn.classList.add('disabled');
+      } else {
+        warn.classList.add('d-none'); warn.classList.remove('d-flex');
+        btn.disabled = false; btn.classList.remove('disabled');
+      }
+    }
+    return dup;
+  }
+
   const typeIcon = (t) => {
     if (/vitamin/i.test(t)) return {icon:'bi-capsule', color:'#f4a400'};
     if (/iron/i.test(t))    return {icon:'bi-heart-pulse', color:'#d23d3d'};
@@ -4006,10 +5294,9 @@ function renderFeedingProgramsModule(label) {
     return {icon:'bi-capsule', color:'#077a44'};
   };
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-PH',{timeZone:'Asia/Manila'}) : '—';
-  const statusBadge = (s) => {
-    if (s === 'overdue') return `<span class="badge-status" style="background:#ffe4e4;color:#b02020;">OVERDUE</span>`;
-    return `<span class="badge-status badge-NOR">COMPLETED</span>`;
-  };
+  const statusBadge = (s) => s === 'overdue'
+    ? `<span class="badge-status" style="background:#ffe4e4;color:#b02020;">OVERDUE</span>`
+    : `<span class="badge-status badge-NOR">COMPLETED</span>`;
   const daysDisplay = (n) => {
     if (n == null) return '—';
     if (n < 0) return `<span style="color:#dc3545;font-weight:600;">${Math.abs(n)} day${Math.abs(n)===1?'':'s'}</span>`;
@@ -4077,27 +5364,6 @@ function renderFeedingProgramsModule(label) {
     `;
   }
 
-  function applyFilters() {
-    if (currentView === 'schedule') {
-      renderSchedulePanel();
-      return;
-    }
-    const searchTerm = currentFilters.q.toLowerCase();
-    const out = allSuppRecords.filter(r => {
-      const matchesQ = !searchTerm || (r.child_name && r.child_name.toLowerCase().includes(searchTerm));
-      const matchesType = !currentFilters.type || (r.supplement_type === currentFilters.type);
-      const matchesStatus = !currentFilters.status || (r.status === currentFilters.status);
-      return matchesQ && matchesType && matchesStatus;
-    });
-    document.getElementById('suppRecordsCount')?.replaceChildren(document.createTextNode(`${out.length} record${out.length!==1?'s':''} found`));
-    document.getElementById('suppRecordsContainer').innerHTML = out.length ? renderTable(out) : `
-      <div class="tile" style="padding:2rem;text-align:center;">
-        <i class="bi bi-clipboard-x text-muted" style="font-size:2.2rem;opacity:.3;"></i>
-        <div class="mt-2" style="font-size:.7rem;color:var(--muted);">No records found</div>
-      </div>`;
-  }
-
-  // Schedule view (unchanged from previous version)
   function renderSchedulePanel() {
     const items = (allSuppRecords || [])
       .filter(r => r.next_due_date)
@@ -4108,27 +5374,39 @@ function renderFeedingProgramsModule(label) {
     );
 
     const itemRow = (r) => {
-      const isOverdue = r.status === 'overdue';
-      const badge = isOverdue
-        ? `<span class="badge-status" style="background:#ff6b6b;color:#fff;">Overdue</span>`
-        : (Number.isFinite(r.days_until_due) ? 
-           `<span class="badge-status" style="background:#e8f5ea;color:#077a44;">In ${r.days_until_due} day${r.days_until_due===1?'':'s'}</span>` : '');
+    const isOverdue = r.status === 'overdue';
+    const badge = isOverdue
+      ? `<span class="badge-status" style="background:#ff6b6b;color:#fff;">Overdue</span>`
+      : (Number.isFinite(r.days_until_due) ? 
+         `<span class="badge-status" style="background:#e8f5ea;color:#077a44;">In ${r.days_until_due} day${r.days_until_due===1?'':'s'}</span>` : '');
 
-      return `
-        <div class="d-flex align-items-center justify-content-between"
-             style="background:#fff;border:1px solid #e9efeb;border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;">
-          <div class="d-flex align-items-center" style="gap:.7rem;">
-            <div style="width:32px;height:32px;border-radius:10px;background:#e8f5ea;display:flex;align-items:center;justify-content:center;">
-              <i class="bi bi-calendar-event" style="color:#077a44;"></i>
-            </div>
-            <div>
-              <div style="font-size:.78rem;font-weight:700;color:#18432b;line-height:1;">${escapeHtml(r.child_name || 'Unknown')}</div>
-              <div style="font-size:.62rem;color:#586c5d;">${escapeHtml(r.supplement_type)} - Due: ${formatDate(r.next_due_date)}</div>
-            </div>
+    return `
+      <div class="d-flex align-items-center justify-content-between"
+           style="background:#fff;border:1px solid #e9efeb;border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;">
+        <div class="d-flex align-items-center" style="gap:.7rem;">
+          <div style="width:32px;height:32px;border-radius:10px;background:#e8f5ea;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-calendar-event" style="color:#077a44;"></i>
           </div>
-          <div>${badge}</div>
+          <div>
+            <div style="font-size:.78rem;font-weight:700;color:#18432b;line-height:1;">${escapeHtml(r.child_name || 'Unknown')}</div>
+            <div style="font-size:.62rem;color:#586c5d;">${escapeHtml(r.supplement_type)} - Due: ${formatDate(r.next_due_date)}</div>
+          </div>
         </div>
-      `;
+
+        <!-- Right-side controls: Days first, then Notify (no action on click) -->
+        <div class="d-flex align-items-center" style="gap:.45rem;">
+          ${badge}
+          <button
+            type="button"
+            class="btn btn-outline-success btn-sm notify-supp-btn"
+            aria-disabled="true"
+            tabindex="-1"
+            style="font-size:.6rem;border-radius:8px;pointer-events:none;">
+            <i class="bi bi-envelope me-1"></i> Notify
+          </button>
+        </div>
+      </div>
+    `;
     };
 
     document.getElementById('suppRecordsContainer').innerHTML = `
@@ -4146,12 +5424,36 @@ function renderFeedingProgramsModule(label) {
     `;
   }
 
+  function applyFilters() {
+    // Only used for the All Records view
+    const searchTerm = currentFilters.q.toLowerCase();
+    const out = allSuppRecords.filter(r => {
+      const matchesQ = !searchTerm || (r.child_name && r.child_name.toLowerCase().includes(searchTerm));
+      const matchesType = !currentFilters.type || (r.supplement_type === currentFilters.type);
+      const matchesStatus = !currentFilters.status || (r.status === currentFilters.status);
+      return matchesQ && matchesType && matchesStatus;
+    });
+    document.getElementById('suppRecordsCount')?.replaceChildren(
+      document.createTextNode(`${out.length} record${out.length!==1?'s':''} found`)
+    );
+    document.getElementById('suppRecordsContainer').innerHTML = out.length ? renderTable(out) : `
+      <div class="tile" style="padding:2rem;text-align:center;">
+        <i class="bi bi-clipboard-x text-muted" style="font-size:2.2rem;opacity:.3;"></i>
+        <div class="mt-2" style="font-size:.7rem;color:var(--muted);">No records found</div>
+      </div>`;
+  }
+
   function loadSuppRecords() {
     const url = `${api.supplementation}?list=1`;
     return fetchJSON(url)
       .then(res => {
         if (!res.success) throw new Error(res.error || 'Failed to load supplementation records');
         allSuppRecords = res.records || [];
+
+        // Toggle filters visibility based on view
+        const filtersWrap = document.getElementById('suppFiltersWrap');
+        if (filtersWrap) filtersWrap.style.display = (currentView === 'schedule') ? 'none' : '';
+
         if (currentView === 'schedule') {
           renderSchedulePanel();
         } else {
@@ -4169,32 +5471,13 @@ function renderFeedingProgramsModule(label) {
       });
   }
 
-  // Render shell
+  // Render shell (no page header; no tabs)
+  showLoading(label);
   setTimeout(() => {
     moduleContent.innerHTML = `
       <div class="fade-in">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-          <div>
-            <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
-              💊 Supplementation Management
-            </h1>
-            <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Track vitamin A, iron, and deworming programs</p>
-          </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="mb-3">
-          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
-            <li class="nav-item"><a class="nav-link active supplement-tab" href="#" data-tab="all" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">All Records</a></li>
-            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="vitamin-a" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Vitamin A</a></li>
-            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="iron" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Iron</a></li>
-            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="deworming" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Deworming</a></li>
-            <li class="nav-item"><a class="nav-link supplement-tab" href="#" data-tab="schedule" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Schedule</a></li>
-          </ul>
-        </div>
-
-        <!-- Search & Filter -->
-        <div class="tile mb-4">
+        <!-- Search & Filter (hidden when in Schedule) -->
+        <div class="tile mb-4" id="suppFiltersWrap">
           <div class="tile-header mb-3">
             <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">Search & Filter</h5>
           </div>
@@ -4249,106 +5532,72 @@ function renderFeedingProgramsModule(label) {
       </div>
     `;
 
-    // Wire filters
-    document.getElementById('suppSearchInput').addEventListener('input', e => {
+    // Filters wiring (All Records view)
+    document.getElementById('suppSearchInput')?.addEventListener('input', e => {
       currentFilters.q = e.target.value;
-      applyFilters();
+      if (currentView === 'table') applyFilters();
     });
-
-    // Tabs + Type filter sync
-    function setSuppTabActive(key){
-      document.querySelectorAll('.supplement-tab').forEach(t=>{
-        t.classList.remove('active');
-        t.style.color = 'var(--muted)';
-        t.style.borderBottom = 'none';
-      });
-      const el = document.querySelector(`.supplement-tab[data-tab="${key}"]`);
-      if (el) {
-        el.classList.add('active');
-        el.style.color = 'var(--green)';
-        el.style.borderBottom = '2px solid var(--green)';
-      }
-    }
-
-    function setTypeAndFilter(typeLabel){
-      currentView = 'table';
-      currentFilters.type = typeLabel;
-      const sel = document.getElementById('suppTypeFilter');
-      if (sel) sel.value = typeLabel;
-
-      const reverseMap = {
-        '': 'all',
-        'Vitamin A': 'vitamin-a',
-        'Iron': 'iron',
-        'Deworming': 'deworming'
-      };
-      setSuppTabActive(reverseMap[typeLabel] || 'all');
-      applyFilters();
-    }
-
-    document.querySelectorAll('.supplement-tab').forEach(tab=>{
-      tab.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const which = tab.dataset.tab; // 'all' | 'vitamin-a' | 'iron' | 'deworming' | 'schedule'
-        if (which === 'schedule') {
-          currentView = 'schedule';
-          setSuppTabActive('schedule');
-          renderSchedulePanel();
-          return;
-        }
-        const map = {
-          'all': '',
-          'vitamin-a': 'Vitamin A',
-          'iron': 'Iron',
-          'deworming': 'Deworming'
-        };
-        setTypeAndFilter(map[which] ?? '');
-      });
+    document.getElementById('suppTypeFilter')?.addEventListener('change', e => {
+      currentFilters.type = e.target.value;
+      if (currentView === 'table') applyFilters();
     });
-
-    document.getElementById('suppTypeFilter')?.addEventListener('change', e=>{
-      const typeLabel = e.target.value;
-      setTypeAndFilter(typeLabel);
-    });
-
-    document.getElementById('suppStatusFilter').addEventListener('change', e => {
+    document.getElementById('suppStatusFilter')?.addEventListener('change', e => {
       currentFilters.status = e.target.value;
-      applyFilters();
+      if (currentView === 'table') applyFilters();
     });
 
-    // Prepare modal each time it opens (Create mode)
+    // Modal: create/edit shared setup
     const modalEl = document.getElementById('supplementationRecordModal');
     modalEl?.addEventListener('show.bs.modal', () => {
       const mode = modalEl.dataset.mode || 'create';
-      if (mode === 'edit') return; // huwag i-reset kapag edit
+      if (mode === 'edit') return;
+      fetchJSON(api.children+'?action=list').then(res => {
+        setupSuppChildCombobox(res.children || []);
+        const today = new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
+        document.getElementById('suppDate').value = today;
+        document.getElementById('suppNextDue').value = '';
+        document.getElementById('suppDosage').value = '';
+        document.getElementById('suppNotes').value = '';
+        document.getElementById('suppType').value = '';
+        ['suppChildInput','suppType','suppDate'].forEach(id=>{ const el = document.getElementById(id); if (el) el.disabled = false; });
+        document.getElementById('supplementationRecordModalLabel').textContent = 'Add Supplementation Record';
+        document.getElementById('saveSuppRecordBtn').innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
 
-      fetchJSON(api.children+'?action=list')
-        .then(res => {
-          const sel = document.getElementById('suppChildSelect');
-          sel.innerHTML = '<option value="">Select child</option>';
-          (res.children||[]).forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.child_id;
-            opt.textContent = c.full_name;
-            sel.appendChild(opt);
-          });
-          const today = new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
-          document.getElementById('suppDate').value = today;
-          document.getElementById('suppNextDue').value = '';
-          document.getElementById('suppDosage').value = '';
-          document.getElementById('suppNotes').value = '';
-          document.getElementById('suppType').value = '';
-          // Enable fields for Create
-          ['suppChildSelect','suppType','suppDate'].forEach(id=>{
-            const el = document.getElementById(id);
-            if (el) el.disabled = false;
-          });
-          const title = document.getElementById('supplementationRecordModalLabel');
-          if (title) title.textContent = 'Add Supplementation Record';
-          const saveBtn = document.getElementById('saveSuppRecordBtn');
-          if (saveBtn) saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
-        })
-        .catch(()=>{});
+        // Add duplicate check warning element
+        let warnEl = document.getElementById('suppDuplicateWarn');
+        if (!warnEl) {
+          warnEl = document.createElement('div');
+          warnEl.id = 'suppDuplicateWarn';
+          warnEl.style = 'color:#dc3545;font-size:.7rem;margin-bottom:.5rem;display:none;';
+          document.querySelector('#supplementationRecordModal .modal-body')?.prepend(warnEl);
+        }
+
+        function checkDuplicateSupp() {
+          const childId  = parseInt(document.getElementById('suppChildId')?.value || '0', 10);
+          const suppType = document.getElementById('suppType')?.value || '';
+          const saveBtn  = document.getElementById('saveSuppRecordBtn');
+          const dup      = hasDuplicateSupp(childId, suppType);
+
+          let warnEl = document.getElementById('suppDuplicateWarn');
+          let txtEl  = document.getElementById('suppDuplicateText');
+          if (warnEl && txtEl){
+            if (childId && suppType && dup){
+              txtEl.textContent = `This child already has a ${suppType} record.`;
+              warnEl.classList.remove('d-none'); warnEl.classList.add('d-flex');
+              saveBtn.disabled = true; saveBtn.classList.add('disabled');
+            } else {
+              warnEl.classList.add('d-none'); warnEl.classList.remove('d-flex');
+              saveBtn.disabled = false; saveBtn.classList.remove('disabled');
+            }
+          }
+        }
+
+        document.getElementById('suppChildInput')?.addEventListener('input', checkDuplicateSupp);
+        document.getElementById('suppChildId')?.addEventListener('change', checkDuplicateSupp);
+        document.getElementById('suppType')?.addEventListener('change', checkDuplicateSupp);
+        // Initial check kapag binuksan ang modal
+        checkDuplicateSupp();
+      }).catch(()=>{});
     });
 
     // Auto-suggest next due date based on type
@@ -4358,132 +5607,106 @@ function renderFeedingProgramsModule(label) {
         const d = document.getElementById('suppDate').value;
         if (!d) return;
         const base = new Date(d);
-        if (t === 'Vitamin A' || t === 'Deworming') {
-          base.setMonth(base.getMonth()+6);
-        } else if (t === 'Iron') {
-          base.setMonth(base.getMonth()+3);
-        } else {
-          return;
-        }
-        const ph = new Date(base.toLocaleString('en-US',{timeZone:'Asia/Manila'}));
-        document.getElementById('suppNextDue').value = ph.toISOString().split('T')[0];
+        if (t === 'Vitamin A' || t === 'Deworming') base.setMonth(base.getMonth()+6);
+        else if (t === 'Iron') base.setMonth(base.getMonth()+3);
+        else return;
+        const ph = new Date(base.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+        document.getElementById('suppNextDue').value = ph.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
       }
     });
 
-    // SAVE (Create or Update) — single handler with mode check
+    // Save (create or update)
     const saveBtnEl = document.getElementById('saveSuppRecordBtn');
     if (saveBtnEl) {
-      if (saveBtnEl.__handlerRef) {
-        saveBtnEl.removeEventListener('click', saveBtnEl.__handlerRef);
-      }
-
+      if (saveBtnEl.__handlerRef) saveBtnEl.removeEventListener('click', saveBtnEl.__handlerRef);
       const onSaveClick = () => {
         const modal = document.getElementById('supplementationRecordModal');
         const mode = modal?.dataset.mode || 'create';
-
         if (saveBtnEl.dataset.busy === '1') return;
 
-        // Common fields
         const dosage   = document.getElementById('suppDosage').value || null;
         const nextDue  = document.getElementById('suppNextDue').value || null;
         const notes    = document.getElementById('suppNotes').value || null;
 
         if (mode === 'edit') {
-          // UPDATE (PUT) — dosage/next_due_date/notes lang ang ina-allow ng API
           const id = parseInt(modal.dataset.suppId || '0', 10);
           if (!id) { alert('Invalid record'); return; }
-
-          saveBtnEl.dataset.busy = '1';
-          saveBtnEl.disabled = true;
+          saveBtnEl.dataset.busy = '1'; saveBtnEl.disabled = true;
           saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
-
           const payload = { dosage, next_due_date: nextDue, notes };
           fetchJSON(api.supplementation + '?id=' + id, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
-          .then(res => {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+          }).then(res => {
             if (!res.success) throw new Error(res.error || 'Failed to update');
-            const bs = bootstrap.Modal.getInstance(modal);
-            bs?.hide();
+            bootstrap.Modal.getInstance(modal)?.hide();
             return loadSuppRecords();
-          })
-          .catch(err => {
-            console.error(err);
-            alert('❌ Error updating record: ' + (err.message || err));
-          })
-          .finally(() => {
-            saveBtnEl.dataset.busy = '0';
-            saveBtnEl.disabled = false;
+          }).catch(err => {
+            console.error(err); alert('❌ Error updating record: ' + (err.message || err));
+          }).finally(() => {
+            saveBtnEl.dataset.busy = '0'; saveBtnEl.disabled = false;
             saveBtnEl.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
           });
-
           return;
         }
 
-        // CREATE (POST)
         const payload = {
-          child_id: parseInt(document.getElementById('suppChildSelect').value || '0', 10),
+          child_id: parseInt(document.getElementById('suppChildId')?.value || '0', 10),
           supplement_type: document.getElementById('suppType').value,
           supplement_date: document.getElementById('suppDate').value,
           dosage,
           next_due_date: nextDue,
           notes
         };
-
         const missing = [];
         if (!payload.child_id) missing.push('Child');
         if (!payload.supplement_type) missing.push('Supplement Type');
         if (!payload.supplement_date) missing.push('Date Given');
         if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
 
-        saveBtnEl.dataset.busy = '1';
-        saveBtnEl.disabled = true;
-        saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+        // Prevent duplicate supplementation record for this child and type
+        const duplicate = (window.suppRecordsRaw || []).some(r =>
+          String(r.child_id) === String(payload.child_id) &&
+          String(r.supplement_type).toLowerCase() === String(payload.supplement_type).toLowerCase()
+        );
+        if (duplicate) {
+          alert('This child already has a record for this supplement type.');
+          return;
+        }
 
+        saveBtnEl.dataset.busy = '1'; saveBtnEl.disabled = true;
+        saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
         fetchJSON(api.supplementation, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        .then(res => {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        }).then(res => {
           if (!res.success) throw new Error(res.error || 'Failed to save');
-          const bs = bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'));
-          bs?.hide();
+          bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'))?.hide();
           return loadSuppRecords();
-        })
-        .catch(err => {
-          console.error(err);
-          alert('❌ Error saving record: ' + (err.message || err));
-        })
-        .finally(() => {
-          saveBtnEl.dataset.busy = '0';
-          saveBtnEl.disabled = false;
+        }).catch(err => {
+          console.error(err); alert('❌ Error saving record: ' + (err.message || err));
+        }).finally(() => {
+          saveBtnEl.dataset.busy = '0'; saveBtnEl.disabled = false;
           saveBtnEl.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
         });
       };
-
       saveBtnEl.addEventListener('click', onSaveClick);
       saveBtnEl.__handlerRef = onSaveClick;
     }
 
-    // Reset modal state after close (so consistent sa UI kapag Create ulit)
+    // Reset modal after close
     const supModal = document.getElementById('supplementationRecordModal');
     supModal?.addEventListener('hidden.bs.modal', ()=>{
       supModal.dataset.mode = 'create';
       supModal.dataset.suppId = '';
-      ['suppChildSelect','suppType','suppDate'].forEach(id=>{
-        const el = document.getElementById(id);
-        if (el) el.disabled = false;
-      });
-      const title = document.getElementById('supplementationRecordModalLabel');
-      if (title) title.textContent = 'Add Supplementation Record';
-      const saveBtn = document.getElementById('saveSuppRecordBtn');
-      if (saveBtn) saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
+      ['suppChildSelect','suppType','suppDate'].forEach(id=>{ const el = document.getElementById(id); if (el) el.disabled = false; });
+      document.getElementById('supplementationRecordModalLabel').textContent = 'Add Supplementation Record';
+      document.getElementById('saveSuppRecordBtn').innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
+      const warn = document.getElementById('suppDuplicateWarn');
+      const btn  = document.getElementById('saveSuppRecordBtn');
+      if (warn) { warn.classList.add('d-none'); warn.classList.remove('d-flex'); }
+      if (btn){ btn.disabled = false; btn.classList.remove('disabled'); }
     });
 
-    // Global delegated click for Update buttons (bind once)
+    // Global delegated click for Update buttons
     if (!document.__suppUpdateHandlerBound) {
       document.addEventListener('click', (e)=>{
         const btn = e.target.closest('button[data-supp-id]');
@@ -4496,145 +5719,148 @@ function renderFeedingProgramsModule(label) {
       document.__suppUpdateHandlerBound = true;
     }
 
+    // Initialize default view from navigation
+    const def = (window.__suppDefaultTab || 'all'); // 'schedule' or 'all' (anything else treated as All Records with optional type filter)
+    const map = { all:'', 'vitamin-a':'Vitamin A', 'iron':'Iron', 'deworming':'Deworming' };
+    if (def === 'schedule') {
+      currentView = 'schedule';
+    } else {
+      currentView = 'table';
+      currentFilters.type = map[def] ?? '';
+    }
+    // Clear after use
+    window.__suppDefaultTab = '';
+
     // Initial load
     loadSuppRecords();
   }, 50);
 
-  // Open modal in EDIT mode, prefill fields, at i-disable ang hindi puwedeng baguhin
+  // Edit modal helper (unchanged logic)
   function openSuppEditModal(rec){
     const modal = document.getElementById('supplementationRecordModal');
     modal.dataset.mode = 'edit';
     modal.dataset.suppId = String(rec.supplement_id);
+    document.getElementById('supplementationRecordModalLabel').textContent = 'Update Supplementation Record';
+    document.getElementById('saveSuppRecordBtn').innerHTML = '<i class="bi bi-save me-1"></i> Update Record';
 
-    // Title at Save label
-    const title = document.getElementById('supplementationRecordModalLabel');
-    if (title) title.textContent = 'Update Supplementation Record';
-    const saveBtn = document.getElementById('saveSuppRecordBtn');
-    if (saveBtn) saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Update Record';
+    const ensureChildren = () =>
+      (__suppChildrenCache && __suppChildrenCache.length)
+        ? Promise.resolve(__suppChildrenCache)
+        : fetchJSON(api.children+'?action=list').then(res=>{ setupSuppChildCombobox(res.children || []); return __suppChildrenCache; });
 
-    // Load children list then set value, pero disabled ang child/type/date
-    fetchJSON(api.children+'?action=list')
-      .then(res=>{
-        const sel = document.getElementById('suppChildSelect');
-        sel.innerHTML = '<option value="">Select child</option>';
-        (res.children||[]).forEach(c=>{
-          const opt = document.createElement('option');
-          opt.value = c.child_id;
-          opt.textContent = c.full_name;
-          sel.appendChild(opt);
-        });
-        sel.value = String(rec.child_id);
-        ['suppChildSelect','suppType','suppDate'].forEach(id=>{
-          const el = document.getElementById(id);
-          if (el) el.disabled = true;
-        });
-        document.getElementById('suppType').value = rec.supplement_type || '';
-        document.getElementById('suppDate').value = rec.supplement_date || '';
-        document.getElementById('suppDosage').value = rec.dosage || '';
-        document.getElementById('suppNextDue').value = rec.next_due_date || '';
-        document.getElementById('suppNotes').value = rec.notes || '';
-        const bs = new bootstrap.Modal(modal);
-        bs.show();
-      })
-      .catch(()=>{
-        // Fallback kahit hindi ma-load ang list, still show modal
-        document.getElementById('suppChildSelect').innerHTML = `<option value="${rec.child_id}">${escapeHtml(rec.child_name||'Child')}</option>`;
-        ['suppChildSelect','suppType','suppDate'].forEach(id=>{
-          const el = document.getElementById(id);
-          if (el) el.disabled = true;
-        });
-        document.getElementById('suppType').value = rec.supplement_type || '';
-        document.getElementById('suppDate').value = rec.supplement_date || '';
-        document.getElementById('suppDosage').value = rec.dosage || '';
-        document.getElementById('suppNextDue').value = rec.next_due_date || '';
-        document.getElementById('suppNotes').value = rec.notes || '';
-        const bs = new bootstrap.Modal(modal);
-        bs.show();
-      });
+    ensureChildren().then(()=>{
+      const inp = document.getElementById('suppChildInput');
+      const idEl = document.getElementById('suppChildId');
+      if (inp && idEl) {
+        inp.value = rec.child_name || '';
+        idEl.value = rec.child_id || '';
+        inp.disabled = true;
+        document.getElementById('suppChildClear')?.setAttribute('disabled','true');
+      }
+      document.getElementById('suppType').value = rec.supplement_type || '';
+      document.getElementById('suppDate').value = rec.supplement_date || '';
+      document.getElementById('suppDosage').value = rec.dosage || '';
+      document.getElementById('suppNextDue').value = rec.next_due_date || '';
+      document.getElementById('suppNotes').value = rec.notes || '';
+      ['suppType','suppDate'].forEach(id=>{ const el = document.getElementById(id); if (el) el.disabled = true; });
+      new bootstrap.Modal(modal).show();
+    }).catch(()=>{
+      const inp = document.getElementById('suppChildInput');
+      const idEl = document.getElementById('suppChildId');
+      if (inp && idEl) { inp.value = rec.child_name || ''; idEl.value = rec.child_id || ''; inp.disabled = true; }
+      ['suppType','suppDate'].forEach(id=>{ const el = document.getElementById(id); if (el) el.disabled = true; });
+      document.getElementById('suppType').value = rec.supplement_type || '';
+      document.getElementById('suppDate').value = rec.supplement_date || '';
+      document.getElementById('suppDosage').value = rec.dosage || '';
+      document.getElementById('suppNextDue').value = rec.next_due_date || '';
+      document.getElementById('suppNotes').value = rec.notes || '';
+      new bootstrap.Modal(modal).show();
+    });
   }
 }
 
 function renderNutritionCalendarModule(label) {
   showLoading(label);
-  
-  // Initialize calendar state
-  let currentCalendarDate = new Date();
-  // Set to Philippines timezone
-  currentCalendarDate = new Date(currentCalendarDate.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
-  
-  // Fetch real events data from the API
+
+  // Submenu default type; empty means parent "Event Scheduling" was clicked
+  const viewType = (window.__calendarDefaultType || '').trim();
+  const isFormMode = !!viewType; // true only when Health/Feeding/Weighing/Nutrition submenu clicked
+
+  // PH time helpers
+  const toPH = (d) => new Date(new Date(d).toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+  const todayPH = toPH(new Date());
+  const yyyyMmDd = (d) =>
+    new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+
+  // Calendar state
+  let currentCalendarDate = toPH(new Date());
+  let selectedDateStr = yyyyMmDd(currentCalendarDate);
+
+  // NEW: Use navbar title as the only page title (remove in-page header)
+  if (typeof navTitleEl !== 'undefined' && navTitleEl) {
+    navTitleEl.textContent = isFormMode ? prettyType(viewType) : 'Event Scheduling';
+  }
+
+  // Fetch events once
   fetchJSON(api.events + '?action=list')
     .then(response => {
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch events data');
-      }
-      
-      const events = response.events || [];
+  if (!response.success) throw new Error(response.error || 'Failed to fetch events');
+  const events = response.events || [];
+  window.__eventsList = events.slice();        // keep mutable copy for live updates
+  window.__calCurrentDate = currentCalendarDate;
+  window.__calSelectedDateStr = selectedDateStr;
 
-      window.__eventsById = new Map();
-events.forEach(ev => window.__eventsById.set(ev.event_id, ev));
-      
+  // Cache by id
+  window.__eventsById = new Map();
+  events.forEach(ev => window.__eventsById.set(ev.event_id, ev));
+
+      // Render WITHOUT the big page header
       moduleContent.innerHTML = `
         <div class="fade-in">
-          <!-- Page Header -->
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <h1 class="page-title mb-1" style="font-size:1.35rem;font-weight:700;color:#0a3a1e;">
-                📅 Nutrition Event Scheduling
-              </h1>
-              <p class="text-muted mb-0" style="font-size:.75rem;font-weight:500;">Plan and track nutrition sessions and activities</p>
-            </div>
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#scheduleEventModal" style="font-size:.7rem;font-weight:600;padding:.6rem 1.05rem;border-radius:11px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
-              <i class="bi bi-plus-lg me-1"></i> Schedule Event
-            </button>
-          </div>
-
-          <!-- Tab Navigation -->
-          <div class="mb-3">
-            <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
-              <li class="nav-item">
-                <a class="nav-link active calendar-tab" href="#" data-tab="calendar" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
-                  Calendar View
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link calendar-tab" href="#" data-tab="health" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                  Health Sessions
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link calendar-tab" href="#" data-tab="feeding" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                  Feeding Programs
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link calendar-tab" href="#" data-tab="weighing" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                  Weighing Schedules
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link calendar-tab" href="#" data-tab="nutrition" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">
-                  Nutrition Education
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Calendar Content -->
-          <div id="calendar-tab-content">
-            ${renderCalendarView(events, currentCalendarDate)}
+          <div id="calendar-direct-content">
+            ${isFormMode
+              ? renderCalendarWithForm(events, currentCalendarDate)
+              : renderCalendarWithLists(events, currentCalendarDate, selectedDateStr)}
           </div>
         </div>
       `;
 
-      // Add tab switching functionality
-      setupCalendarTabs(events, currentCalendarDate);
-      
-      // Setup calendar navigation
-      setupCalendarNavigation(events, currentCalendarDate);
+      // Wire calendar navigation and day clicks
+      setupCalendarNavigation(events, currentCalendarDate, (newSelectedStr) => {
+        selectedDateStr = newSelectedStr;
+        // Update date-panel list when in list mode
+        if (!isFormMode) renderEventsForSelectedDate(events, selectedDateStr);
+      });
+
+      // Mode-specific wiring
+      if (isFormMode) {
+        // Inline form (prefill + save)
+        wireInlineEventForm(viewType);
+        // Huwag mag-auto-scroll pag galing sa submenu (consistent sa UI; manatili sa itaas ang calendar)
+        if (window.__calendarOpenForm) {
+          window.__calendarOpenForm = false;
+          // intentionally no scrollIntoView here
+        }
+        // Header button just scrolls to form and reset
+        document.getElementById('scheduleEventActionBtn')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          resetInlineFormForCreate(viewType);
+          document.getElementById('eventFormPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      } else {
+        // List mode: prepare “Events on [date]” and “Upcoming” lists and wire modal scheduling
+        renderEventsForSelectedDate(events, selectedDateStr);
+        renderUpcomingEvents(events);
+        wireModalScheduleForm(); // opens + saves via existing modal
+        document.getElementById('scheduleEventActionBtn')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          const modal = new bootstrap.Modal(document.getElementById('scheduleEventModal'));
+          modal.show();
+        });
+      }
     })
     .catch(error => {
-      console.error('Error fetching events data:', error);
+      console.error('Error loading events data:', error);
       moduleContent.innerHTML = `
         <div class="alert alert-danger" style="font-size:.7rem;">
           <i class="bi bi-exclamation-triangle me-2"></i>
@@ -4643,65 +5869,35 @@ events.forEach(ev => window.__eventsById.set(ev.event_id, ev));
       `;
     });
 
-  // Helper function to render calendar view with functional navigation
-  function renderCalendarView(events, calendarDate) {
-    const phToday = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
-    const selectedDate = phToday.toLocaleDateString('en-PH', {
-      timeZone: 'Asia/Manila',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    
-    const todayEvents = events.filter(event => {
-      const eventDate = new Date(event.event_date).toLocaleDateString('en-PH', {
-        timeZone: 'Asia/Manila'
-      });
-      const todayDate = phToday.toLocaleDateString('en-PH', {
-        timeZone: 'Asia/Manila'
-      });
-      return eventDate === todayDate;
-    });
+  // ---------- Renderers (shells) ----------
 
-    const upcomingEvents = events.filter(event => {
-      const eventDate = new Date(event.event_date);
-      const phEventDate = new Date(eventDate.toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
-      return phEventDate >= phToday;
-    }).sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
-
+  // Left: Calendar + Legend; Right: two lists (Events on [date], All Upcoming)
+  function renderCalendarWithLists(events, calendarDate, selectedStr) {
+    const monthLabel = calendarDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
+    const selectedLabel = toPH(selectedStr + 'T00:00:00').toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', day: 'numeric', year: 'numeric' });
     return `
       <div class="row g-3">
-        <!-- Left Calendar Panel -->
+        <!-- Left: Calendar + Legend -->
         <div class="col-md-4">
-          <!-- Nutrition Calendar -->
           <div class="tile mb-3">
             <div class="tile-header mb-3">
               <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">NUTRITION CALENDAR</h5>
             </div>
-            <p style="font-size:.65rem;color:var(--muted);margin:0 0 1rem;font-weight:500;">Select a date to view events</p>
-            
-            <!-- Calendar Widget -->
+
             <div class="calendar-widget">
-              <!-- Calendar Header with functional navigation -->
+              <!-- Month navigation -->
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-sm btn-outline-secondary" id="prevMonthBtn" style="font-size:.6rem;padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border-soft);background:var(--surface);">
                   <i class="bi bi-chevron-left"></i>
                 </button>
-                <h6 id="calendarMonthYear" style="font-size:.75rem;font-weight:700;color:#18432b;margin:0;">
-                  ${calendarDate.toLocaleDateString('en-PH', { 
-                    timeZone: 'Asia/Manila',
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
-                </h6>
+                <h6 id="calendarMonthYear" style="font-size:.75rem;font-weight:700;color:#18432b;margin:0;">${monthLabel}</h6>
                 <button class="btn btn-sm btn-outline-secondary" id="nextMonthBtn" style="font-size:.6rem;padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border-soft);background:var(--surface);">
                   <i class="bi bi-chevron-right"></i>
                 </button>
               </div>
-              
+
               <!-- Calendar Grid -->
               <div class="calendar-grid">
-                <!-- Calendar Header Days -->
                 <div class="calendar-days-header">
                   <div class="calendar-day-header">Su</div>
                   <div class="calendar-day-header">Mo</div>
@@ -4711,8 +5907,6 @@ events.forEach(ev => window.__eventsById.set(ev.event_id, ev));
                   <div class="calendar-day-header">Fr</div>
                   <div class="calendar-day-header">Sa</div>
                 </div>
-                
-                <!-- Calendar Days -->
                 <div class="calendar-days" id="calendarDays">
                   ${generateCalendarDays(events, calendarDate)}
                 </div>
@@ -4720,70 +5914,37 @@ events.forEach(ev => window.__eventsById.set(ev.event_id, ev));
             </div>
           </div>
 
-          <!-- Updated Legend to match UI exactly -->
+          <!-- Legend -->
           <div class="tile">
             <div class="tile-header mb-3">
               <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">LEGEND:</h5>
             </div>
-            
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <div class="d-flex align-items-center gap-2">
-                <div style="width:12px;height:12px;background:#077a44;border-radius:3px;"></div>
-                <span style="font-size:.65rem;color:#586c5d;">Health</span>
-              </div>
-              <div class="d-flex align-items-center gap-2">
-                <div style="width:12px;height:12px;background:#f4a400;border-radius:3px;"></div>
-                <span style="font-size:.65rem;color:#586c5d;">Feeding Program</span>
-              </div>
-              <div class="d-flex align-items-center gap-2">
-                <div style="width:12px;height:12px;background:#1c79d0;border-radius:3px;"></div>
-                <span style="font-size:.65rem;color:#586c5d;">Weighing</span>
-              </div>
-              <div class="d-flex align-items-center gap-2">
-                <div style="width:12px;height:12px;background:#a259c6;border-radius:3px;"></div>
-                <span style="font-size:.65rem;color:#586c5d;">Nutrition Education</span>
-              </div>
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#077a44;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Health</span></div>
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#f4a400;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Feeding Program</span></div>
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#1c79d0;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Weighing</span></div>
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#a259c6;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Nutrition Education</span></div>
             </div>
           </div>
         </div>
 
-        <!-- Right Events Panel -->
+        <!-- Right: Lists -->
         <div class="col-md-8">
-          <!-- Events for Selected Date -->
           <div class="tile mb-3">
-            <div class="tile-header mb-3">
-              <div>
-                <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">EVENTS ON ${selectedDate.toUpperCase()}</h5>
-                <p style="font-size:.6rem;color:var(--muted);margin:.2rem 0 0;">${todayEvents.length} event(s) scheduled</p>
-              </div>
+            <div class="tile-header mb-1">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">EVENTS ON <span id="selectedDateLabel">${escapeHtml(selectedLabel)}</span></h5>
             </div>
-            
-            ${todayEvents.length > 0 ? 
-              `<div class="event-list">${todayEvents.map(event => renderEventItem(event)).join('')}</div>` :
-              `<div class="text-center py-4">
-                <i class="bi bi-calendar-x text-muted" style="font-size:2rem;opacity:0.5;"></i>
-                <p style="font-size:.65rem;color:var(--muted);margin:.5rem 0 0;">No events scheduled for this date</p>
-              </div>`
-            }
+            <div id="eventsOnDayList" class="event-list">
+              <div class="text-muted" style="font-size:.65rem;"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>
+            </div>
           </div>
 
-          <!-- All Upcoming Events -->
           <div class="tile">
-            <div class="tile-header mb-3">
-              <div class="d-flex justify-content-between align-items-center w-100">
-                <div>
-                  <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">ALL UPCOMING EVENTS</h5>
-                  <p style="font-size:.6rem;color:var(--muted);margin:.2rem 0 0;">Scheduled nutrition activities</p>
-                </div>
-                <a href="#" style="font-size:.6rem;color:var(--green);text-decoration:none;font-weight:600;">All Events</a>
-              </div>
+            <div class="tile-header mb-1">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">ALL UPCOMING EVENTS</h5>
             </div>
-
-            <!-- Event List -->
-            <div class="event-list">
-              ${upcomingEvents.length > 0 ? upcomingEvents.map(event => renderEventItem(event)).join('') : 
-                '<div class="text-center py-4"><i class="bi bi-calendar-x text-muted" style="font-size:2rem;opacity:0.5;"></i><p style="font-size:.65rem;color:var(--muted);margin:.5rem 0 0;">No upcoming events scheduled</p></div>'
-              }
+            <div id="upcomingEventsList" class="event-list">
+              <div class="text-muted" style="font-size:.65rem;"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>
             </div>
           </div>
         </div>
@@ -4791,581 +5952,773 @@ events.forEach(ev => window.__eventsById.set(ev.event_id, ev));
     `;
   }
 
-  // Helper function to setup calendar navigation functionality
-  function setupCalendarNavigation(events, currentDate) {
+  // Left: Calendar + Legend; Right: Inline Schedule Form
+  function renderCalendarWithForm(events, calendarDate) {
+    return `
+      <div class="row g-3">
+        <!-- Left -->
+        <div class="col-md-4">
+          <div class="tile mb-3">
+            <div class="tile-header mb-3">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">NUTRITION CALENDAR</h5>
+            </div>
+            <p class="tile-sub" style="margin:0 0 .6rem;">Select a date to set the event date</p>
+
+            <div class="calendar-widget">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-sm btn-outline-secondary" id="prevMonthBtn"><i class="bi bi-chevron-left"></i></button>
+                <h6 id="calendarMonthYear" style="font-size:.75rem;font-weight:700;color:#18432b;margin:0;">
+                  ${calendarDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' })}
+                </h6>
+                <button class="btn btn-sm btn-outline-secondary" id="nextMonthBtn"><i class="bi bi-chevron-right"></i></button>
+              </div>
+
+              <div class="calendar-grid">
+                <div class="calendar-days-header">
+                  <div class="calendar-day-header">Su</div><div class="calendar-day-header">Mo</div><div class="calendar-day-header">Tu</div>
+                  <div class="calendar-day-header">We</div><div class="calendar-day-header">Th</div><div class="calendar-day-header">Fr</div><div class="calendar-day-header">Sa</div>
+                </div>
+                <div class="calendar-days" id="calendarDays">
+                  ${generateCalendarDays(events, calendarDate)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="tile">
+            <div class="tile-header mb-3">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">LEGEND:</h5>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:.5rem;">
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#077a44;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Health</span></div>
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#f4a400;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Feeding Program</span></div>
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#1c79d0;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Weighing</span></div>
+              <div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;background:#a259c6;border-radius:3px;"></div><span style="font-size:.65rem;color:#586c5d;">Nutrition Education</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Inline Schedule Form (same UI as before) -->
+        <div class="col-md-8">
+          <div class="tile" id="eventFormPanel">
+            <div class="tile-header mb-2">
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">SCHEDULE NEW EVENT</h5>
+            </div>
+            <p class="tile-sub">Fill out the form to add a new event${viewType ? ` in <strong>${escapeHtml(prettyType(viewType))}</strong>` : ''}.</p>
+
+            <form id="scheduleEventFormInline">
+              <div class="form-section" style="padding:1rem;">
+                <div class="form-section-header">
+                  <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;"><i class="bi bi-calendar-event"></i></div>
+                  <h3 class="form-section-title">Event Details</h3>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group"><label class="form-label">Event Title *</label><input type="text" class="form-control" name="event_title" placeholder="Enter event title" maxlength="255" required></div>
+                  <div class="form-group">
+                    <label class="form-label">Event Type *</label>
+                    <select class="form-select" name="event_type" required>
+                      <option value="">Select event type</option>
+                      <option value="health">Health</option>
+                      <option value="feeding">Feeding Program</option>
+                      <option value="weighing">Weighing</option>
+                      <option value="nutrition">Nutrition Education</option>
+                    </select>
+                  </div>
+                  <div class="form-group"><label class="form-label">Event Description</label><textarea class="form-control" name="event_description" placeholder="Brief description of the event" rows="3" maxlength="500"></textarea></div>
+                </div>
+              </div>
+
+              <div class="form-section" style="padding:1rem;">
+                <div class="form-section-header">
+                  <div class="form-section-icon" style="background:#e1f1ff;color:#1c79d0;"><i class="bi bi-clock"></i></div>
+                  <h3 class="form-section-title">Schedule Information</h3>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Event Date *</label>
+                    <div class="date-input"><input type="date" class="form-control" name="event_date" required></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Event Time *</label><input type="time" class="form-control" name="event_time" required></div>
+                  <div class="form-group"><label class="form-label">Location *</label><input type="text" class="form-control" name="location" placeholder="Event venue" maxlength="255" required></div>
+                </div>
+              </div>
+
+              <div class="form-section" style="padding:1rem;">
+                <div class="form-section-header">
+                  <div class="form-section-icon" style="background:#f3e8ff;color:#a259c6;"><i class="bi bi-people"></i></div>
+                  <h3 class="form-section-title">Additional Information</h3>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group"><label class="form-label">Target Audience</label><input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255"></div>
+                  <div class="form-group">
+                    <label class="form-label">Publication Status</label>
+                    <select class="form-select" name="is_published">
+                      <option value="1">Published (Visible to public)</option>
+                      <option value="0">Draft (Not visible yet)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-end mt-2">
+                <button type="button" class="btn btn-success" id="saveEventInlineBtn" style="font-size:.7rem;font-weight:600;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 2px 6px -2px rgba(20,104,60,.5);">
+                  <i class="bi bi-calendar-plus me-1"></i> Schedule Event
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Calendar nav + day click ----------
+
+  function setupCalendarNavigation(events, currentDate, onDaySelected) {
     const prevBtn = document.getElementById('prevMonthBtn');
     const nextBtn = document.getElementById('nextMonthBtn');
     const monthYearDisplay = document.getElementById('calendarMonthYear');
     const calendarDaysContainer = document.getElementById('calendarDays');
-    
+
     let calendarDate = new Date(currentDate);
-    
+
     function updateCalendar() {
-      // Update month/year display
-      monthYearDisplay.textContent = calendarDate.toLocaleDateString('en-PH', { 
-        timeZone: 'Asia/Manila',
-        month: 'long', 
-        year: 'numeric' 
-      });
-      
-      // Update calendar days
+      monthYearDisplay.textContent = calendarDate.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'long', year: 'numeric' });
       calendarDaysContainer.innerHTML = generateCalendarDays(events, calendarDate);
-      
-      // Add click handlers to calendar days
-      setupCalendarDayClickHandlers(events, calendarDate);
+      setupCalendarDayClickHandlers(calendarDate);
     }
-    
-    // Previous month button
-    if (prevBtn) {
-      prevBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        calendarDate.setMonth(calendarDate.getMonth() - 1);
-        updateCalendar();
+
+    prevBtn?.addEventListener('click', (e) => { e.preventDefault(); calendarDate.setMonth(calendarDate.getMonth() - 1); updateCalendar(); });
+    nextBtn?.addEventListener('click', (e) => { e.preventDefault(); calendarDate.setMonth(calendarDate.getMonth() + 1); updateCalendar(); });
+
+    setupCalendarDayClickHandlers(calendarDate);
+
+    function setupCalendarDayClickHandlers(calDate) {
+      document.querySelectorAll('.calendar-day:not(.prev-month):not(.next-month)').forEach(dayElement => {
+        dayElement.addEventListener('click', function() {
+          document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
+          this.classList.add('selected');
+          const selectedDay = parseInt(this.textContent, 10);
+          const dt = new Date(calDate.getFullYear(), calDate.getMonth(), selectedDay);
+          const phStr = yyyyMmDd(dt);
+
+          // If form mode, set the inline form’s Event Date and scroll to form
+          if (document.querySelector('#scheduleEventFormInline input[name="event_date"]')) {
+            const dateInput = document.querySelector('#scheduleEventFormInline input[name="event_date"]');
+            if (dateInput) dateInput.value = phStr;
+            document.getElementById('eventFormPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+
+          // If list mode, update the "Events on [date]" panel
+          if (typeof onDaySelected === 'function') onDaySelected(phStr);
+        });
       });
-    }
-    
-    // Next month button
-    if (nextBtn) {
-      nextBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        calendarDate.setMonth(calendarDate.getMonth() + 1);
-        updateCalendar();
-      });
-    }
-    
-    // Initial setup of day click handlers
-    setupCalendarDayClickHandlers(events, calendarDate);
-  }
-  
-  // Helper function to setup calendar day click handlers
-  function setupCalendarDayClickHandlers(events, calendarDate) {
-    document.querySelectorAll('.calendar-day:not(.prev-month):not(.next-month)').forEach(dayElement => {
-      dayElement.addEventListener('click', function() {
-        // Remove previous selection
-        document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
-        
-        // Add selection to clicked day
-        this.classList.add('selected');
-        
-        // Get the selected date
-        const selectedDay = parseInt(this.textContent);
-        const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), selectedDay);
-        
-        // Update events display for selected date
-        updateSelectedDateEvents(events, selectedDate);
-      });
-    });
-  }
-  
-  // Helper function to update events display for selected date
-  function updateSelectedDateEvents(events, selectedDate) {
-    const formattedDate = selectedDate.toLocaleDateString('en-PH', {
-      timeZone: 'Asia/Manila',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    
-    const selectedDateEvents = events.filter(event => {
-      const eventDate = new Date(event.event_date);
-      return eventDate.toDateString() === selectedDate.toDateString();
-    });
-    
-    // Find the events section and update it
-    const eventsSection = document.querySelector('.tile .tile-header h5');
-    const eventsCount = document.querySelector('.tile .tile-header p');
-    const eventsList = eventsSection?.closest('.tile').querySelector('.event-list, .text-center');
-    
-    if (eventsSection && eventsCount && eventsList) {
-      eventsSection.textContent = `EVENTS ON ${formattedDate.toUpperCase()}`;
-      eventsCount.textContent = `${selectedDateEvents.length} event(s) scheduled`;
-      
-      if (selectedDateEvents.length > 0) {
-        eventsList.innerHTML = selectedDateEvents.map(event => renderEventItem(event)).join('');
-        eventsList.className = 'event-list';
-      } else {
-        eventsList.innerHTML = `
-          <div class="text-center py-4">
-            <i class="bi bi-calendar-x text-muted" style="font-size:2rem;opacity:0.5;"></i>
-            <p style="font-size:.65rem;color:var(--muted);margin:.5rem 0 0;">No events scheduled for this date</p>
-          </div>
-        `;
-        eventsList.className = 'text-center py-4';
-      }
     }
   }
 
-  // Helper function to generate calendar days with proper styling
+  // ---------- List mode helpers ----------
+
+  function formatTime12(t) {
+    if (!t) return '—';
+    // Expect "HH:MM" o "HH:MM:SS"
+    const [hhRaw, mmRaw = '00'] = String(t).split(':');
+    let hh = parseInt(hhRaw, 10);
+    if (!Number.isFinite(hh)) return t; // fallback kung di ma-parse
+    const suffix = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12;
+    if (hh === 0) hh = 12;
+    const mm = String(mmRaw).padStart(2, '0');
+    return `${hh}:${mm} ${suffix}`;
+  }
+
+  function renderEventsForSelectedDate(events, selectedStr) {
+    const host = document.getElementById('eventsOnDayList');
+    const labelEl = document.getElementById('selectedDateLabel');
+    if (labelEl) {
+      labelEl.textContent = toPH(selectedStr + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    const sameDay = (ev) => (ev.event_date && String(ev.event_date).slice(0,10) === selectedStr);
+    const rows = events.filter(sameDay).sort(sortByDateTimeAsc);
+
+    host.innerHTML = rows.length ? rows.map(renderEventItem).join('') :
+      `<div class="text-muted" style="font-size:.65rem;">No events for this date.</div>`;
+  }
+
+  function renderUpcomingEvents(events) {
+  const host = document.getElementById('upcomingEventsList');
+
+  // PH "today" in YYYY-MM-DD
+  const todayStr = yyyyMmDd(new Date());
+
+  // Only strictly future dates (exclude today)
+  const base = (events || [])
+    .filter(ev => {
+      if (!ev.event_date) return false;
+      const d = String(ev.event_date).slice(0, 10);
+      return d > todayStr; // exclude same-day events from Upcoming
+    })
+    .sort(sortByDateTimeAsc);
+
+  host.innerHTML = base.length
+    ? base.map(renderEventItem).join('')
+    : `<div class="text-muted" style="font-size:.65rem;">No upcoming events found.</div>`;
+  }
+
+  function sortByDateTimeAsc(a, b) {
+    const da = (a.event_date || '') + ' ' + (a.event_time || '00:00');
+    const db = (b.event_date || '') + ' ' + (b.event_time || '00:00');
+    return da.localeCompare(db);
+  }
+
+  function renderEventItem(ev) {
+    const badge = typeBadge(ev.event_type);
+    const dateTxt = ev.event_date ? toPH(ev.event_date + 'T00:00:00').toLocaleDateString('en-PH') : '—';
+    const timeTxt = ev.event_time ? formatTime12(ev.event_time) : '—';
+    const loc = ev.location ? escapeHtml(ev.location) : '—';
+    const title = escapeHtml(ev.event_title || '(Untitled)');
+
+    const completedAlready = (ev.status === 'completed' || ev.is_completed === 1 || ev.completed_at);
+    const todayStr = yyyyMmDd(new Date());
+    const evDateStr = (ev.event_date || '').slice(0, 10);
+    const isToday = evDateStr === todayStr;
+
+    // Complete button logic (only when event time has arrived today)
+    const showComplete = !completedAlready && canShowCompleteButton(ev);
+
+    // Right-side controls:
+    // - Completed: show "Completed" pill only
+    // - Today (not completed): show "Today" pill; hide Edit; show Complete when eligible
+    // - Future: show Edit only
+    let rightControlsInner = `<span class="event-badge ${badge.cls}">${badge.label}</span>`;
+
+    if (completedAlready) {
+      rightControlsInner += `<span class="status-pill completed">Completed</span>`;
+    } else if (isToday) {
+      rightControlsInner += `<span class="status-pill scheduled">Today</span>`;
+      if (showComplete) {
+        rightControlsInner += `
+          <button class="btn btn-success btn-sm complete-event-btn" data-event-id="${ev.event_id}" style="font-size:.6rem;border-radius:8px;">
+            <i class="bi bi-check2 me-1"></i> Complete
+          </button>`;
+      }
+    } else {
+      // Future
+      rightControlsInner += `
+        <button class="btn btn-outline-success btn-sm edit-event-btn" data-event-id="${ev.event_id}" style="font-size:.6rem;border-radius:8px;">
+          <i class="bi bi-pencil me-1"></i> Edit
+        </button>`;
+    }
+
+    return `
+      <div class="event-item">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="event-title">${title}</div>
+            <div class="event-details">
+              <span><i class="bi bi-calendar-event"></i> ${dateTxt}</span>
+              <span><i class="bi bi-clock"></i> ${timeTxt}</span>
+              <span><i class="bi bi-geo-alt"></i> ${loc}</span>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2 event-right-controls">
+            ${rightControlsInner}
+          </div>
+        </div>
+        ${ev.event_description ? `<div class="mt-2" style="font-size:.62rem;color:#586c5d;">${escapeHtml(ev.event_description)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // Decide if the "Complete" button should show for an event (PH time)
+  function canShowCompleteButton(ev) {
+    if (!ev || !ev.event_date) return false;
+    // If already completed (supporting common fields)
+    if (ev.status === 'completed' || ev.is_completed === 1 || ev.completed_at) return false;
+    const todayStr = yyyyMmDd(new Date()); // PH date today
+    const evDateStr = String(ev.event_date).slice(0, 10);
+    if (evDateStr !== todayStr) return false; // only for today
+    if (!ev.event_time) return false; // only when time is defined
+    const hhmmss = String(ev.event_time).length === 5 ? `${ev.event_time}:00` : String(ev.event_time);
+    const evDT = toPH(`${ev.event_date}T${hhmmss}`);
+    const nowPH = toPH(new Date());
+    return nowPH >= evDT; // show once event time has arrived
+  }
+
+  // === ADDED: canShowRescheduleButton ===
+  function canShowRescheduleButton(ev) {
+    if (!ev || !ev.event_date) return false;
+    if (ev.status === 'completed' || ev.is_completed === 1 || ev.completed_at) return false;
+
+    const todayStr = yyyyMmDd(new Date()); // PH today
+    const evDateStr = String(ev.event_date).slice(0, 10);
+
+    // If no time: allow reschedule for today and future
+    if (!ev.event_time) return evDateStr >= todayStr;
+
+    // With time: allow only when event datetime is still in the future (PH)
+    const hhmmss = String(ev.event_time).length === 5 ? `${ev.event_time}:00` : String(ev.event_time);
+    const evDT = toPH(`${ev.event_date}T${hhmmss}`);
+    const nowPH = toPH(new Date());
+    return nowPH < evDT;
+  }
+
+  // === ADDED: openRescheduleModal and delegated binding ===
+  function openRescheduleModal(eventId) {
+    try {
+      const ev = window.__eventsById?.get(eventId);
+      if (!ev) { alert('Event not found. Please refresh.'); return; }
+
+      const modalEl = document.getElementById('rescheduleEventModal');
+      const titleEl = modalEl?.querySelector('#rescheduleEventModalLabel');
+      const nameEl  = modalEl?.querySelector('#reschedEventName');
+      const typeEl  = modalEl?.querySelector('#reschedEventType');
+      const dateEl  = modalEl?.querySelector('input[name="new_event_date"]');
+      const timeEl  = modalEl?.querySelector('input[name="new_event_time"]');
+      const saveBtn = modalEl?.querySelector('#saveRescheduleBtn');
+      if (!modalEl || !titleEl || !nameEl || !typeEl || !dateEl || !timeEl || !saveBtn) return;
+
+      modalEl.dataset.eventId = String(eventId);
+      titleEl.textContent = 'Reschedule Event';
+      nameEl.textContent = ev.event_title || '(Untitled)';
+      typeEl.textContent = (ev.event_type || '').charAt(0).toUpperCase() + (ev.event_type || '').slice(1);
+
+      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      dateEl.min = todayStr;
+      dateEl.value = (ev.event_date || todayStr).slice(0,10);
+      timeEl.value = (ev.event_time || '').slice(0,5);
+
+      if (saveBtn.__handlerRef) saveBtn.removeEventListener('click', saveBtn.__handlerRef);
+      const onSave = () => {
+        const d = dateEl.value;
+        const t = timeEl.value;
+        if (!d || !t) { alert('Please select a new date and time.'); return; }
+        const phDT = toPH(`${d}T${t.length===5 ? t+':00' : t}`);
+        const now = toPH(new Date());
+        if (!(phDT > now)) { alert('Event date and time must be in the future.'); return; }
+
+        const setBusy = (b) => {
+          saveBtn.disabled = b;
+          saveBtn.innerHTML = b
+            ? '<span class="spinner-border spinner-border-sm me-2"></span>Rescheduling...'
+            : '<i class="bi bi-calendar-event me-1"></i> Save Changes';
+        };
+        setBusy(true);
+
+        fetchJSON('bns_modules/api_events.php?action=reschedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_id: Number(eventId), event_date: d, event_time: t })
+        })
+        .then(res => {
+          if (!res.success) throw new Error(res.error || 'Failed to reschedule');
+          bootstrap.Modal.getInstance(modalEl)?.hide();
+          alert('✅ Event rescheduled successfully.');
+          loadModule('nutrition_calendar', 'Event Scheduling');
+        })
+        .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
+        .finally(() => setBusy(false));
+      };
+      saveBtn.addEventListener('click', onSave);
+      saveBtn.__handlerRef = onSave;
+
+      new bootstrap.Modal(modalEl).show();
+    } catch (e) {
+      console.error(e);
+      alert('❌ Unable to open reschedule modal.');
+    }
+  }
+
+  // Bind once
+  if (!document.__bnsReschedEventBound) {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.resched-event-btn');
+      if (!btn) return;
+      e.preventDefault();
+      const id = parseInt(btn.getAttribute('data-event-id') || '0', 10);
+      if (!id) return;
+      openRescheduleModal(id);
+    });
+    document.__bnsReschedEventBound = true;
+  }
+
+  function typeBadge(t) {
+    switch (String(t||'').toLowerCase()) {
+      case 'health':    return { cls: 'opt-plus',  label: 'Health' };
+      case 'feeding':   return { cls: 'feeding',   label: 'Feeding Program' };
+      case 'weighing':  return { cls: 'weighing',  label: 'Weighing' };
+      case 'nutrition': return { cls: 'education', label: 'Nutrition Education' };
+      default:          return { cls: 'opt-plus',  label: 'General' };
+    }
+  }
+
+  // ---------- Modal scheduling (List mode) ----------
+
+  function wireModalScheduleForm() {
+    const modalEl = document.getElementById('scheduleEventModal');
+    const form = modalEl?.querySelector('#scheduleEventForm');
+    const saveBtn = modalEl?.querySelector('#saveEventBtn');
+    const titleEl = modalEl?.querySelector('#scheduleEventModalLabel');
+    if (!modalEl || !form || !saveBtn) return;
+
+    // When opening
+    modalEl.addEventListener('show.bs.modal', () => {
+      const mode = modalEl.dataset.mode || 'create';
+      const dateInput = form.querySelector('input[name="event_date"]');
+      const timeInput = form.querySelector('input[name="event_time"]');
+
+      if (mode === 'edit') {
+        // Do not reset or disable anything in edit mode; fields are prefilled in openEventEditModal
+        if (titleEl) titleEl.textContent = 'Edit Event';
+        saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Update Event';
+        return;
+      }
+
+      // CREATE mode reset
+      form.reset();
+      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      if (dateInput) {
+        dateInput.min = todayStr;
+        if (!dateInput.value) dateInput.value = todayStr;
+        dateInput.disabled = false;
+      }
+      if (timeInput) timeInput.disabled = false;
+
+      const typeSelect = form.querySelector('select[name="event_type"]');
+      if (typeSelect) typeSelect.disabled = false;
+
+      if (titleEl) titleEl.textContent = 'Schedule New Event';
+      saveBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
+    });
+
+    // Reset state after close
+    modalEl.addEventListener('hidden.bs.modal', () => {
+      modalEl.dataset.mode = 'create';
+      modalEl.dataset.eventId = '';
+
+      if (titleEl) titleEl.textContent = 'Schedule New Event';
+      saveBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
+
+      const typeSelect = form.querySelector('select[name="event_type"]');
+      if (typeSelect) typeSelect.disabled = false;
+
+      // Re-enable date/time for the next CREATE session
+      const dateInput = form.querySelector('input[name="event_date"]');
+      const timeInput = form.querySelector('input[name="event_time"]');
+      if (dateInput) dateInput.disabled = false;
+      if (timeInput) timeInput.disabled = false;
+    });
+
+    // Guard rebind
+    if (saveBtn.__handlerRef) saveBtn.removeEventListener('click', saveBtn.__handlerRef);
+
+    const onSave = () => {
+      const mode = modalEl.dataset.mode || 'create';
+      const eventId = parseInt(modalEl.dataset.eventId || '0', 10);
+
+      const title = form.querySelector('input[name="event_title"]')?.value.trim();
+      const type  = form.querySelector('select[name="event_type"]')?.value;
+      const desc  = form.querySelector('textarea[name="event_description"]')?.value.trim() || '';
+      const date  = form.querySelector('input[name="event_date"]')?.value;
+      const time  = form.querySelector('input[name="event_time"]')?.value;
+      const loc   = form.querySelector('input[name="location"]')?.value.trim();
+      const aud   = form.querySelector('input[name="target_audience"]')?.value.trim() || '';
+      const pub   = parseInt(form.querySelector('select[name="is_published"]')?.value || '1', 10);
+
+      const missing = [];
+      if (!title) missing.push('Event Title');
+      if (!type)  missing.push('Event Type');
+      if (!date)  missing.push('Event Date');
+      if (!time)  missing.push('Event Time');
+      if (!loc)   missing.push('Location');
+      if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
+
+      const payload = {
+        event_title: title,
+        event_type: type,
+        event_description: desc,
+        event_date: date,           // keep date in edit mode
+        event_time: time,           // keep time in edit mode
+        location: loc,
+        target_audience: aud,
+        is_published: pub
+      };
+
+      if (mode === 'edit') {
+        payload.event_id = eventId; // include event_id for updates
+      }
+
+      const setBusy = (b) => {
+        saveBtn.disabled = b;
+        saveBtn.innerHTML = b
+          ? '<span class="spinner-border spinner-border-sm me-2"></span>' + (mode === 'edit' ? 'Updating...' : 'Saving...')
+          : (mode === 'edit' ? '<i class="bi bi-save me-1"></i> Update Event' : '<i class="bi bi-calendar-plus me-1"></i> Schedule Event');
+      };
+      setBusy(true);
+
+      const endpoint = mode === 'edit'
+        ? 'bns_modules/api_events.php?action=update'
+        : 'bns_modules/api_events.php?action=create';
+
+      fetchJSON(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (!res.success) throw new Error(res.error || 'Failed');
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+        alert(mode === 'edit' ? '✅ Event updated successfully.' : '✅ Event scheduled successfully.');
+        loadModule('nutrition_calendar', 'Event Scheduling');
+      })
+      .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
+      .finally(() => setBusy(false));
+    };
+
+    saveBtn.addEventListener('click', onSave);
+    saveBtn.__handlerRef = onSave;
+  }
+
+  // Open modal in EDIT mode and prefill fields (Date/Time locked)
+  function openEventEditModal(eventId) {
+    try {
+      const ev = window.__eventsById?.get(eventId);
+      if (!ev) { alert('Event not found. Please refresh.'); return; }
+
+      // Block editing on the day of the event (PH time)
+      const todayStr = yyyyMmDd(new Date());
+      const evDateStr = (ev.event_date || '').slice(0, 10);
+      if (evDateStr === todayStr) {
+        alert('Editing is disabled on the day of the event.');
+        return;
+      }
+
+      const modalEl = document.getElementById('scheduleEventModal');
+      const form = modalEl?.querySelector('#scheduleEventForm');
+      const titleEl = modalEl?.querySelector('#scheduleEventModalLabel');
+      const saveBtn = modalEl?.querySelector('#saveEventBtn');
+      if (!modalEl || !form || !titleEl || !saveBtn) return;
+
+      modalEl.dataset.mode = 'edit';
+      modalEl.dataset.eventId = String(eventId);
+      titleEl.textContent = 'Edit Event';
+      saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Update Event';
+
+      form.querySelector('input[name="event_title"]').value          = ev.event_title || '';
+      form.querySelector('textarea[name="event_description"]').value = ev.event_description || '';
+      form.querySelector('select[name="event_type"]').value          = ev.event_type || '';
+      form.querySelector('input[name="event_date"]').value           = (ev.event_date || '').slice(0,10);
+      form.querySelector('input[name="event_time"]').value           = (ev.event_time || '').slice(0,5);
+      form.querySelector('input[name="location"]').value             = ev.location || '';
+      form.querySelector('input[name="target_audience"]').value      = ev.target_audience || '';
+      form.querySelector('select[name="is_published"]').value        = String(ev.is_published ?? 1);
+
+      const bs = new bootstrap.Modal(modalEl);
+      bs.show();
+    } catch (e) {
+      console.error(e);
+      alert('❌ Unable to open edit modal.');
+    }
+  }
+
+  // Delegate click for "Edit" buttons (bind once)
+  if (!document.__bnsEditEventBound) {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.edit-event-btn');
+      if (!btn) return;
+      e.preventDefault();
+      const id = parseInt(btn.getAttribute('data-event-id') || '0', 10);
+      if (!id) return;
+      openEventEditModal(id);
+    });
+    document.__bnsEditEventBound = true;
+  }
+  // ---------- Inline form wiring (Form mode) ----------
+
+  function wireInlineEventForm(defaultType) {
+    const form = document.getElementById('scheduleEventFormInline');
+    const saveBtn = document.getElementById('saveEventInlineBtn');
+    if (!form || !saveBtn) return;
+
+    const titleInput = form.querySelector('input[name="event_title"]');
+    const typeSelect = form.querySelector('select[name="event_type"]');
+    const descInput  = form.querySelector('textarea[name="event_description"]');
+    const dateInput  = form.querySelector('input[name="event_date"]');
+    const timeInput  = form.querySelector('input[name="event_time"]');
+    const locInput   = form.querySelector('input[name="location"]');
+    const audInput   = form.querySelector('input[name="target_audience"]');
+    const pubSelect  = form.querySelector('select[name="is_published"]');
+
+    // Min date = today (PH)
+    if (dateInput) {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      dateInput.min = today;
+      if (!dateInput.value) dateInput.value = today;
+    }
+
+    function applyDefaultType(dt) {
+      const def = (dt || '').trim();
+
+      // Preselect and lock the Event Type when coming from a submenu,
+      // but DO NOT auto-fill the Event Title. Keep it blank.
+      if (typeSelect) {
+        if (def) {
+          typeSelect.value = def;
+          typeSelect.disabled = true;
+        } else {
+          typeSelect.value = '';
+          typeSelect.disabled = false;
+        }
+      }
+
+      // Ensure the title starts blank for UI consistency
+      if (titleInput) {
+        titleInput.value = '';
+      }
+    }
+    function resetInlineFormForCreate(dt) {
+      form.reset();
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      if (dateInput) dateInput.value = today;
+      if (pubSelect) pubSelect.value = '1';
+      applyDefaultType(dt);
+    }
+    window.resetInlineFormForCreate = resetInlineFormForCreate;
+    applyDefaultType(defaultType);
+
+    // Auto-suggest title
+    if (typeSelect && titleInput) {
+      typeSelect.addEventListener('change', function() {
+        const map = {
+          'health': 'Health Consultation Session',
+          'nutrition': 'Nutrition Education Seminar',
+          'feeding': 'Supplementary Feeding Program',
+          'weighing': 'Monthly Weighing Session',
+          'general': 'Community Health Meeting',
+          'other': 'Special Health Activity'
+        };
+        if (!titleInput.value.trim() && this.value && map[this.value]) {
+          titleInput.value = map[this.value];
+        }
+      });
+    }
+
+    // Save inline
+    if (saveBtn.__handlerRef) saveBtn.removeEventListener('click', saveBtn.__handlerRef);
+    const onSave = () => {
+      const missing = [];
+      if (!dateInput.value) missing.push('Event Date');
+      if (!timeInput.value) missing.push('Event Time');
+      if (!titleInput.value.trim()) missing.push('Event Title');
+      if (!typeSelect.value) missing.push('Event Type');
+      if (!locInput.value.trim()) missing.push('Location');
+      if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
+
+      const payload = {
+        event_title: titleInput.value.trim(),
+        event_type: typeSelect.value,
+        event_description: descInput.value.trim(),
+        event_date: dateInput.value,
+        event_time: timeInput.value,
+        location: locInput.value.trim(),
+        target_audience: audInput.value.trim(),
+        is_published: parseInt(pubSelect.value || '1', 10)
+      };
+
+      const makeBusy = (b) => {
+        saveBtn.disabled = b;
+        saveBtn.innerHTML = b
+          ? '<span class="spinner-border spinner-border-sm me-2"></span>Scheduling...'
+          : '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
+      };
+      makeBusy(true);
+
+      fetchJSON('bns_modules/api_events.php?action=create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (!res.success) throw new Error(res.error || 'Failed');
+        alert('✅ Event scheduled successfully.');
+        loadModule('nutrition_calendar', 'Event Scheduling');
+      })
+      .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
+      .finally(() => makeBusy(false));
+    };
+    saveBtn.addEventListener('click', onSave);
+    saveBtn.__handlerRef = onSave;
+  }
+
+  function prettyType(key) {
+    return {
+      health: 'Health Sessions',
+      feeding: 'Feeding Programs',
+      weighing: 'Weighing Schedules',
+      nutrition: 'Nutrition Education'
+    }[key] || key;
+  }
+
+  // ---------- Calendar cell generator (with dots for days with events) ----------
+
   function generateCalendarDays(events, calendarDate) {
-    const phToday = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Manila'}));
+    const phToday = toPH(new Date());
     const currentMonth = calendarDate.getMonth();
     const currentYear = calendarDate.getFullYear();
-    
-    // Create a map of dates with events
+
+    // Count events per date
     const eventDates = new Map();
-    events.forEach(event => {
-      const eventDate = new Date(event.event_date);
-      const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
-      if (!eventDates.has(dateKey)) {
-        eventDates.set(dateKey, []);
-      }
-      eventDates.get(dateKey).push(event);
+    (events || []).forEach(event => {
+      if (!event.event_date) return;
+      const d = new Date(event.event_date + 'T00:00:00');
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!eventDates.has(key)) eventDates.set(key, 0);
+      eventDates.set(key, eventDates.get(key) + 1);
     });
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    
-    let daysHTML = '';
-    
-    // Previous month days
+
+    let html = '';
+
+    // Prev month padding
     const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
     for (let i = firstDay - 1; i >= 0; i--) {
-      daysHTML += `<div class="calendar-day prev-month">${prevMonthDays - i}</div>`;
+      html += `<div class="calendar-day prev-month">${prevMonthDays - i}</div>`;
     }
-    
-    // Current month days
+
+    // Current month
     for (let day = 1; day <= daysInMonth; day++) {
-      const dateKey = `${currentYear}-${currentMonth}-${day}`;
-      const hasEvents = eventDates.has(dateKey);
-      
-      // Check if this is today
-      const isToday = (day === phToday.getDate() && 
-                     currentMonth === phToday.getMonth() && 
-                     currentYear === phToday.getFullYear());
-      
-      let dayClasses = 'calendar-day';
-      if (isToday) dayClasses += ' current-day';
-      
-      let dayStyle = '';
-      if (hasEvents) {
-        dayStyle = 'style="position:relative;"';
-        // Add a small indicator for events
-        const eventIndicator = '<div style="position:absolute;bottom:2px;right:2px;width:4px;height:4px;background:#077a44;border-radius:50%;"></div>';
-        daysHTML += `<div class="${dayClasses}" ${dayStyle} data-has-events="true">${day}${eventIndicator}</div>`;
+      const key = `${currentYear}-${currentMonth}-${day}`;
+      const has = eventDates.has(key);
+      const isToday = (day === phToday.getDate() && currentMonth === phToday.getMonth() && currentYear === phToday.getFullYear());
+      let cls = 'calendar-day';
+      if (isToday) cls += ' current-day';
+
+      if (has) {
+        const dot = '<div style="position:absolute;bottom:2px;right:2px;width:4px;height:4px;background:#077a44;border-radius:50%;"></div>';
+        html += `<div class="${cls}" style="position:relative;" data-has-events="true">${day}${dot}</div>`;
       } else {
-        daysHTML += `<div class="${dayClasses}">${day}</div>`;
+        html += `<div class="${cls}">${day}</div>`;
       }
     }
-    
-    // Next month days to fill the grid
+
+    // Next month padding
     const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
-    const remainingCells = totalCells - (firstDay + daysInMonth);
-    for (let day = 1; day <= remainingCells; day++) {
-      daysHTML += `<div class="calendar-day next-month">${day}</div>`;
+    const rem = totalCells - (firstDay + daysInMonth);
+    for (let d = 1; d <= rem; d++) {
+      html += `<div class="calendar-day next-month">${d}</div>`;
     }
-    
-    return daysHTML;
+    return html;
   }
 
-  // Add CSS for selected calendar day
+  // Selected-day highlight CSS (consistent sa UI)
   const style = document.createElement('style');
   style.textContent = `
-    .calendar-day.selected {
-      background: var(--green) !important;
-      color: white !important;
-      font-weight: 700;
-    }
-    .calendar-day:hover:not(.prev-month):not(.next-month) {
-      background: var(--surface-soft);
-      cursor: pointer;
-    }
+    .calendar-day.selected { background: var(--green) !important; color: white !important; font-weight: 700; }
+    .calendar-day:hover:not(.prev-month):not(.next-month) { background: var(--surface-soft); cursor: pointer; }
   `;
   document.head.appendChild(style);
-
-// REPLACE the existing renderEventItem(event) function with this version.
-
-function renderEventItem(event) {
-  const eventDate = new Date(event.event_date);
-  const formattedDate = eventDate.toLocaleDateString('en-PH', {
-    timeZone: 'Asia/Manila',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-
-  const eventTime = event.event_time
-    ? new Date(`2000-01-01T${event.event_time}`).toLocaleTimeString('en-PH', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })
-    : 'Time TBD';
-
-  const eventTypeConfig = {
-    'health':    { icon: 'bi-clipboard-data',  color: '#077a44', bg: '#e8f5ea', badge: 'Health' },
-    'nutrition': { icon: 'bi-book',            color: '#a259c6', bg: '#f3e8ff', badge: 'Nutrition Education' },
-    'feeding':   { icon: 'bi-cup-hot',         color: '#f4a400', bg: '#ffecc7', badge: 'Feeding Program' },
-    'weighing':  { icon: 'bi-clipboard2-data', color: '#1c79d0', bg: '#e1f1ff', badge: 'Weighing' }
-  };
-
-  const cfg = eventTypeConfig[event.event_type] || eventTypeConfig['health'];
-  const completed = Number(event.is_completed || 0) === 1;
-
-  const statusPill = `<span class="status-pill ${completed ? 'completed' : 'scheduled'}">${completed ? 'Completed' : 'Scheduled'}</span>`;
-
-  // NEW: Edit button added; existing delegated handler already supports data-ev-action="edit"
-  const actions = `
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-sm btn-outline-primary"
-              data-ev-action="edit" data-ev-id="${event.event_id}"
-              style="font-size:.6rem;border-radius:8px;">
-        <i class="bi bi-pencil me-1"></i> Edit
-      </button>
-      <button class="btn btn-sm btn-outline-secondary"
-              data-ev-action="reschedule" data-ev-id="${event.event_id}"
-              style="font-size:.6rem;border-radius:8px;">
-        <i class="bi bi-calendar2-event me-1"></i> Reschedule
-      </button>
-      ${completed ? '' : `
-        <button class="btn btn-sm btn-success"
-                data-ev-action="complete" data-ev-id="${event.event_id}"
-                style="font-size:.6rem;border-radius:8px;">
-          <i class="bi bi-check2-circle me-1"></i> Mark as Complete
-        </button>
-      `}
-    </div>
-  `;
-
-  return `
-    <div class="event-item" data-ev="${event.event_id}">
-      <div class="d-flex align-items-center gap-3">
-        <div class="event-icon" style="background:${cfg.bg};">
-          <i class="${cfg.icon}" style="color:${cfg.color};"></i>
-        </div>
-        <div class="flex-grow-1">
-          <h6 class="event-title" style="display:flex;align-items:center;gap:.5rem;">
-            ${escapeHtml(event.event_title)}
-            ${statusPill}
-          </h6>
-          <div class="event-details">
-            <span><i class="bi bi-calendar3"></i> ${formattedDate}</span>
-            <span><i class="bi bi-clock"></i> ${eventTime}</span>
-            <span><i class="bi bi-geo-alt"></i> ${escapeHtml(event.location || 'Location TBD')}</span>
-          </div>
-        </div>
-        <div class="d-flex align-items-center" style="gap:.5rem;">
-          <span class="event-badge" style="background:${cfg.bg};color:${cfg.color};">${cfg.badge}</span>
-          ${actions}
-        </div>
-      </div>
-    </div>
-  `;
-}
-/* --- 2) ADD this delegated click handler inside renderNutritionCalendarModule(...), right after we render the shell the first time --- */
-// Ensure we can prefill modal from list memory
-window.__eventsById = window.__eventsById || new Map();
-
-// Wire once per page lifetime
-if (!window.__eventActionsWired) {
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-ev-action]');
-    if (!btn) return;
-    const id = parseInt(btn.getAttribute('data-ev-id') || '0', 10);
-    const action = btn.getAttribute('data-ev-action');
-
-    if (!id || !action) return;
-
-    if (action === 'complete') {
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Completing...';
-      fetchJSON('bns_modules/api_events.php?action=complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: id })
-      })
-      .then(res => {
-        if (!res.success) throw new Error(res.error || 'Failed');
-        // Reload the module view
-        loadModule('nutrition_calendar','Event Scheduling');
-      })
-      .catch(err => {
-        alert('Error: ' + (err.message || err));
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Mark as Completed';
-      });
-    }
-
-    if (action === 'edit' || action === 'reschedule') {
-      const ev = window.__eventsById.get(id);
-      openEventModal(action === 'edit' ? 'edit' : 'reschedule', ev || { event_id: id });
-    }
-  });
-  window.__eventActionsWired = true;
-}
-
-/* --- 3) REPLACE the "Schedule Event Modal functionality" DOMContentLoaded block at the bottom with this version --- */
-(function wireEventModal(){
-  const scheduleEventModal = document.getElementById('scheduleEventModal');
-  const saveEventBtn = document.getElementById('saveEventBtn');
-  const scheduleEventForm = document.getElementById('scheduleEventForm');
-
-  if (!scheduleEventModal || !saveEventBtn || !scheduleEventForm) return;
-
-  // Flag so the legacy wiring at the bottom won’t attach again
-  window.__eventModalEnhanced = true;
-
-  // Inputs
-  const titleInput   = scheduleEventForm.querySelector('input[name="event_title"]');
-  const typeSelect   = scheduleEventForm.querySelector('select[name="event_type"]');
-  const descInput    = scheduleEventForm.querySelector('textarea[name="event_description"]');
-  const dateInput    = scheduleEventForm.querySelector('input[name="event_date"]');
-  const timeInput    = scheduleEventForm.querySelector('input[name="event_time"]');
-  const locInput     = scheduleEventForm.querySelector('input[name="location"]');
-  const audInput     = scheduleEventForm.querySelector('input[name="target_audience"]');
-  const pubSelect    = scheduleEventForm.querySelector('select[name="is_published"]');
-
-  // Min date = today
-  if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.setAttribute('min', today);
-  }
-
-  // Global open function for Create/Edit/Reschedule
-  window.openEventModal = function(mode, eventData) {
-    const m = mode || 'create';
-    scheduleEventModal.dataset.mode = m;
-    scheduleEventModal.dataset.eventId = eventData?.event_id || '';
-
-    // Header title
-    const header = document.getElementById('scheduleEventModalLabel');
-    if (header) {
-      header.textContent =
-        m === 'edit'       ? 'Edit Event'
-      : m === 'reschedule' ? 'Reschedule Event'
-                           : 'Schedule New Event';
-    }
-
-    // Prefill
-    if (m === 'create') {
-      scheduleEventForm.reset();
-      if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-    } else {
-      if (titleInput) titleInput.value = eventData.event_title || '';
-      if (typeSelect) typeSelect.value = eventData.event_type || '';
-      if (descInput)  descInput.value  = eventData.event_description || '';
-      if (dateInput)  dateInput.value  = eventData.event_date || '';
-      if (timeInput)  timeInput.value  = eventData.event_time || '';
-      if (locInput)   locInput.value   = eventData.location || '';
-      if (audInput)   audInput.value   = eventData.target_audience || '';
-      if (pubSelect)  pubSelect.value  = String(eventData.is_published ?? 1);
-    }
-
-    // NEW: Mode-based enable/disable
-    const setDisabled = (els, disabled) => els.forEach(el => el && (el.disabled = disabled));
-    const scheduleEls = [dateInput, timeInput, locInput];                // Schedule Information
-    const infoEls     = [titleInput, typeSelect, descInput, audInput, pubSelect]; // Event Details + Additional Info
-
-    if (m === 'edit') {
-      // In EDIT mode: schedule info cannot be edited
-      setDisabled(scheduleEls, true);    // disable Event Date, Event Time, Location
-      setDisabled(infoEls, false);       // allow editing of title, type, description, audience, publish status
-    } else if (m === 'reschedule') {
-      // In RESCHEDULE mode: only date/time can be changed
-      setDisabled([locInput], true);     // Location stays locked
-      setDisabled(infoEls, true);        // Other details locked
-      setDisabled([dateInput, timeInput], false); // Date & Time editable
-    } else {
-      // In CREATE mode: everything editable
-      setDisabled(scheduleEls, false);
-      setDisabled(infoEls, false);
-    }
-
-    // Button label
-    if (saveEventBtn) {
-      saveEventBtn.textContent =
-        m === 'edit'       ? 'Save Changes'
-      : m === 'reschedule' ? 'Save New Schedule'
-                           : 'Schedule Event';
-    }
-
-    // Show modal
-    const modal = new bootstrap.Modal(scheduleEventModal);
-    modal.show();
-  };
-
-  // Save handler (Create/Edit/Reschedule)
-  if (saveEventBtn) {
-    if (saveEventBtn.__handlerRef) {
-      saveEventBtn.removeEventListener('click', saveEventBtn.__handlerRef);
-    }
-    const onSave = () => {
-      const mode = scheduleEventModal?.dataset.mode || 'create';
-      const eid  = parseInt(scheduleEventModal?.dataset.eventId || '0', 10);
-
-      // Validate
-      const missing = [];
-      if (!dateInput.value) missing.push('Event Date');
-      if (!timeInput.value) missing.push('Event Time');
-      if (mode !== 'reschedule') {
-        if (!titleInput.value) missing.push('Event Title');
-        if (!typeSelect.value) missing.push('Event Type');
-        if (!locInput.value)   missing.push('Location');
-      }
-      if (missing.length) {
-        alert('Please fill in: ' + missing.join(', '));
-        return;
-      }
-
-      const makeBusy = (b, label) => {
-        saveEventBtn.disabled = b;
-        saveEventBtn.innerHTML = b
-          ? `<span class="spinner-border spinner-border-sm me-2"></span>${label}`
-          : (mode==='edit' ? '<i class="bi bi-save me-1"></i> Save Changes'
-            : mode==='reschedule' ? '<i class="bi bi-calendar2-event me-1"></i> Save New Schedule'
-            : '<i class="bi bi-calendar-plus me-1"></i> Schedule Event');
-      };
-
-      const payload = {
-        event_id: eid,
-        event_title: titleInput.value,
-        event_type: typeSelect.value,
-        event_description: descInput.value,
-        event_date: dateInput.value,
-        event_time: timeInput.value,
-        location: locInput.value,
-        target_audience: audInput.value,
-        is_published: parseInt(pubSelect.value || '1', 10)
-      };
-
-      let url = 'bns_modules/api_events.php?action=create';
-      if (mode === 'edit') url = 'bns_modules/api_events.php?action=update';
-      if (mode === 'reschedule') url = 'bns_modules/api_events.php?action=reschedule';
-
-      // Narrow payload for reschedule
-      const finalPayload = (mode === 'reschedule')
-        ? { event_id: eid, event_date: payload.event_date, event_time: payload.event_time }
-        : payload;
-
-      makeBusy(true, mode==='edit' ? 'Saving...' : (mode==='reschedule' ? 'Rescheduling...' : 'Scheduling...'));
-
-      fetchJSON(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalPayload)
-      })
-      .then(res => {
-        if (!res.success) throw new Error(res.error || 'Failed');
-        // Close modal and refresh
-        const modal = bootstrap.Modal.getInstance(scheduleEventModal);
-        modal?.hide();
-        loadModule('nutrition_calendar','Event Scheduling');
-      })
-      .catch(err => {
-        console.error(err);
-        alert('❌ ' + (err.message || err));
-      })
-      .finally(() => makeBusy(false));
-    };
-    saveEventBtn.addEventListener('click', onSave);
-    saveEventBtn.__handlerRef = onSave;
-  }
-
-  // Reset form when modal is closed
-  if (scheduleEventModal) {
-    scheduleEventModal.addEventListener('hidden.bs.modal', function() {
-      scheduleEventForm.reset();
-      delete scheduleEventModal.dataset.mode;
-      delete scheduleEventModal.dataset.eventId;
-      if (saveEventBtn) {
-        saveEventBtn.disabled = false;
-        saveEventBtn.innerHTML = '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
-      }
-      // Re-enable all fields by default
-      scheduleEventForm.querySelectorAll('input, select, textarea').forEach(el => el.disabled = false);
-    });
-  }
-
-  // Auto-populate title when creating
-  if (typeSelect && titleInput) {
-    typeSelect.addEventListener('change', function() {
-      if ((scheduleEventModal?.dataset.mode || 'create') !== 'create') return;
-      const map = {
-        'health': 'Health Consultation Session',
-        'nutrition': 'Nutrition Education Seminar',
-        'feeding': 'Supplementary Feeding Program',
-        'weighing': 'Monthly Weighing Session',
-        'general': 'Community Health Meeting',
-        'other': 'Special Health Activity'
-      };
-      if (!titleInput.value.trim() && this.value && map[this.value]) {
-        titleInput.value = map[this.value];
-      }
-    });
-  }
-})();
-
-  // Helper function to setup tab switching (same as before but with updated function signature)
-  function setupCalendarTabs(events, currentDate) {
-    document.querySelectorAll('.calendar-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        // Update active tab
-        document.querySelectorAll('.calendar-tab').forEach(t => {
-          t.classList.remove('active');
-          t.style.color = 'var(--muted)';
-          t.style.borderBottom = 'none';
-        });
-        
-        tab.classList.add('active');
-        tab.style.color = 'var(--green)';
-        tab.style.borderBottom = '2px solid var(--green)';
-        
-        // Update content based on tab
-        const tabType = tab.dataset.tab;
-        const contentArea = document.getElementById('calendar-tab-content');
-        
-        switch(tabType) {
-          case 'health':
-            contentArea.innerHTML = renderEventTypeView(events, 'health', 'Health Sessions', '🏥');
-            break;
-          case 'feeding':
-            contentArea.innerHTML = renderEventTypeView(events, 'feeding', 'Feeding Programs', '🍽️');
-            break;
-          case 'weighing':
-            contentArea.innerHTML = renderEventTypeView(events, 'weighing', 'Weighing Schedules', '⚖️');
-            break;
-          case 'nutrition':
-            contentArea.innerHTML = renderEventTypeView(events, 'nutrition', 'Nutrition Education', '📚');
-            break;
-          default: // 'calendar'
-            contentArea.innerHTML = renderCalendarView(events, currentDate);
-            // Re-setup navigation after re-rendering
-            setTimeout(() => setupCalendarNavigation(events, currentDate), 100);
-            break;
-        }
-      });
-    });
-  }
-
-  // Helper function to render events filtered by type (same as before)
-  function renderEventTypeView(events, eventType, title, icon) {
-    const filteredEvents = events.filter(event => event.event_type === eventType);
-    
-    return `
-      <div>
-        <div class="d-flex justify-content-between align-items-start mb-3">
-          <div>
-            <h6 style="font-size:.8rem;font-weight:700;color:var(--green);margin:0;display:flex;align-items:center;gap:.5rem;">
-              ${icon} ${title}
-            </h6>
-            <p class="text-muted mb-0" style="font-size:.65rem;">${filteredEvents.length} event(s) scheduled</p>
-          </div>
-        </div>
-
-        <div class="tile">
-          ${filteredEvents.length > 0 ? 
-            filteredEvents.map(event => renderEventItem(event)).join('') :
-            `<div class="text-center py-5">
-              <i class="bi bi-calendar-x text-muted" style="font-size:3rem;opacity:0.3;"></i>
-              <h6 class="mt-3 mb-1" style="font-size:.8rem;font-weight:600;">No ${title} Scheduled</h6>
-              <p class="text-muted small mb-0" style="font-size:.65rem;">No events of this type have been scheduled yet.</p>
-            </div>`
-          }
-        </div>
-      </div>
-    `;
-  }
 }
 
 function renderMothersModule(label){ showLoading(label); moduleContent.innerHTML='<div class="tile fade-in"><h5 style="font-size:.68rem;">Mothers Module</h5><p class="small-note">Placeholder.</p></div>'; }
@@ -5410,6 +6763,7 @@ function renderReportModule(label) {
   function renderShell() {
     const meta = computeSummary(allChildren, recentRecords, selectedYM);
     const purokAgg = aggregateByPurok(allChildren, selectedYM);
+    const sAgg = computeSuppAggregates(suppRecords, selectedYM); // supplementation aggregates
 
     moduleContent.innerHTML = `
       <div class="fade-in">
@@ -5443,33 +6797,37 @@ function renderReportModule(label) {
           ${summaryCard('Recovery Rate', meta.recoveryRateText, 'Successful interventions', 'bi-graph-up-arrow')}
         </div>
 
-        <!-- Tabs -->
-        <div class="mb-3">
-          <ul class="nav nav-tabs" style="border-bottom:2px solid var(--border-soft);">
-            <li class="nav-item">
-              <a class="nav-link active nr-tab" href="#" data-tab="growth" style="font-size:.75rem;font-weight:600;color:var(--green);border-bottom:2px solid var(--green);background:none;border-left:none;border-right:none;border-top:none;padding:.75rem 1.2rem;">
-                Growth Monitoring
-              </a>
-            </li>
-            <li class="nav-item"><a class="nav-link nr-tab" href="#" data-tab="status" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Nutrition Status</a></li>
-            <li class="nav-item"><a class="nav-link nr-tab" href="#" data-tab="supp" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Supplementation</a></li>
-            <li class="nav-item"><a class="nav-link nr-tab" href="#" data-tab="interv" style="font-size:.75rem;font-weight:600;color:var(--muted);border:none;background:none;padding:.75rem 1.2rem;">Interventions</a></li>
-          </ul>
-        </div>
-
-        <!-- Tab content -->
+        <!-- Graphs side-by-side on large screens -->
         <div id="nrTabContent">
-          ${renderGrowthTab(purokAgg)}
+          <div class="row g-3">
+            <div class="col-12 col-lg-6">
+              ${renderGrowthTab(purokAgg)}
+            </div>
+            <div class="col-12 col-lg-6">
+              ${renderSuppComplianceTile(sAgg, meta.totalChildren)}
+            </div>
+          </div>
         </div>
       </div>
     `;
 
-    // Bind growth export on initial render
+    // Existing exports
     document.getElementById('nrExportChartBtn')?.addEventListener('click', () => {
       printSection(document.getElementById('growthResultsTile'));
     });
     document.getElementById('nrExportAllBtn')?.addEventListener('click', () => {
       printSection(document.querySelector('#moduleContent'));
+    });
+
+    // Month change
+    document.getElementById('nrMonthSelect')?.addEventListener('change', (e) => {
+      selectedYM = e.target.value;
+      renderShell();
+    });
+
+    // Compliance tile export
+    document.getElementById('nrSuppCompliancePrintBtn')?.addEventListener('click', () => {
+      printSection(document.getElementById('suppComplianceTile'));
     });
   }
 
@@ -5498,6 +6856,156 @@ function renderReportModule(label) {
         <div class="mt-3">${tableHtml}</div>
       </div>
     `;
+  }
+
+  // Supplementation Compliance Tile helper
+  function renderSuppComplianceTile(sAgg, targetTotalChildren){
+    // Build unique-child counts per supplement type for the selected month
+    const uniqByType = { 'Vitamin A': new Set(), 'Iron': new Set(), 'Deworming': new Set() };
+    (sAgg.rows || []).forEach(r => {
+      const t = (r.supplement_type || '').toLowerCase();
+      if (t.includes('vit'))  uniqByType['Vitamin A'].add(r.child_id);
+      else if (t.includes('iron')) uniqByType['Iron'].add(r.child_id);
+      else if (t.includes('deworm')) uniqByType['Deworming'].add(r.child_id);
+    });
+
+    const items = [
+      { key:'Vitamin A', color:'#0b7a43', achieved: uniqByType['Vitamin A'].size, target: targetTotalChildren },
+      { key:'Iron',      color:'#0b7a43', achieved: uniqByType['Iron'].size,      target: targetTotalChildren },
+      { key:'Deworming', color:'#0b7a43', achieved: uniqByType['Deworming'].size, target: targetTotalChildren }
+    ].map(i => {
+      const pct = i.target ? (i.achieved / i.target) : 0;
+      const gap = Math.max(0, i.target - i.achieved);
+      return Object.assign(i, { percent: pct, gap });
+    });
+
+    // Chart (Target track with Achieved overlay)
+    const chartHtml = buildComplianceChart(items);
+
+    // Per-item progress rows
+    const rowsHtml = items.map(it => progressRow(it)).join('');
+
+    // Optional insights (lowest performer + best)
+    const sorted = items.slice().sort((a,b)=>a.percent-b.percent);
+    const low = sorted[0], high = sorted[sorted.length-1];
+
+    const insight = (title, text, ok=true) => `
+      <div class="col-12 col-lg-6">
+        <div class="tile" style="border:${ok?'1px solid #d3e8d9':'1px solid #ffe0e0'};background:${ok?'#f0f8f1':'#fff5f5'};">
+          <div class="d-flex align-items-start gap-2">
+            <div class="event-icon" style="background:${ok?'#e8f5ea':'#ffdfe0'};color:${ok?'#077a44':'#b02020'};">
+              <i class="bi ${ok?'bi-emoji-smile':'bi-emoji-frown'}"></i>
+            </div>
+            <div>
+              <div class="event-title" style="margin:0 0 .15rem 0;">${title}</div>
+              <div style="font-size:.62rem;color:${ok?'#1e3e27':'#7a1e1e'};">${text}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    const insights = `
+      <div class="row g-2">
+        ${insight(`${low.key} Coverage`, `${Math.round(low.percent*100)}% achieved. Gap: ${low.gap}.`, false)}
+        ${insight(`${high.key} Supplementation`, `Excellent coverage at ${Math.round(high.percent*100)}%.`, true)}
+      </div>
+    `;
+
+    return `
+      <div class="tile mt-3" id="suppComplianceTile">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <div class="tile-header">
+              <h5><i class="bi bi-bar-chart-steps text-success"></i> Supplementation Compliance Report</h5>
+            </div>
+            <p class="tile-sub">Coverage of Vitamin A, Iron, and Deworming programs (${monthsList.find(m=>m.value===selectedYM)?.label || ''})</p>
+          </div>
+          <button id="nrSuppCompliancePrintBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+            <i class="bi bi-file-earmark-arrow-down me-1"></i> Export Report
+          </button>
+        </div>
+
+        ${chartHtml}
+
+        <!-- Per-item progress -->
+        <div class="mt-3">
+          ${rowsHtml}
+        </div>
+
+        <!-- Quick insights -->
+        <div class="mt-2">
+          ${insights}
+        </div>
+      </div>
+    `;
+
+    // Helpers
+    function progressRow(it){
+      const pct100 = Math.min(100, Math.round(it.percent*1000)/10);
+      return `
+        <div class="mb-2" role="group" aria-label="${escapeHtml(it.key)}">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge-status" style="background:#e8f5ea;color:#077a44;padding:.24rem .5rem;font-size:.55rem;font-weight:800;border-radius:10px;">${escapeHtml(it.key)}</span>
+              <span style="font-size:.62rem;color:#6a7a6d;">Target: ${it.target} • Achieved: ${it.achieved} • Gap: ${it.gap}</span>
+            </div>
+            <span class="badge-status" style="background:${pct100>=90?'#e8f5ea':(pct100>=75?'#fff7e0':'#ffe4e4')};color:${pct100>=90?'#077a44':(pct100>=75?'#845900':'#b02020')};font-size:.55rem;font-weight:800;">
+              ${pct100.toFixed(1)}%
+            </span>
+          </div>
+          <div style="height:8px;background:#f4f7f5;border-radius:10px;overflow:hidden;">
+            <span style="display:block;height:100%;background:${it.color};width:${pct100}%;"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildComplianceChart(items){
+      if (!items.length) return `<div class="chart-placeholder">No supplementation data for this month</div>`;
+
+      const VB = { w: 160, h: 70 };
+      const pad = { l: 24, r: 6, t: 10, b: 8 };
+      const CW = VB.w - pad.l - pad.r;
+      const CH = VB.h - pad.t - pad.b;
+      const bandH = CH / items.length;
+
+      let rows = '';
+      items.forEach((it, idx) => {
+        const y = pad.t + idx*bandH + bandH*0.18;
+        const h = bandH*0.64;
+
+        // Full target track
+        rows += `<rect x="${pad.l}" y="${y}" width="${CW}" height="${h}" rx="1.6" ry="1.6" fill="#f4f7f5"></rect>`;
+
+        // Achieved overlay
+        const w = CW * (it.target ? (it.achieved/it.target) : 0);
+        rows += `<rect x="${pad.l}" y="${y}" width="${w.toFixed(2)}" height="${h}" rx="1.6" ry="1.6" fill="${it.color}"><title>${it.key}: ${it.achieved}/${it.target}</title></rect>`;
+
+        // Left labels
+        rows += `<text x="${pad.l-1.6}" y="${(y+h/2+1.2).toFixed(2)}" font-size="2.7" fill="#5e7264" text-anchor="end">${escapeHtml(it.key)}</text>`;
+      });
+
+      const legend = `
+        <div class="d-flex align-items-center gap-3 mt-2" aria-label="Legend" style="flex-wrap:wrap;">
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span style="width:12px;height:12px;background:#0b7a43;border-radius:3px;display:inline-block;"></span> Achieved
+          </span>
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span style="width:12px;height:12px;background:#f4f7f5;border:1px solid #e6ede9;border-radius:3px;display:inline-block;"></span> Target
+          </span>
+        </div>
+      `;
+
+      return `
+        <div style="width:100%;position:relative;">
+          <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+               style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+            ${rows}
+          </svg>
+          ${legend}
+        </div>
+      `;
+    }
   }
 
   // NEW: Nutrition Status tab (donut + detailed breakdown + insights)
@@ -6646,6 +8154,41 @@ function lockWeighingDateToToday() {
 document.addEventListener('DOMContentLoaded', ()=> {
   // if date input exists on initial load
   lockWeighingDateToToday();
+  // Sidebar: Supplementation toggle (dropdown with persistent open state)
+  (function wireSuppDropdown() {
+    const toggle = document.getElementById('navSuppToggle');
+    const submenu = document.getElementById('suppSubmenu');
+    if (!toggle || !submenu) return;
+
+    // Restore persisted open state
+    const open = localStorage.getItem('suppSubmenuOpen') === '1';
+    if (open) {
+      submenu.classList.add('show');
+      toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    toggle.addEventListener('click', function (e) {
+      e.preventDefault();
+      const isOpen = submenu.classList.toggle('show');
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      localStorage.setItem('suppSubmenuOpen', isOpen ? '1' : '0');
+
+      // NEW: accordion behavior
+      if (isOpen) closeOtherSubmenus('suppSubmenuOpen');
+
+      // Parent "Supplementation" opens All Records by default
+      if (toggle.dataset.module === 'feeding_programs') {
+        window.__suppDefaultTab = 'all';
+      }
+      if (typeof setActive === 'function') setActive(toggle);
+      if (typeof loadModule === 'function') loadModule('feeding_programs', 'Supplementation');
+
+      if (window.innerWidth < 992) document.getElementById('sidebar')?.classList.remove('show');
+    });
+  })();
+
+  // NEW: keep only one open on restore
+  enforceSingleOpenFromStorage();
 });
 
 // Proper event listener setup that actually works
@@ -7228,18 +8771,49 @@ const handlers={
   report_status_distribution:renderReportModule
 };
 function loadModule(mod,label){
-  titleEl.textContent=label;
+  if (titleEl) titleEl.textContent = label;
+  if (navTitleEl) navTitleEl.textContent = label;
   (handlers[mod]||(()=>moduleContent.innerHTML='<div class="alert alert-secondary">Module not implemented.</div>'))(label);
   moduleContent.scrollTop=0;
 }
+/* Initial load */
+if (navTitleEl) navTitleEl.textContent = 'Dashboard';
+loadModule('dashboard_home','Dashboard');
+
 
 /* Navigation */
-document.querySelectorAll('.nav-link-bns[data-module]').forEach(a=>{
-  a.addEventListener('click',e=>{
+document.querySelectorAll('.nav-link-bns[data-module]').forEach(a => {
+  a.addEventListener('click', e => {
     e.preventDefault();
+
+    // REPLACE: Supplementation tab selection from sidebar submenu
+    if (a.dataset.module === 'feeding_programs') {
+  // If coming from submenu it carries data-supp-tab="schedule", else default to 'all'
+  window.__suppDefaultTab = a.dataset.suppTab || 'all';
+    }
+
+        // Children Management submenu: pass requested tab (database or profiles)
+        if (a.dataset.module === 'child_profiles') {
+          window.__childDefaultTab = a.dataset.childTab || '';
+        }
+
+    // Existing: calendar submenu logic (keep as-is)
+    if (a.dataset.module === 'nutrition_calendar') {
+      window.__calendarDefaultType = a.dataset.calTab || '';
+      window.__calendarOpenForm = !!a.dataset.calTab;
+    } else {
+      window.__calendarDefaultType = '';
+      window.__calendarOpenForm = false;
+    }
+
+    // Growth Monitoring submenu: pass requested tab (population or wfl)
+    if (a.dataset.module === 'nutrition_classification') {
+      window.__gmDefaultTab = a.dataset.gmTab || '';
+    }
+
     setActive(a);
-    loadModule(a.dataset.module,a.dataset.label||a.textContent.trim());
-    if(window.innerWidth<992) document.getElementById('sidebar').classList.remove('show');
+    loadModule(a.dataset.module, a.dataset.label || a.textContent.trim());
+    if (window.innerWidth < 992) document.getElementById('sidebar')?.classList.remove('show');
   });
 });
 
@@ -7266,6 +8840,173 @@ document.addEventListener('click',e=>{
 /* Initial load */
 loadModule('dashboard_home','Dashboard');
 
+// Delegated click (bind once) for Complete buttons
+if (!document.__bnsCompleteEventBound) {
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.complete-event-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const id = parseInt(btn.getAttribute('data-event-id') || '0', 10);
+    if (!id) return;
+    markEventCompleted(id, btn);
+  });
+  document.__bnsCompleteEventBound = true;
+}
+
+// Complete handler (busy state + optimistic UI update)
+function markEventCompleted(eventId, btnEl) {
+  const prevHtml = btnEl.innerHTML;
+  btnEl.disabled = true;
+  btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Completing...';
+
+  fetchJSON('bns_modules/api_events.php?action=complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event_id: Number(eventId) })
+  })
+  .then(res => {
+    if (!res.success) throw new Error(res.error || 'Failed to complete');
+
+    // Update in-memory caches
+    if (window.__eventsById) window.__eventsById.delete(eventId);
+    if (Array.isArray(window.__eventsList)) {
+      window.__eventsList = window.__eventsList.filter(ev => Number(ev.event_id) !== Number(eventId));
+    }
+
+    // Remove the event card immediately
+    const card = btnEl.closest('.event-item');
+    if (card) card.remove();
+
+    // If day list is empty, show placeholder
+    const dayHost = document.getElementById('eventsOnDayList');
+    if (dayHost && !dayHost.querySelector('.event-item')) {
+      dayHost.innerHTML = `<div class="text-muted" style="font-size:.65rem;">No events for this date.</div>`;
+    }
+
+    // Refresh Upcoming list
+    if (typeof renderUpcomingEvents === 'function') {
+      renderUpcomingEvents(window.__eventsList || []);
+    }
+
+    // Optional: refresh calendar dots for current month
+    try {
+      const daysEl = document.getElementById('calendarDays');
+      if (daysEl && typeof generateCalendarDays === 'function') {
+        const cur = window.__calCurrentDate || new Date();
+        daysEl.innerHTML = generateCalendarDays(window.__eventsList || [], cur);
+      }
+    } catch(_) {}
+  })
+  .catch(err => {
+    console.error(err);
+    alert('❌ ' + (err.message || err));
+  })
+  .finally(() => {
+    if (document.body.contains(btnEl)) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = prevHtml;
+    }
+  });
+}
+
+// FINAL version: loadPreviousRecords (overrides earlier duplicates)
+function loadPreviousRecords(childId, childProfile = null) {
+  const container = document.getElementById('previousRecordsContainer');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
+      <div class="spinner-border spinner-border-sm me-2" role="status" style="width:1rem;height:1rem;border-width:2px;"></div>
+      Loading previous records...
+    </div>
+  `;
+
+  // Resolve child profile for Baseline card
+  function resolveChildProfile() {
+    if (childProfile) return childProfile;
+    if (Array.isArray(window.__WEIGH_ALL_CHILDREN)) {
+      const m = window.__WEIGH_ALL_CHILDREN.find(x => String(x.child_id) === String(childId));
+      if (m) return m;
+    }
+    const sel = document.getElementById('childSelect');
+    if (sel && sel.value && String(sel.value) === String(childId)) {
+      try { return JSON.parse(sel.options[sel.selectedIndex].dataset.childData || '{}'); } catch(_) {}
+    }
+    return null;
+  }
+
+  const child = resolveChildProfile();
+  const baselineHTML = renderBaselineCardFromChild(child) || '';
+
+  fetch(`${api.nutrition}?child_records=1&child_id=${childId}`, {
+    method: 'GET',
+    headers: {
+      'X-CSRF-Token': window.__BNS_CSRF,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json'
+    }
+  })
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  })
+  .then(data => {
+    const records = (data && data.success && Array.isArray(data.records)) ? data.records : [];
+
+    if (records.length > 0) {
+      const tableHTML = `
+        <table class="table table-hover mb-0" style="font-size:.7rem;">
+          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+            <tr>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Date</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Age (months)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Weight (kg)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Height (cm)</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Status</th>
+              <th style="padding:.75rem .8rem;font-size:.65rem;font-weight:700;color:#344f3a;border:none;">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map(r => `
+              <tr style="border-bottom:1px solid #f0f4f1;">
+                <td style="padding:.8rem;border:none;">${r.weighing_date ? new Date(r.weighing_date).toLocaleDateString('en-PH') : 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${r.age_in_months ?? 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${r.weight_kg ?? 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${r.length_height_cm ?? 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${r.status_code ? `<span class=\"badge-status badge-${r.status_code}\" style=\"font-size:.55rem;font-weight:600;padding:.25rem .5rem;border-radius:8px;\">${r.status_code}</span>` : 'N/A'}</td>
+                <td style="padding:.8rem;border:none;">${(r.remarks || '-').replace(/</g,'&lt;')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      // ALWAYS keep the baseline on top, then the table
+      container.innerHTML = baselineHTML + tableHTML;
+      return;
+    }
+
+    // If no history, show just the baseline (or empty state if none)
+    if (baselineHTML) {
+      container.innerHTML = baselineHTML;
+    } else {
+      container.innerHTML = `
+        <div class="text-center py-4" style="color:var(--muted);font-size:.65rem;">
+          <i class="bi bi-clipboard-x" style="font-size:2rem;opacity:0.3;"></i>
+          <p style="margin:.5rem 0 0;">No previous records found for this child</p>
+        </div>
+      `;
+    }
+  })
+  .catch(err => {
+    console.error('Error loading previous records:', err);
+    container.innerHTML = `
+      <div class="text-center py-4" style="color:#dc3545;font-size:.65rem;">
+        <i class="bi bi-exclamation-triangle" style="font-size:2rem;opacity:0.5;color:#dc3545;"></i>
+        <p style="margin:.5rem 0 0;color:#dc3545;">Error loading previous records</p>
+      </div>
+    `;
+  });
+}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -7396,13 +9137,38 @@ loadModule('dashboard_home','Dashboard');
                 <i class="bi bi-capsule"></i>
               </div>
               <h3 class="form-section-title">Record Details</h3>
+            <div id="suppDuplicateWarn"
+                 class="alert alert-warning d-none align-items-center gap-2"
+                 style="display:none;font-size:.65rem;border-radius:10px;border:1px solid #ffe8a1;background:#fff8e1;color:#845900;">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span id="suppDuplicateText">This child already has a record for this supplement.</span>
+            </div>
             </div>
             <div class="form-grid">
               <div class="form-group">
                 <label class="form-label">Child</label>
-                <select class="form-select" id="suppChildSelect" required>
-                  <option value="">Select child</option>
-                </select>
+                <!-- Accessible combobox for child selection -->
+                <div class="combobox" id="suppChildCombo">
+                  <div class="position-relative">
+                    <i class="bi bi-search position-absolute combobox-icon"></i>
+                    <input
+                      type="text"
+                      id="suppChildInput"
+                      class="form-control"
+                      placeholder="Search child..."
+                      role="combobox"
+                      aria-expanded="false"
+                      aria-controls="suppChildListbox"
+                      aria-autocomplete="list"
+                      autocomplete="off"
+                    />
+                    <button type="button" id="suppChildClear" class="combobox-clear" aria-label="Clear selection">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                    <input type="hidden" id="suppChildId" />
+                  </div>
+                  <div id="suppChildListbox" role="listbox" class="combobox-list" hidden></div>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Supplement Type</label>

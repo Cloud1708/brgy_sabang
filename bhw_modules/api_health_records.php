@@ -88,7 +88,7 @@ if ($method === 'GET') {
         $cols = [
             'hr.health_record_id',
             'hr.mother_id',
-            'm.full_name',
+            'CONCAT(m.first_name, " ", COALESCE(m.middle_name, ""), " ", m.last_name) as full_name',
             'hr.consultation_date',
             'hr.last_menstruation_date',
             'hr.expected_delivery_date',
@@ -182,7 +182,7 @@ if ($method === 'GET') {
     if (isset($_GET['risk_summary'])) {
         $rows=[];
         $sql = "
-          SELECT m.mother_id, m.full_name,
+          SELECT m.mother_id, CONCAT(m.first_name, ' ', COALESCE(m.middle_name, ''), ' ', m.last_name) as full_name,
             hr.consultation_date, hr.pregnancy_age_weeks,
             (hr.vaginal_bleeding + hr.urinary_infection + hr.high_blood_pressure +
              hr.fever_38_celsius + hr.pallor + hr.abnormal_abdominal_size +
@@ -222,7 +222,7 @@ if ($method === 'GET') {
         $limit = isset($_GET['limit']) ? max(1,min(50,(int)$_GET['limit'])) : 20;
         $rows=[];
         $stmt = $mysqli->prepare("
-          SELECT hr.health_record_id, hr.consultation_date, m.full_name,
+          SELECT hr.health_record_id, hr.consultation_date, CONCAT(m.first_name, ' ', COALESCE(m.middle_name, ''), ' ', m.last_name) as full_name,
                  hr.pregnancy_age_weeks,
                  hr.high_blood_pressure, hr.vaginal_bleeding, hr.fever_38_celsius,
                  hr.swelling, hr.urinary_infection

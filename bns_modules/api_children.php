@@ -125,6 +125,20 @@ function assert_method($method) {
  - UI normalization: title case + clean spacing/commas
 */
 
+/* Same thresholds used in api_nutrition.php provisional_classify() */
+function provisional_classify_from_wh(float $weightKg, float $lengthCm): ?string {
+    if ($weightKg <= 0 || $lengthCm <= 0) return null;
+    $m = $lengthCm / 100;
+    if ($m <= 0) return null;
+    $bmi = $weightKg / ($m*$m);
+    if ($bmi < 12.5) return 'SAM';
+    if ($bmi < 13.0) return 'MAM';
+    if ($bmi < 13.5) return 'UW';
+    if ($bmi < 17.5) return 'NOR';
+    if ($bmi < 19.0) return 'OW';
+    return 'OB';
+}
+
 function getChildrenList() {
     global $mysqli;
 
@@ -136,6 +150,11 @@ function getChildrenList() {
                 c.sex,
                 c.birth_date,
                 c.created_at,
+
+                -- add raw anthropometrics for fallback classification
+                c.weight_kg,
+                c.height_cm,
+                c.updated_at AS child_updated_at,
 
                 -- Mother (prefer maternal_patients)
                 COALESCE(
@@ -183,7 +202,7 @@ function getChildrenList() {
                 ) AS address_details,
 
                 COALESCE(wfl.status_code, 'Not Available') AS nutrition_status,
-                COALESCE(nr_latest.weighing_date, 'Never') AS last_weighing_date,
+                COALESCE(nr_latest.weighing_date, DATE(c.created_at)) AS last_weighing_date,
 
                 TIMESTAMPDIFF(MONTH, c.birth_date, CURDATE()) AS current_age_months,
                 TIMESTAMPDIFF(YEAR, c.birth_date, CURDATE()) AS current_age_years
@@ -221,11 +240,40 @@ function getChildrenList() {
                 $row['birth_date_formatted'] = 'Not Set';
             }
 
+            // Default Last Weighing formatted from nutrition record (if any)
             if (!empty($row['last_weighing_date']) && $row['last_weighing_date'] !== 'Never') {
-                $wd = new DateTime($row['last_weighing_date']);
-                $row['last_weighing_formatted'] = $wd->format('n/j/Y');
+                try {
+                    $wd = new DateTime($row['last_weighing_date']);
+                    $row['last_weighing_formatted'] = $wd->format('n/j/Y');
+                } catch (Throwable $e) {
+                    $row['last_weighing_formatted'] = !empty($row['created_at']) ? (new DateTime(substr($row['created_at'],0,10)))->format('n/j/Y') : 'Never';
+                }
             } else {
-                $row['last_weighing_formatted'] = 'Never';
+                $row['last_weighing_formatted'] = !empty($row['created_at']) ? (new DateTime(substr($row['created_at'],0,10)))->format('n/j/Y') : 'Never';
+            }
+
+            // Fallback nutrition status using children's weight/height (only when Not Available)
+            $row['nutrition_status'] = $row['nutrition_status'] ?? 'Not Available';
+            if ($row['nutrition_status'] === 'Not Available') {
+                $w = isset($row['weight_kg']) ? (float)$row['weight_kg'] : 0;
+                $h = isset($row['height_cm']) ? (float)$row['height_cm'] : 0;
+                if ($w > 0 && $h > 0) {
+                    $code = provisional_classify_from_wh($w, $h);
+                    if ($code) {
+                        // Use computed code so UI badges show proper color
+                        $row['nutrition_status'] = $code;
+
+                        // Also set a sensible Last Weighing date fallback if we still have 'Never'
+                        if ($row['last_weighing_formatted'] === 'Never' && !empty($row['child_updated_at'])) {
+                            try {
+                                $ud = new DateTime(substr($row['child_updated_at'], 0, 10));
+                                $row['last_weighing_formatted'] = $ud->format('n/j/Y');
+                            } catch (Throwable $e) {
+                                // keep 'Never' if parse fails
+                            }
+                        }
+                    }
+                }
             }
 
             // UI defaults
@@ -236,6 +284,9 @@ function getChildrenList() {
 
             // Normalize address for consistent UI
             $row['address_details'] = normalize_address_for_ui($row['address_details'] ?? '');
+
+            // Remove internal fields not needed by UI payload
+            unset($row['weight_kg'], $row['height_cm'], $row['child_updated_at'], $row['birth_date'], $row['created_at'], $row['last_weighing_date']);
 
             $children[] = $row;
         }

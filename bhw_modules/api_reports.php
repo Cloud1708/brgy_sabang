@@ -183,7 +183,7 @@ if (isset($_GET['maternal_stats'])) {
 
     $recent = [];
     $res = $mysqli->query("
-      SELECT m.mother_id,m.full_name,
+      SELECT m.mother_id,CONCAT(m.first_name, ' ', COALESCE(m.middle_name, ''), ' ', m.last_name) as full_name,
         (SELECT COUNT(*) FROM health_records hr WHERE hr.mother_id=m.mother_id) AS consults,
         (SELECT MAX(consultation_date) FROM health_records hr2 WHERE hr2.mother_id=m.mother_id) AS last_consult
       FROM maternal_patients m
@@ -229,7 +229,7 @@ if (isset($_GET['health_risks'])) {
 
     $details = [];
     $sql = "
-      SELECT m.mother_id, m.full_name,
+      SELECT m.mother_id, CONCAT(m.first_name, ' ', COALESCE(m.middle_name, ''), ' ', m.last_name) as full_name,
         hr.consultation_date, hr.pregnancy_age_weeks,
         (hr.vaginal_bleeding + hr.urinary_infection + hr.high_blood_pressure +
          hr.fever_38_celsius + hr.pallor + hr.abnormal_abdominal_size +

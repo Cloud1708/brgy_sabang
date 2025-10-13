@@ -992,7 +992,36 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .pr-modal label{font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.32rem;color:#345058;}
 .pr-modal .form-control,.pr-modal .form-select{font-size:.74rem;padding:.55rem .7rem;border-radius:.65rem;}
 
+/* Limit datalist dropdown height */
+datalist {
+  max-height: 200px;
+  overflow-y: auto;
+}
 
+/* Alternative approach for better browser support */
+#purokOptions {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Style the datalist options */
+datalist option {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* Consultation history flag chips */
+.mh-flag-chip {
+  display: inline-block;
+  font-size: .6rem;
+  font-weight: 600;
+  padding: .2rem .4rem;
+  border-radius: 12px;
+  margin: .1rem;
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
 
 </style>
 </head>
@@ -1043,8 +1072,30 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
       </li>
       <li><a href="#" class="nav-link-modern" data-module="create_parent_accounts" data-label="Parent Accounts"><span class="icon-wrap"><i class="bi bi-people"></i></span><span>Parent Accounts</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="health_records_all" data-label="Health Records"><span class="icon-wrap"><i class="bi bi-journal-medical"></i></span><span>Health Records</span></a></li>
-      <li><a href="#" class="nav-link-modern" data-module="health_calendar" data-label="Event Scheduling"><span class="icon-wrap"><i class="bi bi-calendar3"></i></span><span>Event Scheduling</span></a></li>
-      <li><a href="#" class="nav-link-modern" data-module="report_vaccination_coverage" data-label="Health Reports"><span class="icon-wrap"><i class="bi bi-bar-chart"></i></span><span>Health Reports</span></a></li>
+        <li class="nav-dropdown">
+          <a href="#" class="nav-link-modern dropdown-toggle" data-module="health_calendar" data-label="Event Scheduling">
+            <span class="icon-wrap"><i class="bi bi-calendar3"></i></span>
+            <span>Event Scheduling</span>
+            <i class="bi bi-chevron-down dropdown-arrow"></i>
+          </a>
+          <div class="dropdown-menu">
+            <a href="#" class="dropdown-item" data-tab="calendar">Calendar View</a>
+            <a href="#" class="dropdown-item" data-tab="upcoming">Upcoming Events</a>
+            <a href="#" class="dropdown-item" data-tab="vaccination">Vaccination Campaigns</a>
+            <a href="#" class="dropdown-item" data-tab="maternal">Maternal Visits</a>
+          </div>
+        </li>
+      <li class="nav-dropdown">
+        <a href="#" class="nav-link-modern dropdown-toggle" data-module="health_reports" data-label="Health Reports">
+          <span class="icon-wrap"><i class="bi bi-bar-chart"></i></span>
+          <span>Health Reports</span>
+          <i class="bi bi-chevron-down dropdown-arrow"></i>
+        </a>
+        <div class="dropdown-menu">
+          <a href="#" class="dropdown-item" data-tab="vaccination_coverage">Vaccination Coverage</a>
+          <a href="#" class="dropdown-item" data-tab="maternal_health">Maternal Health</a>
+        </div>
+      </li>
     </ul>
     <div class="sidebar-footer-box">
       <div class="system-status">
@@ -1136,7 +1187,16 @@ const titleEl=document.getElementById('currentModuleTitle');
 };
 
 function escapeHtml(s){if(s==null)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch'},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+function fetchJSON(u,o={}){
+  o.headers=Object.assign({'X-Requested-With':'fetch'},o.headers||{});
+  return fetch(u,o).then(r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).catch(err=>{
+    console.error('API Error for', u, ':', err.message);
+    return {success: false, error: err.message};
+  });
+}
 
 // Global helper functions for address formatting and other utilities
 function formatAddress(m){
@@ -1862,17 +1922,31 @@ function renderHealthStats(label){
   Promise.allSettled([
     fetchJSON(api.reports+'?maternal_stats=1'),
     fetchJSON(api.reports+'?vaccination_coverage=1'),
-    fetchJSON(api.reports+'?health_risks=1'),
     fetchJSON(api.immun+'?overdue=1'),
     fetchJSON(api.health+'?recent_consults=1&limit=60')
   ]).then(res=>{
-    const ms=res[0].value||{},vc=res[1].value||{},hr=res[2].value||{},od=res[3].value||{},rc=res[4].value||{};
-    if(!ms.success||!vc.success||!hr.success||!od.success){
-      moduleContent.innerHTML='<div class="alert alert-danger">Incomplete data. Please refresh.</div>';return;
+    const ms=res[0].value||{},vc=res[1].value||{},od=res[2].value||{},rc=res[3].value||{};
+    
+    // Debug: Log API responses
+    console.log('API Responses:', {ms, vc, od, rc});
+    
+    if(!ms.success||!vc.success||!od.success||!rc.success){
+      const failed = [];
+      if(!ms.success) failed.push('Maternal Stats');
+      if(!vc.success) failed.push('Vaccination Coverage');
+      if(!od.success) failed.push('Overdue Immunizations');
+      if(!rc.success) failed.push('Recent Consults');
+      
+      console.error('Failed APIs:', failed);
+      moduleContent.innerHTML=`<div class="alert alert-danger">
+        <strong>Dashboard Error:</strong> Failed to load: ${failed.join(', ')}. 
+        <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadModule('health_stats','Dashboard')">Retry</button>
+      </div>`;
+      return;
     }
     const coverage=vc.overall_dose_coverage_pct;
     const upcoming=buildUpcoming(upcomingMerge(od.overdue||[],od.dueSoon||[]).slice(0,9));
-    const alerts=buildAlerts(hr,od.overdue||[],rc.recent_consults||[]);
+    const alerts=buildAlerts({},od.overdue||[],rc.recent_consults||[]);
     moduleContent.innerHTML=`
       <div class="fade-in">
         <div class="dashboard-welcome">Welcome Back, <?php echo htmlspecialchars($firstName); ?>!</div>
@@ -1893,18 +1967,12 @@ function renderHealthStats(label){
                 <tbody>${upcoming||'<tr><td colspan="4" class="text-center text-muted py-4">No upcoming items.</td></tr>'}</tbody>
               </table>
             </div>
-            <div class="text-end mt-3">
-              <a href="#" class="link-clean" data-jump="overdue_alerts">Manage schedule →</a>
-            </div>
           </div>
           <div class="panel-card">
 <div class="panel-card">
   <div class="panel-title"><i class="bi bi-exclamation-octagon"></i> Health Alerts</div>
   <div class="mini-text text-muted mb-2">High-risk cases requiring attention</div>
   <div class="ha-list">${alerts || '<div class="text-muted" style="font-size:.78rem;">No high-risk cases currently.</div>'}</div>
-  <div class="text-end mt-3">
-    <a href="#" class="link-clean" data-jump="alert_system">View detailed alerts →</a>
-  </div>
 </div>
         </div>
       </div>`;
@@ -2224,7 +2292,7 @@ function renderMaternalHealth(label){
             </div>
             <div class="col-md-4">
               <label>Purok</label>
-              <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off">
+              <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off" placeholder="Type number (e.g., 1, 2, 3)...">
               <datalist id="purokOptions">
                 <!-- Options will be populated by JavaScript -->
               </datalist>
@@ -4071,11 +4139,17 @@ function loadPostnatalPanel(){
           modal.dataset.consultations = JSON.stringify(allConsultations);
           modal.dataset.currentConsultIndex = '0';
 
-          // Function to render consultation snapshot
-          function renderConsultationSnapshot(consultIndex) {
-            const consultation = allConsultations[consultIndex];
-            if (!consultation) return '';
+          // Function to render consultation history table
+          function renderConsultationHistory() {
+            if (allConsultations.length === 0) {
+              return `
+                <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Consultation History</h6>
+                <div class="text-muted small">No consultations recorded yet.</div>
+              `;
+            }
 
+            // Build table rows
+            const rows = allConsultations.map(consultation => {
             // Calculate risk score
             const riskScore = 
               (parseInt(consultation.vaginal_bleeding) + parseInt(consultation.urinary_infection) + 
@@ -4085,7 +4159,7 @@ function loadPostnatalPanel(){
                parseInt(consultation.swelling) + parseInt(consultation.vaginal_infection));
 
             let riskClass='risk-normal', riskLabel='Normal';
-            if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High Risk'; }
+              if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High'; }
             else if(riskScore === 1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
 
             // Build flag chips
@@ -4107,49 +4181,63 @@ function loadPostnatalPanel(){
                 flagsHTML += `<span class="mh-flag-chip">${map[k]}</span>`;
               }
             });
-            if(!flagsHTML) flagsHTML = '<span class="text-muted" style="font-size:.65rem;">None</span>';
+
+              // Build intervention chips
+              let interventionHTML = '';
+              const interventionMap = {
+                iron_folate_prescription:'IRON',
+                additional_iodine:'IODINE',
+                malaria_prophylaxis:'MALARIA',
+                breastfeeding_intention:'BF',
+                danger_signs_counseling:'COUNSEL',
+                dental_checkup:'DENTAL',
+                emergency_plan:'EMERGENCY'
+              };
+              Object.keys(interventionMap).forEach(k=>{
+                if(parseInt(consultation[k])===1){
+                  interventionHTML += `<span class="mh-flag-chip" style="background:#fff3cd;color:#856404;">${interventionMap[k]}</span>`;
+                }
+              });
 
             const gaTxt = consultation.pregnancy_age_weeks != null
-              ? `${consultation.pregnancy_age_weeks} wks`
+                ? `${consultation.pregnancy_age_weeks}w`
               : '—';
 
-            const eddTxt = consultation.expected_delivery_date || '—';
             const bpTxt = (consultation.blood_pressure_systolic && consultation.blood_pressure_diastolic)
                 ? `${consultation.blood_pressure_systolic}/${consultation.blood_pressure_diastolic}`
                 : '—';
 
+              const wtTxt = consultation.weight_kg ? parseFloat(consultation.weight_kg).toFixed(2) : '—';
             const hgbTxt = consultation.hgb_result ? escapeHtml(consultation.hgb_result) : '—';
 
-            // Navigation buttons
-            const hasPrev = consultIndex > 0;
-            const hasNext = consultIndex < allConsultations.length - 1;
-            const navButtons = allConsultations.length > 1 ? `
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <button class="btn btn-sm btn-outline-secondary" ${!hasPrev ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex - 1})" style="font-size:.6rem; padding:.2rem .4rem;">
-                  <i class="bi bi-chevron-left"></i> Previous
-                </button>
-                <span class="text-muted" style="font-size:.6rem;">${consultIndex + 1} of ${allConsultations.length}</span>
-                <button class="btn btn-sm btn-outline-secondary" ${!hasNext ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex + 1})" style="font-size:.6rem; padding:.2rem .4rem;">
-                  Next <i class="bi bi-chevron-right"></i>
-                </button>
-              </div>
-            ` : '';
+              return `
+                <tr>
+                  <td>${escapeHtml(consultation.consultation_date||'')}</td>
+                  <td>${gaTxt}</td>
+                  <td>${bpTxt}</td>
+                  <td>${wtTxt}</td>
+                  <td>${hgbTxt}</td>
+                  <td><span class="risk-badge ${riskClass}">${riskLabel}</span></td>
+                  <td>${flagsHTML || '—'}</td>
+                  <td>${interventionHTML || '—'}</td>
+                </tr>
+              `;
+            }).join('');
 
             return `
-              ${navButtons}
-              <h6 class="fw-semibold mb-2 d-flex align-items-center gap-2" style="font-size:.8rem;">
-                Consultation Snapshot
-                <span class="risk-badge ${riskClass}">${riskLabel}</span>
-              </h6>
-              <div class="row small g-2">
-                <div class="col-6"><strong>Date:</strong> ${escapeHtml(consultation.consultation_date||'')}</div>
-                <div class="col-6"><strong>GA:</strong> ${gaTxt}</div>
-                <div class="col-6"><strong>BP:</strong> ${bpTxt}</div>
-                <div class="col-6"><strong>EDD:</strong> ${escapeHtml(eddTxt)}</div>
-                <div class="col-6"><strong>HGB:</strong> ${hgbTxt}</div>
-                <div class="col-12 mt-2">
-                  <strong>Risk Flags:</strong><br>${flagsHTML}
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="m-0" style="font-size:.7rem;">Consultation History</h6>
+                <span class="text-muted" style="font-size:.6rem;">${allConsultations.length} record(s)</span>
                 </div>
+              <div class="table-responsive" style="max-height:460px;">
+                <table class="mh-consults-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th><th>GA</th><th>BP</th><th>WT</th><th>HGB</th><th>Risk</th><th>Flags</th><th>Interventions</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rows}</tbody>
+                </table>
               </div>
             `;
           }
@@ -4168,11 +4256,8 @@ function loadPostnatalPanel(){
                 </div>
               </div>
               <div class="col-md-8">
-                <div class="border rounded p-3 h-100 d-flex flex-column" id="consultationSnapshot">
-                  ${allConsultations.length > 0 ? renderConsultationSnapshot(0) : `
-                    <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Consultation Snapshot</h6>
-                    <div class="text-muted small">No consultations recorded yet.</div>
-                  `}
+                <div class="border rounded p-3 h-100 d-flex flex-column">
+                  ${renderConsultationHistory()}
                   <hr class="my-3">
                   <div class="mt-auto">
                     <button class="btn btn-sm btn-success" id="btnQuickConsult">
@@ -4205,101 +4290,6 @@ function loadPostnatalPanel(){
         });
     }
 
-    // Global function to navigate consultations in the modal
-    window.navigateConsultation = function(consultIndex) {
-      const modal = document.getElementById('modalViewMother');
-      const snapshotEl = document.getElementById('consultationSnapshot');
-      const consultations = JSON.parse(modal.dataset.consultations || '[]');
-      
-      if (consultIndex >= 0 && consultIndex < consultations.length) {
-        modal.dataset.currentConsultIndex = consultIndex.toString();
-        
-        // Re-render the consultation snapshot
-        const consultation = consultations[consultIndex];
-        if (!consultation) return;
-
-        // Calculate risk score
-        const riskScore = 
-          (parseInt(consultation.vaginal_bleeding) + parseInt(consultation.urinary_infection) + 
-           parseInt(consultation.high_blood_pressure) + parseInt(consultation.fever_38_celsius) + 
-           parseInt(consultation.pallor) + parseInt(consultation.abnormal_abdominal_size) + 
-           parseInt(consultation.abnormal_presentation) + parseInt(consultation.absent_fetal_heartbeat) + 
-           parseInt(consultation.swelling) + parseInt(consultation.vaginal_infection));
-
-        let riskClass='risk-normal', riskLabel='Normal';
-        if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High Risk'; }
-        else if(riskScore === 1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
-
-        // Build flag chips
-        let flagsHTML = '';
-        const map = {
-          vaginal_bleeding:'VB',
-          urinary_infection:'UTI',
-          high_blood_pressure:'HBP',
-          fever_38_celsius:'FEV',
-          pallor:'PAL',
-          abnormal_abdominal_size:'ABD',
-          abnormal_presentation:'PRES',
-          absent_fetal_heartbeat:'FHT',
-          swelling:'SWL',
-          vaginal_infection:'VAG'
-        };
-        Object.keys(map).forEach(k=>{
-          if(parseInt(consultation[k])===1){
-            flagsHTML += `<span class="mh-flag-chip">${map[k]}</span>`;
-          }
-        });
-        if(!flagsHTML) flagsHTML = '<span class="text-muted" style="font-size:.65rem;">None</span>';
-
-        const gaTxt = consultation.pregnancy_age_weeks != null
-          ? `${consultation.pregnancy_age_weeks} wks`
-          : '—';
-
-        const eddTxt = consultation.expected_delivery_date || '—';
-        const bpTxt = (consultation.blood_pressure_systolic && consultation.blood_pressure_diastolic)
-            ? `${consultation.blood_pressure_systolic}/${consultation.blood_pressure_diastolic}`
-            : '—';
-
-        const hgbTxt = consultation.hgb_result ? escapeHtml(consultation.hgb_result) : '—';
-
-        // Navigation buttons
-        const hasPrev = consultIndex > 0;
-        const hasNext = consultIndex < consultations.length - 1;
-        const navButtons = consultations.length > 1 ? `
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <button class="btn btn-sm btn-outline-secondary" ${!hasPrev ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex - 1})" style="font-size:.6rem; padding:.2rem .4rem;">
-              <i class="bi bi-chevron-left"></i> Previous
-            </button>
-            <span class="text-muted" style="font-size:.6rem;">${consultIndex + 1} of ${consultations.length}</span>
-            <button class="btn btn-sm btn-outline-secondary" ${!hasNext ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex + 1})" style="font-size:.6rem; padding:.2rem .4rem;">
-              Next <i class="bi bi-chevron-right"></i>
-            </button>
-          </div>
-        ` : '';
-
-        // Update the snapshot content (preserve the Add Consultation button at the bottom)
-        const buttonsHTML = snapshotEl.querySelector('.mt-auto').outerHTML;
-        snapshotEl.innerHTML = `
-          ${navButtons}
-          <h6 class="fw-semibold mb-2 d-flex align-items-center gap-2" style="font-size:.8rem;">
-            Consultation Snapshot
-            <span class="risk-badge ${riskClass}">${riskLabel}</span>
-          </h6>
-          <div class="row small g-2">
-            <div class="col-6"><strong>Date:</strong> ${escapeHtml(consultation.consultation_date||'')}</div>
-            <div class="col-6"><strong>GA:</strong> ${gaTxt}</div>
-            <div class="col-6"><strong>BP:</strong> ${bpTxt}</div>
-            <div class="col-6"><strong>EDD:</strong> ${escapeHtml(eddTxt)}</div>
-            <div class="col-6"><strong>HGB:</strong> ${hgbTxt}</div>
-            <div class="col-12 mt-2">
-              <strong>Risk Flags:</strong><br>${flagsHTML}
-            </div>
-          </div>
-          <hr class="my-3">
-          ${buttonsHTML}
-        `;
-      }
-    };
 
     function buildFlagChips(r){
       const map = {
@@ -4729,8 +4719,11 @@ function renderVaccinationEntry(label){
     });
 
     /* Panels */
-    // Initialize current tab tracking for immunization
-    window.currentImmunizationTab = 'children';
+      // Initialize current tab tracking for immunization
+      window.currentImmunizationTab = 'children';
+      
+      // Initialize current tab tracking for event scheduling
+      window.currentEventSchedulingTab = 'calendar';
     
     // Function to switch immunization tabs (for dropdown navigation)
     window.switchImmunizationTab = function(tab) {
@@ -4739,16 +4732,25 @@ function renderVaccinationEntry(label){
       else if(tab === 'records') loadRecordsPanel();
       else if(tab === 'overdue') loadOverduePanel();
       else if(tab === 'cards') loadCardsPanel();
-      else if(tab === 'parent_notifs') loadParentNotifPanel();
-    };
+        else if(tab === 'parent_notifs') loadParentNotifPanel();
+      };
+
     
-    // Set the first dropdown item as active for the Immunization dropdown
-    const immunizationDropdown = document.querySelector('.nav-link-modern[data-module="vaccination_entry"]')?.closest('.nav-dropdown');
-    if(immunizationDropdown) {
-      immunizationDropdown.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
-      const firstItem = immunizationDropdown.querySelector('.dropdown-item[data-tab="children"]');
-      if(firstItem) firstItem.classList.add('active');
-    }
+      // Set the first dropdown item as active for the Immunization dropdown
+      const immunizationDropdown = document.querySelector('.nav-link-modern[data-module="vaccination_entry"]')?.closest('.nav-dropdown');
+      if(immunizationDropdown) {
+        immunizationDropdown.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
+        const firstItem = immunizationDropdown.querySelector('.dropdown-item[data-tab="children"]');
+        if(firstItem) firstItem.classList.add('active');
+      }
+      
+      // Set the first dropdown item as active for the Event Scheduling dropdown
+      const eventSchedulingDropdown = document.querySelector('.nav-link-modern[data-module="health_calendar"]')?.closest('.nav-dropdown');
+      if(eventSchedulingDropdown) {
+        eventSchedulingDropdown.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
+        const firstItem = eventSchedulingDropdown.querySelector('.dropdown-item[data-tab="calendar"]');
+        if(firstItem) firstItem.classList.add('active');
+      }
     
     loadChildrenPanel();
 
@@ -7078,6 +7080,41 @@ function renderHealthRecordsAll(label){
     });
     records.sort((a,b)=> (b.consultation_date||'') > (a.consultation_date||'') ? 1 : -1);
 
+    // Helper functions for Health Records
+    function interventionIcons(r){
+      const map = {
+        iron_folate_prescription:'IRON',
+        additional_iodine:'IODINE',
+        malaria_prophylaxis:'MALARIA',
+        breastfeeding_plan:'BF',
+        danger_advice:'ADVICE',
+        dental_checkup:'DENTAL',
+        emergency_plan:'EMERG',
+        general_risk:'RISK'
+      };
+      const outs=[];
+      Object.keys(map).forEach(k=>{
+        if(r[k]==1){
+          outs.push(`<span style="display:inline-block;background:#fff3cd;color:#856404;font-size:.56rem;font-weight:700;padding:3px 6px;border-radius:8px;margin:1px;" title="${getInterventionTitle(k)}">${map[k]}</span>`);
+        }
+      });
+      return outs.join('');
+    }
+
+    function getInterventionTitle(key){
+      const titles = {
+        iron_folate_prescription:'Iron/Folate Prescription',
+        additional_iodine:'Additional Iodine',
+        malaria_prophylaxis:'Malaria Prophylaxis',
+        breastfeeding_plan:'Breastfeeding Plan',
+        danger_advice:'Danger Advice',
+        dental_checkup:'Dental Checkup',
+        emergency_plan:'Emergency Plan',
+        general_risk:'General Risk'
+      };
+      return titles[key] || key;
+    }
+
     moduleContent.innerHTML = `
       <div class="fade-in hr-wrap">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
@@ -7124,7 +7161,6 @@ function renderHealthRecordsAll(label){
 
         <div class="nav hr-tabs mb-3" style="background:#f5f8fa;border-radius:999px;padding:.4rem .55rem;display:inline-flex;gap:.4rem;flex-wrap:wrap;">
           <button class="nav-link active" data-hrtab="consults" style="font-size:.68rem;">Consultations</button>
-          <button class="nav-link" data-hrtab="history" style="font-size:.68rem;">Patient History</button>
         </div>
 
         <div id="hrPanel"></div>
@@ -7142,14 +7178,12 @@ function renderHealthRecordsAll(label){
         btn.classList.add('active');
         const tab = btn.getAttribute('data-hrtab');
         if(tab==='consults') renderConsultationsTable();
-        else if(tab==='history') renderPatientHistoryView();
       });
     });
 
     ['hrSearch','hrDateFrom','hrDateTo','hrRiskFilter'].forEach(id=>{
       document.getElementById(id).addEventListener('input',()=> {
         if(document.querySelector('[data-hrtab="consults"].active')) renderConsultationsTable();
-        if(document.querySelector('[data-hrtab="history"].active')) renderPatientHistoryView();
       });
     });
 
@@ -7169,19 +7203,19 @@ function renderHealthRecordsAll(label){
                   <th>BP</th>
                   <th>Risk</th>
                   <th>Flags</th>
+                  <th>Interventions</th>
                   <th style="min-width:80px;">Actions</th>
                 </tr>
               </thead>
-              <tbody>${filtered.length? filtered.map(rowHTML).join(''): `<tr><td colspan="7" class="text-center text-muted py-4">No records found.</td></tr>`}</tbody>
+              <tbody>${filtered.length? filtered.map(rowHTML).join(''): `<tr><td colspan="8" class="text-center text-muted py-4">No records found.</td></tr>`}</tbody>
             </table>
           </div>
         </div>
       `;
-      panel.querySelectorAll('[data-view]').forEach(btn=>{
+      panel.querySelectorAll('[data-view-patient]').forEach(btn=>{
         btn.addEventListener('click',()=>{
-          const id=parseInt(btn.getAttribute('data-view'),10);
-          const rec=records.find(r=>r.health_record_id==id);
-            if(rec) openRecordModal(rec);
+          const motherId=parseInt(btn.getAttribute('data-view-patient'),10);
+          showPatientHistoryModal(motherId);
         });
       });
     }
@@ -7195,135 +7229,96 @@ function renderHealthRecordsAll(label){
         <td>${(r.blood_pressure_systolic && r.blood_pressure_diastolic)? `${r.blood_pressure_systolic}/${r.blood_pressure_diastolic}`:'—'}</td>
         <td><span class="consult-risk-badge ${riskInfo.cls}" style="font-size:.5rem;">${riskInfo.lbl}</span></td>
         <td>${flagsIcons(r)||'<span class="text-muted" style="font-size:.5rem;">None</span>'}</td>
-        <td><button class="btn btn-outline-primary btn-sm" style="font-size:.55rem;padding:.25rem .55rem;" data-view="${r.health_record_id}"><i class="bi bi-eye"></i></button></td>
+        <td>${interventionIcons(r)||'<span class="text-muted" style="font-size:.5rem;">None</span>'}</td>
+        <td><button class="btn btn-outline-primary btn-sm" style="font-size:.55rem;padding:.25rem .55rem;" data-view-patient="${r.mother_id}"><i class="bi bi-eye"></i></button></td>
       </tr>`;
     }
 
-    function renderPatientHistoryView(){
-      const opts = mothers
-        .sort((a,b)=>a.full_name.localeCompare(b.full_name))
-        .map(m=>`<option value="${m.mother_id}">${escapeHtml(m.full_name)}</option>`).join('');
-      panel.innerHTML = `
-        <div class="imm-card" style="padding:1.15rem 1.25rem;">
-          <h6 class="mb-3" style="font-size:.7rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;">Patient History</h6>
-          <div class="row g-3 mb-3 align-items-end">
-            <div class="col-md-5">
-              <label class="hr-flbl">Select Patient</label>
-              <select id="hrPatientSel" class="form-select form-select-sm">
-                <option value="">-- Choose Patient --</option>
-                ${opts}
-              </select>
-            </div>
-            <div class="col-md-7 text-muted" style="font-size:.6rem;font-weight:600;">
-              View all consultations per patient. Filters (search & date range) still apply.
-            </div>
-          </div>
-          <div id="hrHistoryBox" class="text-muted" style="font-size:.65rem;">No patient selected.</div>
-        </div>
-      `;
-      document.getElementById('hrPatientSel').addEventListener('change',()=>{
-        const mid = parseInt(document.getElementById('hrPatientSel').value||0,10);
-        renderHistory(mid);
-      });
-    }
-
-    // Replace only the renderHistory(mother_id) function inside renderHealthRecordsAll with this version
-function renderHistory(mother_id){
-  const box = document.getElementById('hrHistoryBox');
-  if(!mother_id){ box.innerHTML='No patient selected.'; return; }
-
-  // keep existing global filters
-  const pats = applyFilters(records).filter(r=>r.mother_id==mother_id)
-    .sort((a,b)=> (b.consultation_date||'') > (a.consultation_date||'') ? 1 : -1);
-
-  if(!pats.length){
-    box.innerHTML='<div class="text-muted" style="font-size:.65rem;">No records for selected patient (with current filters).</div>';
+    function showPatientHistoryModal(motherId){
+      const patientRecords = records.filter(r => r.mother_id == motherId)
+        .sort((a,b) => (b.consultation_date||'') > (a.consultation_date||'') ? 1 : -1);
+      
+      if(!patientRecords.length){
+        alert('No consultation records found for this patient.');
     return;
   }
 
-  // helpers
-  function riskInfo(score){
-    if(score>=2) return {cls:'consult-risk-high',lbl:'High'};
-    if(score===1) return {cls:'consult-risk-monitor',lbl:'Monitor'};
-    return {cls:'consult-risk-normal',lbl:'Normal'};
-  }
-  function hgbBadge(val){
-    if(val==null || val==='') return '—';
-    const num = parseFloat(String(val).replace(/[^\d.]/g,'')); // tolerant parse
-    if(Number.isNaN(num)) return `<span class="imm-badge imm-badge-ok">${escapeHtml(val)}</span>`;
-    let cls = 'imm-badge imm-badge-ok', txt = num.toFixed(1);
-    if(num < 10) cls = 'imm-badge imm-badge-overdue';      // red
-    else if(num < 11) cls = 'imm-badge imm-badge-duesoon'; // yellow
-    return `<span class="${cls}" title="HGB">${txt}</span>`;
-  }
-  function bpCell(r){
-    const sys = r.blood_pressure_systolic, dia = r.blood_pressure_diastolic;
-    if(!(sys && dia)) return '—';
-    const high = (parseInt(sys)>=140 || parseInt(dia)>=90);
-    const style = high ? 'color:#b22218;font-weight:700;' : '';
-    return `<span style="${style}">${sys}/${dia}</span>`;
-  }
-
-  // Build rows with weight delta vs previous record (list is already DESC)
-  const rows = pats.map((r,i)=>{
-    const prev = pats[i+1]; // previous visit in time (because list is desc)
-    const w = (r.weight_kg!=null ? parseFloat(r.weight_kg) : null);
-    let wCell = '—';
-    if(w!=null){
-      let deltaHtml = '';
-      if(prev && prev.weight_kg!=null){
-        const d = +(w - parseFloat(prev.weight_kg)).toFixed(1);
-        if(d!==0){
-          const pos = d>0;
-          deltaHtml = `<br><small style="font-weight:700;${pos?'color:#0d7c4e;':'color:#b22218;'}">${pos?'+':''}${d}</small>`;
-        } else {
-          deltaHtml = `<br><small class="text-muted" style="font-weight:700;">0.0</small>`;
-        }
-      }
-      wCell = `${w}${deltaHtml}`;
-    }
-    const rk = riskInfo(r._risk_score||0);
-    const titleGA = [
-      r.last_menstruation_date?('LMP: '+r.last_menstruation_date):'',
-      r.expected_delivery_date?('EDD: '+r.expected_delivery_date):''
-    ].filter(Boolean).join(' • ');
-    return `<tr>
+      const patient = patientRecords[0]; // Get patient info from first record
+      const patientName = patient.full_name || 'Unknown Patient';
+      
+      // Build consultation history table
+      const consultationRows = patientRecords.map(r => {
+        const riskInfo = computeRiskLevel(r._risk_score);
+        return `
+          <tr>
       <td>${escapeHtml(r.consultation_date||'')}</td>
-      <td title="${escapeHtml(titleGA)}">${r.pregnancy_age_weeks!=null? r.pregnancy_age_weeks+'w':'—'}</td>
-      <td>${bpCell(r)}</td>
-      <td>${wCell}</td>
-      <td>${hgbBadge(r.hgb_result)}</td>
-      <td><span class="consult-risk-badge ${rk.cls}" style="font-size:.5rem;">${rk.lbl}</span></td>
-      <td>${flagsIcons(r)||''}</td>
-      <td><button class="btn btn-outline-primary btn-sm" style="font-size:.5rem;padding:.25rem .5rem;" data-view="${r.health_record_id}"><i class="bi bi-eye"></i></button></td>
-    </tr>`;
+            <td>${r.pregnancy_age_weeks!=null? r.pregnancy_age_weeks+'w':'—'}</td>
+            <td>${(r.blood_pressure_systolic && r.blood_pressure_diastolic)? `${r.blood_pressure_systolic}/${r.blood_pressure_diastolic}`:'—'}</td>
+            <td>${r.weight_kg!=null? escapeHtml(r.weight_kg):'—'}</td>
+            <td>${r.hgb_result?escapeHtml(r.hgb_result):'—'}</td>
+            <td><span class="consult-risk-badge ${riskInfo.cls}" style="font-size:.5rem;">${riskInfo.lbl}</span></td>
+            <td>${flagsIcons(r)||'<span class="text-muted" style="font-size:.5rem;">None</span>'}</td>
+            <td>${interventionIcons(r)||'<span class="text-muted" style="font-size:.5rem;">None</span>'}</td>
+          </tr>
+        `;
   }).join('');
 
-  box.innerHTML = `
-    <div class="table-responsive" style="max-height:560px;">
-      <table class="imm-table">
-        <thead>
+      // Create modal HTML
+      const modalHTML = `
+        <div class="modal fade" id="patientHistoryModal" tabindex="-1">
+          <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Patient Consultation History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <h6 class="text-primary">${escapeHtml(patientName)}</h6>
+                  <small class="text-muted">Total Consultations: ${patientRecords.length}</small>
+                </div>
+                <div class="table-responsive" style="max-height:500px;">
+                  <table class="table table-sm table-striped">
+                    <thead class="table-light">
           <tr>
             <th>Date</th>
             <th>GA</th>
             <th>BP</th>
-            <th>Wt (Δ)</th>
+                        <th>Weight</th>
             <th>HGB</th>
             <th>Risk</th>
             <th>Flags</th>
-            <th>View</th>
+                        <th>Interventions</th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+                    <tbody>
+                      ${consultationRows}
+                    </tbody>
       </table>
-    </div>`;
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
 
-  // wire up view buttons
-  box.querySelectorAll('[data-view]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const rec=records.find(r=>r.health_record_id==btn.getAttribute('data-view'));
-      if(rec) openRecordModal(rec);
-    });
+      // Remove existing modal if any
+      const existingModal = document.getElementById('patientHistoryModal');
+      if(existingModal) existingModal.remove();
+
+      // Add modal to body
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('patientHistoryModal'));
+      modal.show();
+
+      // Clean up modal when hidden
+      document.getElementById('patientHistoryModal').addEventListener('hidden.bs.modal', function(){
+        this.remove();
   });
 }
 
@@ -7625,32 +7620,24 @@ function renderEventScheduling(label){
         <!-- Metrics row -->
         <div class="metric-grid mb-3" id="evtMetrics"></div>
 
-        <!-- Tabs -->
-        <div class="evt-tabs nav mb-2">
-          <button class="nav-link active" data-tab="calendar">Calendar View</button>
-          <button class="nav-link" data-tab="upcoming">Upcoming Events</button>
-          <button class="nav-link" data-tab="vaccination">Vaccination Campaigns</button>
-          <button class="nav-link" data-tab="maternal">Maternal Visits</button>
-        </div>
         <div id="evtPanel"></div>
       </div>
     `;
 
     updateMetrics();
+    
+    // Initialize tab tracking for Event Scheduling
+    window.currentEventSchedulingTab = 'calendar';
+    
+    // Function to switch event scheduling tabs (for dropdown navigation)
+    window.switchEventSchedulingTab = function(tab) {
+      if(tab === 'calendar') renderCalendarTab();
+      else if(tab === 'upcoming') renderUpcomingTab();
+      else if(tab === 'vaccination') renderFilteredTab('vaccination','Vaccination Campaigns');
+      else if(tab === 'maternal') renderFilteredTab('health','Maternal Visits');
+    };
+    
     renderCalendarTab();
-
-    // tabs wiring
-    moduleContent.querySelectorAll('.evt-tabs .nav-link').forEach(b=>{
-      b.addEventListener('click',()=>{
-        moduleContent.querySelectorAll('.evt-tabs .nav-link').forEach(x=>x.classList.remove('active'));
-        b.classList.add('active');
-        const t=b.dataset.tab;
-        if(t==='calendar') renderCalendarTab();
-        if(t==='upcoming') renderUpcomingTab();
-        if(t==='maternal') renderFilteredTab('health','Maternal Visits');
-        if(t==='vaccination') renderFilteredTab('vaccination','Vaccination Campaigns');
-      });
-    });
 
     // Toggle form
     const formCard = document.getElementById('evtFormCard');
@@ -7748,7 +7735,7 @@ function renderEventScheduling(label){
   }
 
   function rerenderActiveTab(){
-    const active = moduleContent.querySelector('.evt-tabs .nav-link.active')?.dataset.tab || 'calendar';
+    const active = window.currentEventSchedulingTab || 'calendar';
     if(active==='calendar') renderCalendarTab();
     else if(active==='upcoming') renderUpcomingTab();
     else if(active==='maternal') renderFilteredTab('health','Maternal Visits');
@@ -8079,17 +8066,15 @@ function renderHealthReports(label){
   Promise.allSettled([
     fetchJSON(api.reports+'?vaccination_coverage=1'),
     fetchJSON(api.reports+'?maternal_stats=1'),
-    fetchJSON(api.reports+'?health_risks=1'),
     fetchJSON(api.immun+'?recent_vaccinations=1&limit=400'),
     fetchJSON(api.events+'?month='+monthKey)
-  ]).then(([covRes, matRes, riskRes, recentRes, evRes])=>{
+  ]).then(([covRes, matRes, recentRes, evRes])=>{
     const cov = covRes.value||{};
     const mat = matRes.value||{};
-    const risk = riskRes.value||{};
     const recent = recentRes.value||{};
     const ev = evRes.value||{};
 
-    if(!cov.success || !mat.success || !risk.success){
+    if(!cov.success || !mat.success){
       moduleContent.innerHTML = '<div class="alert alert-danger small">Failed to load reports.</div>';
       return;
     }
@@ -8106,7 +8091,7 @@ function renderHealthReports(label){
     const totalChildren   = cov.total_children ?? 0;
     const overallCoverage = cov.overall_dose_coverage_pct ?? 0;
     const prenatalVisits  = mat.total_consultations ?? 0; // simpleng bilang
-    const safeDeliveries  = (risk.aggregate ? 0 : 0); // walang direct metric; gagamit tayo ng Postnatal proxy sa hinaharap
+    const safeDeliveries  = 0; // walang direct metric; gagamit tayo ng Postnatal proxy sa hinaharap
     // Build immunization trend (huling 6 na buwan)
     const trend = buildMonthlyTrend(recent.recent_vaccinations||[], 6);
 
@@ -8130,35 +8115,18 @@ function renderHealthReports(label){
           ${repMetricCard('Campaign Reach', campaignReach, 'bi-broadcast')}
         </div>
 
-        <div class="nav imm-tabs mb-3" id="repTabs">
-          <button class="nav-link active" data-tab="vacc">Vaccination Coverage</button>
-          <button class="nav-link" data-tab="maternal">Maternal Health</button>
-          <button class="nav-link" data-tab="risks">Health Risks</button>
-          <button class="nav-link" data-tab="campaign">Campaign Attendance</button>
-        </div>
 
         <div id="repPanel"></div>
       </div>
     `;
 
     // Default tab
-    loadVaccTab();
+    loadVaccinationCoverageTab();
 
     document.getElementById('btnExportAll').addEventListener('click',()=>exportAll());
 
-    document.getElementById('repTabs').addEventListener('click',e=>{
-      const b=e.target.closest('.nav-link'); if(!b) return;
-      document.querySelectorAll('#repTabs .nav-link').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      const t=b.dataset.tab;
-      if(t==='vacc') loadVaccTab();
-      if(t==='maternal') loadMaternalTab();
-      if(t==='risks') loadRisksTab();
-      if(t==='campaign') loadCampaignTab();
-    });
-
     // ========== Tabs ==========
-    function loadVaccTab(){
+    function loadVaccinationCoverageTab(){
       const panel=document.getElementById('repPanel');
       const per = cov.per_vaccine||[];
       const bars = per.map(p=>{
@@ -8230,7 +8198,7 @@ function renderHealthReports(label){
       document.getElementById('expTrend').addEventListener('click',()=>exportSection(panel.querySelectorAll('.imm-card')[1]));
     }
 
-    function loadMaternalTab(){
+    function loadMaternalHealthTab(){
       const panel=document.getElementById('repPanel');
       const totalMothers = mat.total_mothers ?? 0;
       const totalConsult = mat.total_consultations ?? 0;
@@ -8253,71 +8221,13 @@ function renderHealthReports(label){
       document.getElementById('expMat').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
     }
 
-    function loadRisksTab(){
-      const panel=document.getElementById('repPanel');
-      const agg = risk.aggregate || {};
-      const rows = [
-        ['Vaginal Bleeding', agg.vb||0],
-        ['Urinary Infection', agg.ui||0],
-        ['High BP', agg.hbp||0],
-        ['Fever ≥38°C', agg.fev||0],
-        ['Pallor', agg.pal||0],
-        ['Abnormal Abd Size', agg.abd||0],
-        ['Abnormal Presentation', agg.pres||0],
-        ['Absent Fetal Heartbeat', agg.fht||0],
-        ['Swelling', agg.swl||0],
-        ['Vaginal Infection', agg.vag||0],
-      ];
-      const max = Math.max(1, ...rows.map(r=>r[1]));
-      const bars = rows.map(([label,val])=>({label, values:[{name:'Cases', value:val, color:'#c72d20'}]}));
 
-      panel.innerHTML = `
-        <div class="imm-card">
-          <div class="d-flex justify-content-between align-items-center">
-            <h6>Health Risk Distribution</h6>
-            <button class="btn btn-sm btn-outline-secondary" id="expRisk"><i class="bi bi-download me-1"></i>Export Report</button>
-          </div>
-          <div class="imm-small-muted mb-2">Latest-record risks (one row per mother)</div>
-          <div>${barChartSVG(bars, max)}</div>
-        </div>
-      `;
-      document.getElementById('expRisk').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
-    }
-
-    function loadCampaignTab(){
-      const panel=document.getElementById('repPanel');
-      const events = Array.isArray(ev.events)? ev.events.slice().sort((a,b)=>
-        (a.event_date||'') < (b.event_date||'') ? -1 : (a.event_time||'') < (b.event_time||'') ? -1 : 1
-      ) : [];
-      panel.innerHTML = `
-        <div class="imm-card">
-          <div class="d-flex justify-content-between align-items-center">
-            <h6>Campaign Attendance (This Month)</h6>
-            <button class="btn btn-sm btn-outline-secondary" id="expCamp"><i class="bi bi-download me-1"></i>Export Report</button>
-          </div>
-          <div class="imm-small-muted mb-2">Sum of target participants when available</div>
-          <div class="table-responsive" style="max-height:420px;">
-            <table class="imm-table">
-              <thead>
-                <tr><th>Date</th><th>Title</th><th>Type</th><th>Location</th><th>Target Participants</th></tr>
-              </thead>
-              <tbody>
-                ${events.length? events.map(e=>`
-                  <tr>
-                    <td>${escapeHtml(e.event_date||'')}</td>
-                    <td>${escapeHtml(e.event_title||'')}</td>
-                    <td>${escapeHtml((e.event_type||'').toUpperCase())}</td>
-                    <td>${escapeHtml(e.location||'')}</td>
-                    <td>${e.target_participants!=null? escapeHtml(e.target_participants): '—'}</td>
-                  </tr>
-                `).join('') : `<tr><td colspan="5" class="text-center text-muted py-4">No events this month.</td></tr>`}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-      document.getElementById('expCamp').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
-    }
+    // Global function to switch health reports tabs
+    window.switchHealthReportsTab = function(tab) {
+      // Load the appropriate tab content
+      if(tab === 'vaccination_coverage') loadVaccinationCoverageTab();
+      else if(tab === 'maternal_health') loadMaternalHealthTab();
+    };
 
     // ========== Helpers ==========
 
@@ -8798,7 +8708,7 @@ const moduleHandlers={
    create_parent_accounts: renderCreateParentAccounts,
    health_records_all: renderHealthRecordsAll, 
    health_calendar: renderEventScheduling,    
-   report_vaccination_coverage: renderHealthReports, 
+   health_reports: renderHealthReports, 
    parent_registry: renderParentRegistry,
 };
 
@@ -8839,7 +8749,28 @@ document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
         // If already active, just toggle dropdown without reloading
         dropdown.classList.remove('active');
       }
-    } 
+    }
+    // Handle dropdown toggle for event scheduling
+    else if(link.dataset.module === 'health_calendar' && link.classList.contains('dropdown-toggle')) {
+      const dropdown = link.closest('.nav-dropdown');
+      const isActive = dropdown.classList.contains('active');
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
+      
+      // Toggle current dropdown
+      if(!isActive) {
+        dropdown.classList.add('active');
+        // Only load module if not already loaded
+        if(!document.querySelector('.nav-link-modern[data-module="health_calendar"]').classList.contains('active')) {
+          setActiveLink(link);
+          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+        }
+      } else {
+        // If already active, just toggle dropdown without reloading
+        dropdown.classList.remove('active');
+      }
+    }
     // Handle dropdown toggle for immunization
     else if(link.dataset.module === 'vaccination_entry' && link.classList.contains('dropdown-toggle')) {
       const dropdown = link.closest('.nav-dropdown');
@@ -8853,6 +8784,27 @@ document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
         dropdown.classList.add('active');
         // Only load module if not already loaded
         if(!document.querySelector('.nav-link-modern[data-module="vaccination_entry"]').classList.contains('active')) {
+          setActiveLink(link);
+          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+        }
+      } else {
+        // If already active, just toggle dropdown without reloading
+        dropdown.classList.remove('active');
+      }
+    }
+    // Handle dropdown toggle for health reports
+    else if(link.dataset.module === 'health_reports' && link.classList.contains('dropdown-toggle')) {
+      const dropdown = link.closest('.nav-dropdown');
+      const isActive = dropdown.classList.contains('active');
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
+      
+      // Toggle current dropdown
+      if(!isActive) {
+        dropdown.classList.add('active');
+        // Only load module if not already loaded
+        if(!document.querySelector('.nav-link-modern[data-module="health_reports"]').classList.contains('active')) {
           setActiveLink(link);
           loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
         }
@@ -8905,6 +8857,10 @@ document.querySelectorAll('.dropdown-item[data-tab]').forEach(item=>{
       setTimeout(() => { isTabProcessing = false; }, 100);
       return;
     }
+    if(module === 'health_calendar' && window.currentEventSchedulingTab === tab) {
+      setTimeout(() => { isTabProcessing = false; }, 100);
+      return;
+    }
     
     // Set active dropdown item within the same dropdown only
     if(parentDropdown) {
@@ -8917,13 +8873,63 @@ document.querySelectorAll('.dropdown-item[data-tab]').forEach(item=>{
       parentDropdown.classList.add('active');
     }
     
-    // Switch to the selected tab based on module
-    if(module === 'maternal_health' && window.currentMaternalHealthTab !== undefined) {
-      window.currentMaternalHealthTab = tab;
-      switchMaternalHealthTab(tab);
-    } else if(module === 'vaccination_entry' && window.currentImmunizationTab !== undefined) {
-      window.currentImmunizationTab = tab;
-      switchImmunizationTab(tab);
+    // Ensure module is loaded first, then switch to the selected tab
+    if(module === 'maternal_health') {
+      // Load module if not already active
+      if(!document.querySelector('.nav-link-modern[data-module="maternal_health"]').classList.contains('active')) {
+        setActiveLink(parentLink);
+        loadModule(module, parentLink.dataset.label||parentLink.textContent.trim());
+        // Wait for module to load, then switch tab
+        setTimeout(() => {
+          window.currentMaternalHealthTab = tab;
+          switchMaternalHealthTab(tab);
+        }, 100);
+      } else {
+        window.currentMaternalHealthTab = tab;
+        switchMaternalHealthTab(tab);
+      }
+    } else if(module === 'vaccination_entry') {
+      // Load module if not already active
+      if(!document.querySelector('.nav-link-modern[data-module="vaccination_entry"]').classList.contains('active')) {
+        setActiveLink(parentLink);
+        loadModule(module, parentLink.dataset.label||parentLink.textContent.trim());
+        // Wait for module to load, then switch tab
+        setTimeout(() => {
+          window.currentImmunizationTab = tab;
+          switchImmunizationTab(tab);
+        }, 100);
+      } else {
+        window.currentImmunizationTab = tab;
+        switchImmunizationTab(tab);
+      }
+    } else if(module === 'health_calendar') {
+      // Load module if not already active
+      if(!document.querySelector('.nav-link-modern[data-module="health_calendar"]').classList.contains('active')) {
+        setActiveLink(parentLink);
+        loadModule(module, parentLink.dataset.label||parentLink.textContent.trim());
+        // Wait for module to load, then switch tab
+        setTimeout(() => {
+          window.currentEventSchedulingTab = tab;
+          switchEventSchedulingTab(tab);
+        }, 100);
+      } else {
+        window.currentEventSchedulingTab = tab;
+        switchEventSchedulingTab(tab);
+      }
+    } else if(module === 'health_reports') {
+      // Load module if not already active
+      if(!document.querySelector('.nav-link-modern[data-module="health_reports"]').classList.contains('active')) {
+        setActiveLink(parentLink);
+        loadModule(module, parentLink.dataset.label||parentLink.textContent.trim());
+        // Wait for module to load, then switch tab
+        setTimeout(() => {
+          window.currentHealthReportsTab = tab;
+          switchHealthReportsTab(tab);
+        }, 100);
+      } else {
+        window.currentHealthReportsTab = tab;
+        switchHealthReportsTab(tab);
+      }
     }
     
     // Reset debounce flag after a short delay
@@ -9140,6 +9146,7 @@ async function onNext(){
         <div class="col-md-3">
           <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
           <input type="date" name="expected_delivery_date" class="form-control" value="${eddValue}">
+          <small class="text-muted">Auto-calculated from LMP + 280 days</small>
         </div>
         <label>MGA PAGSUSURI (LABS)</label>
         <div class="col-md-3">
@@ -9312,9 +9319,33 @@ async function onNext(){
         gaEl.value=weeks; gaEl.dataset.autofill='1';
       }
     }
+    
+    // Auto-calculate EDD from LMP
+    function autoEDD(){
+      const lmp = lmpEl.value;
+      if(!lmp) return;
+      
+      const lmpDate = new Date(lmp + 'T00:00:00');
+      if(isNaN(lmpDate)) return;
+      
+      // EDD = LMP + 280 days (40 weeks)
+      const eddDate = new Date(lmpDate.getTime() + (280 * 24 * 60 * 60 * 1000));
+      
+      // Format as YYYY-MM-DD
+      const eddFormatted = eddDate.toISOString().split('T')[0];
+      
+      // Only auto-fill if EDD field is empty or was auto-filled
+      if(eddEl.value === '' || eddEl.dataset.autofill === '1'){
+        eddEl.value = eddFormatted;
+        eddEl.dataset.autofill = '1';
+      }
+    }
+    
     [cdEl,lmpEl,eddEl].forEach(el=>el.addEventListener('change',()=>{autoAge();autoGA();}));
+    lmpEl.addEventListener('change', autoEDD); // Add EDD calculation when LMP changes
     gaEl.addEventListener('input',()=>gaEl.dataset.autofill='0');
     ageEl.addEventListener('input',()=>ageEl.dataset.autofill='0');
+    eddEl.addEventListener('input',()=>eddEl.dataset.autofill='0'); // Reset autofill flag when manually edited
     autoAge(); autoGA();
   }
 
@@ -9444,13 +9475,72 @@ async function onNext(){
       .then(data => {
         if(data.success && data.puroks){
           const datalist = document.getElementById('purokOptions');
+          const purokInput = document.getElementById('purokInput');
           datalist.innerHTML = '';
-          data.puroks.forEach(purok => {
+          
+          // Store all puroks for filtering
+          window.allPuroks = data.puroks;
+          
+          // Show only first 8 puroks initially to keep dropdown compact
+          const initialPuroks = data.puroks.slice(0, 8);
+          initialPuroks.forEach(purok => {
             const option = document.createElement('option');
             option.value = purok.purok_name;
             option.setAttribute('data-purok-id', purok.purok_id);
             datalist.appendChild(option);
           });
+          
+          // Add input event listener for search/filter
+          if (purokInput) {
+            purokInput.addEventListener('input', function(e) {
+              const searchTerm = e.target.value.toLowerCase().trim();
+              datalist.innerHTML = '';
+              
+              if (searchTerm.length === 0) {
+                // Show first 8 when empty
+                const initialPuroks = window.allPuroks.slice(0, 8);
+                initialPuroks.forEach(purok => {
+                  const option = document.createElement('option');
+                  option.value = purok.purok_name;
+                  option.setAttribute('data-purok-id', purok.purok_id);
+                  datalist.appendChild(option);
+                });
+              } else {
+                // More intelligent filtering
+                let filteredPuroks = [];
+                
+                // If search term is just "p" or "pu" or "pur" etc., show first 8
+                if (searchTerm === 'p' || searchTerm === 'pu' || searchTerm === 'pur' || searchTerm === 'puro' || searchTerm === 'purok') {
+                  filteredPuroks = window.allPuroks.slice(0, 8);
+                } else {
+                  // Extract number from search term (e.g., "purok 1" -> "1", "1" -> "1")
+                  const numberMatch = searchTerm.match(/\d+/);
+                  if (numberMatch) {
+                    const searchNumber = numberMatch[0];
+                    // Find puroks that contain this number
+                    filteredPuroks = window.allPuroks.filter(purok => 
+                      purok.purok_name.includes(searchNumber)
+                    );
+                  } else {
+                    // For other text searches, be more restrictive
+                    filteredPuroks = window.allPuroks.filter(purok => 
+                      purok.purok_name.toLowerCase().includes(searchTerm)
+                    );
+                  }
+                }
+                
+                // Limit results to maximum 10 items to keep dropdown compact
+                filteredPuroks = filteredPuroks.slice(0, 10);
+                
+                filteredPuroks.forEach(purok => {
+                  const option = document.createElement('option');
+                  option.value = purok.purok_name;
+                  option.setAttribute('data-purok-id', purok.purok_id);
+                  datalist.appendChild(option);
+                });
+              }
+            });
+          }
         }
       })
       .catch(error => {

@@ -365,12 +365,28 @@ if ($method==='POST') {
         }
     }
 
-    $stmt = $mysqli->prepare("SELECT TIMESTAMPDIFF(MONTH,birth_date,?) FROM children WHERE child_id=? LIMIT 1");
-    $stmt->bind_param('si',$weighing_date,$child_id);
+    $stmt = $mysqli->prepare("SELECT birth_date FROM children WHERE child_id=? LIMIT 1");
+    $stmt->bind_param('i',$child_id);
     $stmt->execute();
-    $stmt->bind_result($age_months);
-    if(!$stmt->fetch()) { $stmt->close(); fail('Child not found',404); }
+    $stmt->bind_result($birth_date);
+    if(!$stmt->fetch() || empty($birth_date)) { $stmt->close(); fail('Child not found',404); }
     $stmt->close();
+
+    // Compute age in months
+    $birth = new DateTime($birth_date);
+    $today = new DateTime($weighing_date);
+    $months = ($today->format('Y') - $birth->format('Y')) * 12 + ($today->format('n') - $birth->format('n'));
+    if ((int)$today->format('j') < (int)$birth->format('j')) {
+        $months--;
+    }
+    $age_months = max(0, $months);
+
+    // OA guard
+    if ($age_months > 59) {
+        http_response_code(422);
+        echo json_encode(['error' => 'Child is OA (over age). Creating new record is not allowed.']);
+        exit;
+    }
 
     $stmt = $mysqli->prepare("INSERT INTO nutrition_records (child_id,weighing_date,age_in_months,weight_kg,length_height_cm,wfl_ht_status_id,remarks,recorded_by) VALUES (?,?,?,?,?,?,?,?)");
     if(!$stmt) fail('DB prepare failed');

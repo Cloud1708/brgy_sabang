@@ -22,7 +22,7 @@ if ($method === 'GET') {
     
     // Get all puroks
     if (isset($_GET['list'])) {
-        $stmt = $mysqli->prepare("SELECT purok_id, purok_name, barangay FROM puroks ORDER BY purok_name ASC");
+        $stmt = $mysqli->prepare("SELECT purok_id, purok_name, barangay FROM puroks ORDER BY CAST(SUBSTRING(purok_name, 7) AS UNSIGNED) ASC");
         if(!$stmt) fail('Prepare failed: '.$mysqli->error,500);
         
         $stmt->execute();
