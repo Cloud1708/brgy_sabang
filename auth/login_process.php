@@ -3,14 +3,14 @@ require_once __DIR__.'/../inc/db.php';
 require_once __DIR__.'/../inc/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../staff_login.php');
+    header('Location: ../staff_login');
     exit;
 }
 
 session_start();
 
 if (!isset($_POST['csrf_token'], $_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-    header('Location: ../staff_login.php?error=csrf');
+    header('Location: ../staff_login?error=csrf');
     exit;
 }
 
@@ -18,7 +18,7 @@ $username = trim($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
 
 if ($username === '' || $password === '') {
-    header('Location: ../staff_login.php?error=1');
+    header('Location: ../staff_login?error=1');
     exit;
 }
 
@@ -30,7 +30,7 @@ $stmt = $mysqli->prepare("
   LIMIT 1
 ");
 if (!$stmt) {
-    header('Location: ../staff_login.php?error=db');
+    header('Location: ../staff_login?error=db');
     exit;
 }
 
@@ -40,13 +40,13 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
 if (!$user || !password_verify($password, $user['password_hash'])) {
-    header('Location: ../staff_login.php?error=1');
+    header('Location: ../staff_login?error=1');
     exit;
 }
 
 // Accept only staff roles (Admin/BHW/BNS)
 if (!in_array($user['role_name'], ['Admin','BHW','BNS'], true)) {
-    header('Location: ../staff_login.php?error=role');
+    header('Location: ../staff_login?error=role');
     exit;
 }
 

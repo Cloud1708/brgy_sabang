@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 08, 2025 at 06:08 PM
+-- Generation Time: Oct 12, 2025 at 01:47 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -116,7 +116,10 @@ INSERT INTO `account_creation_log` (`log_id`, `created_user_id`, `created_by_use
 (9, 10, 2, 'BHW', 'Account created via admin/BNS interface', '2025-10-08 07:36:03'),
 (10, 10, 2, 'BHW', 'New BHW account created', '2025-10-08 07:36:03'),
 (11, 11, 2, 'BNS', 'Account created via admin/BNS interface', '2025-10-08 07:38:06'),
-(12, 11, 2, 'BNS', 'New BNS account created', '2025-10-08 07:38:06');
+(12, 11, 2, 'BNS', 'New BNS account created', '2025-10-08 07:38:06'),
+(13, 12, 9, 'Parent', 'Account created via admin/BNS interface', '2025-10-08 18:58:06'),
+(14, 13, 9, 'Parent', 'Account created via admin/BNS interface', '2025-10-08 19:04:46'),
+(15, 14, 9, 'Parent', 'Account created via admin/BNS interface', '2025-10-08 19:06:58');
 
 -- --------------------------------------------------------
 
@@ -190,7 +193,9 @@ CREATE TABLE `children` (
 
 INSERT INTO `children` (`child_id`, `first_name`, `middle_name`, `last_name`, `sex`, `weight_kg`, `height_cm`, `birth_date`, `mother_id`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'Baby', 'Test', 'Example', 'male', NULL, NULL, '2025-01-01', 1, 9, '2025-10-08 05:37:41', '2025-10-08 05:37:41'),
-(2, 'Sepp', 'Bernard', 'Consulta', 'female', 3.50, 45.00, '2025-04-16', 1, 10, '2025-10-08 07:39:27', '2025-10-08 07:39:27');
+(2, 'Sepp', 'Bernard', 'Consulta', 'female', 3.50, 45.00, '2025-04-16', 1, 10, '2025-10-08 07:39:27', '2025-10-08 07:39:27'),
+(3, 'Brian', 'M', 'Maines', 'male', 3.50, 45.00, '2025-10-09', 2, 9, '2025-10-08 16:34:59', '2025-10-08 16:34:59'),
+(4, 'Gabrielle', 'G', 'Resuello', 'female', 3.50, 30.00, '2025-10-09', 31, 9, '2025-10-08 19:06:36', '2025-10-08 19:06:36');
 
 -- --------------------------------------------------------
 
@@ -214,6 +219,25 @@ CREATE TABLE `child_immunizations` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Child vaccine doses';
+
+--
+-- Dumping data for table `child_immunizations`
+--
+
+INSERT INTO `child_immunizations` (`immunization_id`, `child_id`, `vaccine_id`, `dose_number`, `vaccination_date`, `vaccination_site`, `batch_lot_number`, `vaccine_expiry_date`, `administered_by`, `next_dose_due_date`, `adverse_reactions`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 3, 1, 1, '2025-10-08', 'Right Deltoid', 'BCG-2025-1', '2025-10-10', 9, NULL, 'wala po ate', '', '2025-10-08 16:36:03', '2025-10-08 16:36:03'),
+(2, 1, 1, 1, '2025-01-01', 'Left Arm', 'BCG2025001', '2026-01-01', 9, NULL, NULL, 'Birth dose administered', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(3, 1, 2, 1, '2025-01-01', 'Right Thigh', 'HEPB2025001', '2026-01-01', 9, NULL, NULL, 'Birth dose administered', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(4, 1, 3, 1, '2025-02-01', 'Left Thigh', 'PENTA2025001', '2026-02-01', 9, '2025-03-01', NULL, 'First dose of PENTA', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(5, 1, 3, 2, '2025-03-01', 'Left Thigh', 'PENTA2025002', '2026-03-01', 9, '2025-04-01', NULL, 'Second dose of PENTA', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(6, 1, 4, 1, '2025-02-01', 'Oral', 'OPV2025001', '2026-02-01', 9, '2025-03-01', NULL, 'First dose of OPV', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(7, 1, 4, 2, '2025-03-01', 'Oral', 'OPV2025002', '2026-03-01', 9, '2025-04-01', NULL, 'Second dose of OPV', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(8, 2, 1, 1, '2025-04-16', 'Left Arm', 'BCG2025002', '2026-04-16', 10, NULL, NULL, 'Birth dose administered', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(9, 2, 2, 1, '2025-04-16', 'Right Thigh', 'HEPB2025002', '2026-04-16', 10, NULL, NULL, 'Birth dose administered', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(10, 2, 3, 1, '2025-05-16', 'Left Thigh', 'PENTA2025003', '2026-05-16', 10, '2025-06-16', NULL, 'First dose of PENTA', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(11, 2, 4, 1, '2025-05-16', 'Oral', 'OPV2025003', '2026-05-16', 10, '2025-06-16', NULL, 'First dose of OPV', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(12, 2, 6, 1, '2025-05-16', 'Right Thigh', 'PCV2025001', '2026-05-16', 10, '2025-06-16', NULL, 'First dose of PCV', '2025-10-08 17:04:59', '2025-10-08 17:04:59'),
+(17, 3, 2, 1, '2025-10-09', '', '', NULL, 9, NULL, '', '', '2025-10-08 18:25:53', '2025-10-08 18:25:53');
 
 -- --------------------------------------------------------
 
@@ -270,6 +294,23 @@ CREATE TABLE `health_records` (
   `urine_result` varchar(100) DEFAULT NULL,
   `vdrl_result` varchar(50) DEFAULT NULL,
   `other_lab_results` text DEFAULT NULL,
+  `iron_folate_prescription` tinyint(1) DEFAULT 0,
+  `iron_folate_notes` text DEFAULT NULL,
+  `additional_iodine` tinyint(1) DEFAULT 0,
+  `additional_iodine_notes` text DEFAULT NULL,
+  `malaria_prophylaxis` tinyint(1) DEFAULT 0,
+  `malaria_prophylaxis_notes` text DEFAULT NULL,
+  `breastfeeding_plan` tinyint(1) DEFAULT 0,
+  `breastfeeding_plan_notes` text DEFAULT NULL,
+  `danger_advice` tinyint(1) DEFAULT 0,
+  `danger_advice_notes` text DEFAULT NULL,
+  `dental_checkup` tinyint(1) DEFAULT 0,
+  `dental_checkup_notes` text DEFAULT NULL,
+  `emergency_plan` tinyint(1) DEFAULT 0,
+  `emergency_plan_notes` text DEFAULT NULL,
+  `general_risk` tinyint(1) DEFAULT 0,
+  `general_risk_notes` text DEFAULT NULL,
+  `next_visit_date` date DEFAULT NULL,
   `recorded_by` int(10) UNSIGNED NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -279,11 +320,24 @@ CREATE TABLE `health_records` (
 -- Dumping data for table `health_records`
 --
 
-INSERT INTO `health_records` (`health_record_id`, `mother_id`, `consultation_date`, `age`, `height_cm`, `last_menstruation_date`, `expected_delivery_date`, `pregnancy_age_weeks`, `vaginal_bleeding`, `urinary_infection`, `weight_kg`, `blood_pressure_systolic`, `blood_pressure_diastolic`, `high_blood_pressure`, `fever_38_celsius`, `pallor`, `abnormal_abdominal_size`, `abnormal_presentation`, `absent_fetal_heartbeat`, `swelling`, `vaginal_infection`, `hgb_result`, `urine_result`, `vdrl_result`, `other_lab_results`, `recorded_by`, `created_at`, `updated_at`) VALUES
-(2, 29, '2025-10-07', 25, 150.00, '2025-10-01', '2025-10-31', 7, 0, 0, 45.00, 110, 80, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:01:36', '2025-10-06 17:01:36'),
-(3, 29, '2025-10-07', 25, 250.00, '2025-10-08', '2025-10-08', NULL, 0, 0, 55.00, 110, 70, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:11:59', '2025-10-06 17:11:59'),
-(4, 31, '2025-10-08', 20, 152.00, '2025-10-09', '2025-10-31', 12, 1, 0, 50.00, 10, 10, 0, 0, 0, 0, 0, 0, 1, 1, 'haha', 'uti', 'hahahah', 'hahah', 10, '2025-10-08 08:48:34', '2025-10-08 08:48:34'),
-(5, 32, '2025-10-08', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 9, '2025-10-08 15:44:39', '2025-10-08 15:44:39');
+INSERT INTO `health_records` (`health_record_id`, `mother_id`, `consultation_date`, `age`, `height_cm`, `last_menstruation_date`, `expected_delivery_date`, `pregnancy_age_weeks`, `vaginal_bleeding`, `urinary_infection`, `weight_kg`, `blood_pressure_systolic`, `blood_pressure_diastolic`, `high_blood_pressure`, `fever_38_celsius`, `pallor`, `abnormal_abdominal_size`, `abnormal_presentation`, `absent_fetal_heartbeat`, `swelling`, `vaginal_infection`, `hgb_result`, `urine_result`, `vdrl_result`, `other_lab_results`, `iron_folate_prescription`, `iron_folate_notes`, `additional_iodine`, `additional_iodine_notes`, `malaria_prophylaxis`, `malaria_prophylaxis_notes`, `breastfeeding_plan`, `breastfeeding_plan_notes`, `danger_advice`, `danger_advice_notes`, `dental_checkup`, `dental_checkup_notes`, `emergency_plan`, `emergency_plan_notes`, `general_risk`, `general_risk_notes`, `next_visit_date`, `recorded_by`, `created_at`, `updated_at`) VALUES
+(2, 29, '2025-10-07', 25, 150.00, '2025-10-01', '2025-10-31', 7, 0, 0, 45.00, 110, 80, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-06 17:01:36', '2025-10-06 17:01:36'),
+(3, 29, '2025-10-07', 25, 250.00, '2025-10-08', '2025-10-08', NULL, 0, 0, 55.00, 110, 70, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-06 17:11:59', '2025-10-06 17:11:59'),
+(4, 31, '2025-10-08', 20, 152.00, '2025-10-09', '2025-10-31', 12, 1, 0, 50.00, 10, 10, 0, 0, 0, 0, 0, 0, 1, 1, 'haha', 'uti', 'hahahah', 'hahah', 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 10, '2025-10-08 08:48:34', '2025-10-08 08:48:34'),
+(5, 32, '2025-10-08', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-08 15:44:39', '2025-10-08 15:44:39'),
+(6, 31, '2025-10-12', 20, 145.00, NULL, NULL, 15, 0, 0, 50.00, 110, 80, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, '2025-10-31', 9, '2025-10-12 07:12:28', '2025-10-12 07:12:28'),
+(7, 31, '2025-10-12', 20, 150.00, NULL, NULL, 16, 0, 0, 70.00, 110, 70, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 1, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, '2025-11-01', 9, '2025-10-12 07:13:23', '2025-10-12 07:13:23'),
+(8, 32, '2025-10-12', NULL, NULL, NULL, NULL, 15, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 1, 'sa teeth', 0, NULL, 0, NULL, NULL, 9, '2025-10-12 07:40:59', '2025-10-12 07:40:59'),
+(9, 31, '2025-10-12', 20, NULL, NULL, NULL, 17, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-12 08:22:52', '2025-10-12 08:22:52'),
+(10, 33, '2025-10-12', 26, 155.00, NULL, NULL, 4, 0, 0, 56.00, 110, 70, 0, 0, 0, 0, 0, 0, 0, 0, '12.8', 'Normal', 'Non-reactive', 'Negative for infection', 1, NULL, 1, NULL, 0, NULL, 1, NULL, 1, NULL, 0, NULL, 1, NULL, 0, NULL, '2025-11-05', 9, '2025-10-12 08:41:30', '2025-10-12 08:41:30'),
+(11, 34, '2025-10-12', 25, 160.00, '2025-10-12', '2026-07-17', 0, 0, 0, 58.00, 110, 80, 0, 0, 0, 1, 0, 0, 1, 0, '11.6', 'Trace protein', 'Non-reactive', 'Normal ultrasound findings', 1, NULL, 1, NULL, 0, NULL, 1, NULL, 1, NULL, 0, NULL, 1, NULL, 1, NULL, '2025-10-28', 9, '2025-10-12 09:25:36', '2025-10-12 09:25:36'),
+(12, 35, '2025-10-12', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 1, NULL, 1, NULL, NULL, 9, '2025-10-12 09:27:15', '2025-10-12 09:27:15'),
+(13, 36, '2025-10-12', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 1, NULL, 0, NULL, 1, NULL, 1, NULL, NULL, 9, '2025-10-12 09:33:48', '2025-10-12 09:33:48'),
+(14, 37, '2025-10-12', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 1, NULL, 1, NULL, 1, NULL, 1, NULL, 1, NULL, 1, NULL, '2025-10-15', 9, '2025-10-12 09:38:41', '2025-10-12 09:38:41'),
+(15, 38, '2025-10-12', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 1, NULL, 0, NULL, 1, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-12 09:41:56', '2025-10-12 09:41:56'),
+(16, 39, '2025-10-12', NULL, NULL, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 1, 'sadad', 1, 'sdadd', 1, 'sdad', 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-12 09:45:24', '2025-10-12 09:45:24'),
+(17, 40, '2025-10-12', 25, NULL, '2025-03-10', '2025-12-15', 30, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-12 10:16:36', '2025-10-12 10:16:36'),
+(18, 41, '2025-10-12', NULL, NULL, '2025-01-07', '2025-10-12', 39, 0, 0, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, NULL, 9, '2025-10-12 10:18:12', '2025-10-12 10:18:12');
 
 -- --------------------------------------------------------
 
@@ -301,6 +355,56 @@ CREATE TABLE `immunization_schedule` (
   `is_mandatory` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Recommended immunization schedule';
+
+--
+-- Dumping data for table `immunization_schedule`
+--
+
+INSERT INTO `immunization_schedule` (`schedule_id`, `vaccine_id`, `dose_number`, `recommended_age_months`, `age_range_min_months`, `age_range_max_months`, `is_mandatory`, `created_at`) VALUES
+(1, 1, 1, 0, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(2, 2, 1, 0, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(3, 4, 1, 1, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(4, 3, 1, 1, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(5, 6, 1, 1, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(6, 4, 2, 2, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(7, 3, 2, 2, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(8, 5, 1, 3, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(9, 4, 3, 3, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(10, 3, 3, 3, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(11, 6, 2, 6, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(12, 7, 1, 9, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(13, 5, 2, 9, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(14, 6, 3, 12, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(15, 7, 2, 12, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(16, 8, 1, 24, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(17, 10, 1, 132, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(18, 9, 1, 132, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(19, 10, 2, 138, NULL, NULL, 1, '2025-10-08 16:10:10'),
+(20, 9, 2, 144, NULL, NULL, 1, '2025-10-08 16:10:10');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `labor_delivery_records`
+--
+
+CREATE TABLE `labor_delivery_records` (
+  `labor_id` int(10) UNSIGNED NOT NULL,
+  `mother_id` int(10) UNSIGNED NOT NULL,
+  `child_id` int(10) UNSIGNED DEFAULT NULL,
+  `delivery_date` date NOT NULL,
+  `delivery_type` varchar(255) DEFAULT NULL,
+  `place_of_delivery` varchar(255) DEFAULT NULL,
+  `attendant` varchar(255) DEFAULT NULL,
+  `immediate_breastfeeding` tinyint(1) NOT NULL DEFAULT 0,
+  `birth_weight_grams` int(11) DEFAULT NULL,
+  `postpartum_hemorrhage` tinyint(1) NOT NULL DEFAULT 0,
+  `baby_alive` tinyint(1) NOT NULL DEFAULT 1,
+  `baby_healthy` tinyint(1) NOT NULL DEFAULT 1,
+  `notes` text DEFAULT NULL,
+  `recorded_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -345,7 +449,16 @@ INSERT INTO `maternal_patients` (`mother_id`, `first_name`, `middle_name`, `last
 (29, 'qweq', 'wqe', 'weqe', '2000-02-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:01:36', '2025-10-06 17:01:36', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (30, 'sdasda', 'weq', 'weq', '2004-12-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-06 17:36:54', '2025-10-06 17:36:54', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (31, 'Gabrielle', 'gab', 'Resuello', '2004-11-11', 4, 5, 'A', 'Althea Gabrielle Reyes', '09958167775', '09992223324', 10, '2025-10-08 08:48:34', '2025-10-08 09:27:11', NULL, '2301', 'Sampaguita', NULL, 'Silverlas', 1, NULL),
-(32, 'qwe', 'wqe', 'qwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-08 15:44:39', '2025-10-08 15:44:39', NULL, NULL, NULL, 'Purok 2', NULL, NULL, NULL);
+(32, 'qwe', 'wqe', 'qwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-08 15:44:39', '2025-10-08 15:44:39', NULL, NULL, NULL, 'Purok 2', NULL, NULL, NULL),
+(33, 'Maria', 'Santos', 'Dela Cruz', '1999-04-18', 2, 1, 'O+', 'Juan Dela Cruz', '09182345678', '09171234567', 9, '2025-10-12 08:41:30', '2025-10-12 08:41:30', NULL, '45', 'Mabini St.', 'Purok 1', 'San Isidro Village', NULL, NULL),
+(34, 'Angela', 'Rivera', 'Bautista', '2000-02-07', 1, 0, 'A+', 'Carlo Bautista', '09175678900', '09283456712', 9, '2025-10-12 09:25:36', '2025-10-12 09:25:36', NULL, '128', 'Rizal Avenue', 'Purok 1', 'Green Meadows', NULL, NULL),
+(35, 'wq', 'eq', 'ewqe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-12 09:27:15', '2025-10-12 09:27:15', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(36, 'wqeq', 'weq', 'eqw', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-12 09:33:48', '2025-10-12 09:33:48', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(37, 'xczxc', 'd', 'asda', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-12 09:38:41', '2025-10-12 09:38:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(38, 'sda', 'dsad', 'sada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-12 09:41:56', '2025-10-12 09:41:56', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(39, 'we', 'wqeqw', 'ewq', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-12 09:45:24', '2025-10-12 09:45:24', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(40, 'we', 'weqw', 'eqeq', '2000-01-02', NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-12 10:16:36', '2025-10-12 10:16:36', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(41, 'cxxcz', 'sda', 'sada', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 9, '2025-10-12 10:18:12', '2025-10-12 10:18:12', NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -380,7 +493,9 @@ CREATE TABLE `mothers_caregivers` (
 --
 
 INSERT INTO `mothers_caregivers` (`mother_id`, `first_name`, `middle_name`, `last_name`, `full_name`, `date_of_birth`, `emergency_contact_name`, `emergency_contact_number`, `purok_id`, `address_details`, `contact_number`, `created_by`, `created_at`, `updated_at`, `user_account_id`, `house_number`, `street_name`, `subdivision_name`, `legacy_full_name_backup`) VALUES
-(1, NULL, NULL, NULL, 'Placeholder Mother', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, NULL, NULL, NULL, NULL);
+(1, NULL, NULL, NULL, 'Placeholder Mother', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, NULL, NULL, NULL, NULL),
+(2, 'Brian', 'Marvic', 'Maines', 'Brian Marvic Maines', '2000-12-31', NULL, NULL, NULL, NULL, NULL, 9, '2025-10-08 16:34:59', '2025-10-08 16:34:59', NULL, NULL, NULL, NULL, NULL),
+(31, 'Gabrielle', 'gab', 'Resuello', 'Gabrielle gab Resuello', '2004-11-11', 'Althea Gabrielle Reyes', '09958167775', NULL, NULL, '09992223324', 9, '2025-10-08 19:06:36', '2025-10-08 19:06:36', NULL, '2301', 'Sampaguita', 'Silverlas', NULL);
 
 -- --------------------------------------------------------
 
@@ -427,6 +542,33 @@ CREATE TABLE `overdue_notifications` (
   `expires_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Overdue / due vaccine notifications';
 
+--
+-- Dumping data for table `overdue_notifications`
+--
+
+INSERT INTO `overdue_notifications` (`id`, `child_id`, `vaccine_id`, `dose_number`, `status`, `created_at`, `dismissed_at`, `expires_at`) VALUES
+(1, 1, 1, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(2, 1, 2, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(3, 1, 5, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(4, 1, 4, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(5, 1, 4, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(6, 1, 4, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(7, 1, 3, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(8, 1, 3, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(9, 1, 3, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(10, 1, 6, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(11, 1, 6, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(12, 2, 1, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(13, 2, 2, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(14, 2, 5, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(15, 2, 4, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(16, 2, 4, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(17, 2, 4, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(18, 2, 3, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(19, 2, 3, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(20, 2, 3, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
+(21, 2, 6, 1, 'active', '2025-10-08 16:10:39', NULL, NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -443,6 +585,15 @@ CREATE TABLE `parent_audit_log` (
   `user_agent` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Audit log of parent portal activity';
+
+--
+-- Dumping data for table `parent_audit_log`
+--
+
+INSERT INTO `parent_audit_log` (`log_id`, `parent_user_id`, `action_code`, `child_id`, `meta_json`, `ip_address`, `user_agent`, `created_at`) VALUES
+(1, 12, 'create_account', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-10-08 18:58:06'),
+(2, 13, 'create_account', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-10-08 19:04:46'),
+(3, 14, 'create_account', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '2025-10-08 19:06:58');
 
 -- --------------------------------------------------------
 
@@ -461,6 +612,16 @@ CREATE TABLE `parent_child_access` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Link parents to children';
+
+--
+-- Dumping data for table `parent_child_access`
+--
+
+INSERT INTO `parent_child_access` (`access_id`, `parent_user_id`, `child_id`, `relationship_type`, `access_granted_by`, `is_active`, `granted_date`, `created_at`, `updated_at`) VALUES
+(1, 12, 1, 'mother', 9, 1, '2025-10-08 18:58:06', '2025-10-08 18:58:06', '2025-10-08 18:58:06'),
+(2, 12, 2, 'mother', 9, 1, '2025-10-08 18:58:06', '2025-10-08 18:58:06', '2025-10-08 18:58:06'),
+(3, 13, 3, 'mother', 9, 1, '2025-10-08 19:04:46', '2025-10-08 19:04:46', '2025-10-08 19:04:46'),
+(4, 14, 4, 'mother', 9, 1, '2025-10-08 19:06:58', '2025-10-08 19:06:58', '2025-10-08 19:06:58');
 
 -- --------------------------------------------------------
 
@@ -664,7 +825,10 @@ INSERT INTO `users` (`user_id`, `username`, `email`, `password`, `password_hash`
 (2, 'admin', NULL, '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', '', '', 1, NULL, 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, NULL),
 (9, 'cris', 'sdasd@gmail.com', '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', 'Cris', 'Hernandez', 2, 'Sabang', 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, 2),
 (10, 'bnsses', 'bns@gmail.com', 'reyes77488', '$2y$10$BziwBgsgBhk3ZUIm3qS3dutrp0FJn/KuRxOK2Rmp6zgFlhHTVTWjy', 'bnss', 'reyes', 2, 'Sabang', 1, '2025-10-08 07:36:03', '2025-10-08 07:36:03', NULL, 2),
-(11, 'althea gabriellees', 'raltheagabrielle@gmail.com', 'reyes49341', '$2y$10$p.qXQF4FkaE/4RJstceFE.cjk5GVpHdkRkTuCGCnvRwA6gFwUucH2', 'Althea Gabrielle', 'Reyes', 3, 'Sabang', 1, '2025-10-08 07:38:06', '2025-10-08 07:38:06', NULL, 2);
+(11, 'althea gabriellees', 'raltheagabrielle@gmail.com', 'reyes49341', '$2y$10$p.qXQF4FkaE/4RJstceFE.cjk5GVpHdkRkTuCGCnvRwA6gFwUucH2', 'Althea Gabrielle', 'Reyes', 3, 'Sabang', 1, '2025-10-08 07:38:06', '2025-10-08 07:38:06', NULL, 2),
+(12, 'althears', 'criscarloh@gmail.com', '', '$2y$10$MpaexbnG1orDEQAR9T2QjuKbdUnzsovwqi5gCG6ISa0nReDsPoqwu', 'Althea', 'Reyes', 4, 'Sabang', 1, '2025-10-08 18:58:06', '2025-10-08 18:58:06', NULL, 9),
+(13, 'brianms', 'jmbmaines17@gmail.com', '', '$2y$10$9araDtt1HhwtBiIyRTHfhekFzzswSzlAUsVxboL3BjBa6FERQRFNS', 'Brian', 'Maines', 4, 'Sabang', 1, '2025-10-08 19:04:46', '2025-10-08 19:04:46', NULL, 9),
+(14, 'gabriellero', 'ch512291@gmail.com', '', '$2y$10$u7KVj7ImMfzbFUX3J0S0W.BYJOl4kIy1f1QhBA46M6VfMEu4vScom', 'Gabrielle', 'Resuello', 4, 'Sabang', 1, '2025-10-08 19:06:58', '2025-10-08 19:06:58', NULL, 9);
 
 --
 -- Triggers `users`
@@ -852,6 +1016,15 @@ ALTER TABLE `immunization_schedule`
   ADD UNIQUE KEY `uq_vaccine_dose_age` (`vaccine_id`,`dose_number`);
 
 --
+-- Indexes for table `labor_delivery_records`
+--
+ALTER TABLE `labor_delivery_records`
+  ADD PRIMARY KEY (`labor_id`),
+  ADD KEY `idx_mother_date` (`mother_id`,`delivery_date`),
+  ADD KEY `idx_child` (`child_id`),
+  ADD KEY `idx_recorded_by` (`recorded_by`);
+
+--
 -- Indexes for table `maternal_patients`
 --
 ALTER TABLE `maternal_patients`
@@ -990,19 +1163,19 @@ ALTER TABLE `wfl_ht_status_types`
 -- AUTO_INCREMENT for table `account_creation_log`
 --
 ALTER TABLE `account_creation_log`
-  MODIFY `log_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `log_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `children`
 --
 ALTER TABLE `children`
-  MODIFY `child_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `child_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `child_immunizations`
 --
 ALTER TABLE `child_immunizations`
-  MODIFY `immunization_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `immunization_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `events`
@@ -1014,25 +1187,31 @@ ALTER TABLE `events`
 -- AUTO_INCREMENT for table `health_records`
 --
 ALTER TABLE `health_records`
-  MODIFY `health_record_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `health_record_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `immunization_schedule`
 --
 ALTER TABLE `immunization_schedule`
-  MODIFY `schedule_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `schedule_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `labor_delivery_records`
+--
+ALTER TABLE `labor_delivery_records`
+  MODIFY `labor_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `maternal_patients`
 --
 ALTER TABLE `maternal_patients`
-  MODIFY `mother_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `mother_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `mothers_caregivers`
 --
 ALTER TABLE `mothers_caregivers`
-  MODIFY `mother_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `mother_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `nutrition_records`
@@ -1044,19 +1223,19 @@ ALTER TABLE `nutrition_records`
 -- AUTO_INCREMENT for table `overdue_notifications`
 --
 ALTER TABLE `overdue_notifications`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `parent_audit_log`
 --
 ALTER TABLE `parent_audit_log`
-  MODIFY `log_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `log_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `parent_child_access`
 --
 ALTER TABLE `parent_child_access`
-  MODIFY `access_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `access_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `parent_notifications`
@@ -1092,7 +1271,7 @@ ALTER TABLE `supplementation_records`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `user_login_log`
@@ -1156,6 +1335,12 @@ ALTER TABLE `health_records`
 --
 ALTER TABLE `immunization_schedule`
   ADD CONSTRAINT `fk_schedule_vaccine` FOREIGN KEY (`vaccine_id`) REFERENCES `vaccine_types` (`vaccine_id`);
+
+--
+-- Constraints for table `labor_delivery_records`
+--
+ALTER TABLE `labor_delivery_records`
+  ADD CONSTRAINT `fk_ld_mother` FOREIGN KEY (`mother_id`) REFERENCES `maternal_patients` (`mother_id`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `maternal_patients`

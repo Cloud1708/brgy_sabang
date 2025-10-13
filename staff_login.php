@@ -65,8 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="auth-body brgy-bg">
     <header class="auth-topbar text-white">
         <div class="container d-flex align-items-center gap-3">
-            <div class="brand-circle" aria-label="Barangay Sabang logo">
-                <img src="assets/img/sabang.jpg" alt="Barangay Sabang logo">
+            <div class="d-flex align-items-center gap-2">
+                <div class="brand-circle" aria-label="Lipa City Seal">
+                    <img src="assets/img/Lipa_City_Seal.svg.png" alt="Lipa City Seal">
+                </div>
+                <div class="brand-circle" aria-label="Barangay Sabang logo">
+                    <img src="assets/img/sabang.jpg" alt="Barangay Sabang logo">
+                </div>
             </div>
             <div class="d-flex flex-column">
                 <strong class="small">Welcome to Barangay Health &amp; Nutrition System</strong>
@@ -79,8 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card login-card shadow-lg border-0">
             <div class="card-body p-4 p-md-5">
                 <div class="text-center mb-4">
-                    <div class="brand-circle brand-circle-lg mx-auto mb-3" aria-label="Barangay Sabang logo">
-                        <img src="assets/img/sabang.jpg" alt="Barangay Sabang logo">
+                    <div class="d-flex justify-content-center gap-2 mx-auto mb-3">
+                        <div class="brand-circle brand-circle-lg" aria-label="Lipa City Seal">
+                            <img src="assets/img/Lipa_City_Seal.svg.png" alt="Lipa City Seal">
+                        </div>
+                        <div class="brand-circle brand-circle-lg" aria-label="Barangay Sabang logo">
+                            <img src="assets/img/sabang.jpg" alt="Barangay Sabang logo">
+                        </div>
                     </div>
                     <h1 class="h6 mb-1 fw-semibold text-primary-emphasis">
                         Barangay Health &amp; Nutrition<br class="d-none d-md-block">Management System

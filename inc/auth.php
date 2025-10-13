@@ -12,7 +12,7 @@ define('APP_BASE_PATH', '/');  // IMPORTANT
 
 function require_role(array $allowed) {
     if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
-        header('Location: '.APP_BASE_PATH.'staff_login.php?unauthorized=1');
+        header('Location: '.APP_BASE_PATH.'staff_login?unauthorized=1');
         exit;
     }
     if (!in_array($_SESSION['role'], $allowed, true)) {
@@ -25,15 +25,15 @@ function require_role(array $allowed) {
 function redirect_by_role(string $role) {
     switch ($role) {
         case 'Admin':
-            header('Location: '.APP_BASE_PATH.'dashboard_admin.php'); break;
+            header('Location: '.APP_BASE_PATH.'dashboard_admin'); break;
         case 'BHW':
-            header('Location: '.APP_BASE_PATH.'dashboard_bhw.php'); break;
+            header('Location: '.APP_BASE_PATH.'dashboard_bhw'); break;
         case 'BNS':
-            header('Location: '.APP_BASE_PATH.'dashboard_bns.php'); break;
+            header('Location: '.APP_BASE_PATH.'dashboard_bns'); break;
         case 'Parent': // ADDED
-            header('Location: '.APP_BASE_PATH.'parent_portal.php'); break;
+            header('Location: '.APP_BASE_PATH.'parent_portal'); break;
         default:
-            header('Location: '.APP_BASE_PATH.'staff_login.php?error=role');
+            header('Location: '.APP_BASE_PATH.'staff_login?error=role');
     }
     exit;
 }

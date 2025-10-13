@@ -1207,7 +1207,7 @@ $descs = [
                 <div>Barangay Health System</div>
                 <div>Version 2.0.1</div>
                 <div class="mt-1">&copy; <?php echo date('Y'); ?></div>
-                <a href="logout.php" class="btn btn-success btn-sm w-100 mt-2">
+                <a href="logout" class="btn btn-success btn-sm w-100 mt-2">
                     <i class="bi bi-box-arrow-right me-1"></i> Logout
                 </a>
             </div>

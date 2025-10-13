@@ -305,6 +305,21 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 }
 .zoom-controls button:hover{background:#eef5f2;}
 .zoom-controls button:active{transform:translateY(1px);}
+
+/* === Navigation Dropdown === */
+.nav-dropdown{position:relative;}
+.nav-dropdown .dropdown-toggle{display:flex;align-items:center;justify-content:space-between;}
+.nav-dropdown .dropdown-arrow{font-size:.7rem;transition:transform 0.2s ease;margin-left:auto;}
+.nav-dropdown.active .dropdown-arrow{transform:rotate(180deg);}
+.nav-dropdown.active .dropdown-toggle{background:#e8f5e8;color:#28a745;}
+
+/* Dropdown menu as inline sub-items (not overlay) */
+.nav-dropdown .dropdown-menu{display:none;background:transparent;border:none;box-shadow:none;padding:0;margin:0;position:static;}
+.nav-dropdown.active .dropdown-menu{display:block;}
+.nav-dropdown .dropdown-item{display:block;padding:.4rem 1rem .4rem 2.5rem;color:#5e6d75;text-decoration:none;font-size:.85rem;transition:all 0.2s ease;border-left:none;background:transparent;}
+.nav-dropdown .dropdown-item:hover{background:#f8f9fa;color:#11312a;}
+.nav-dropdown .dropdown-item.active{background:#e8f5e8;color:#28a745;font-weight:600;}
+
 /* === Maternal Health New UI === */
 .mh-title{font-size:1.35rem;font-weight:700;color:#11312a;margin:0;}
 .mh-sub{font-size:.8rem;color:#5e6d75;font-weight:500;margin:.3rem 0 0;}
@@ -965,6 +980,8 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .pr-children-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;}
 .pr-add-child-btn{background:#007a4e;border:0;color:#fff;font-size:.6rem;font-weight:600;padding:.48rem .85rem;border-radius:8px;display:inline-flex;align-items:center;gap:.35rem;}
 .pr-add-child-btn:hover{background:#009562;color:#fff;}
+.pr-add-child-btn-disabled{background:#ccc;color:#666;cursor:not-allowed;opacity:0.6;}
+.pr-add-child-btn-disabled:hover{background:#ccc;color:#666;}
 .pr-child-table{width:100%;border-collapse:collapse;font-size:.64rem;}
 .pr-child-table thead th{background:#f2f6f8;font-size:.56rem;font-weight:800;letter-spacing:.07em;padding:.55rem .6rem;color:#2a454d;text-transform:uppercase;position:sticky;top:0;}
 .pr-child-table tbody td{padding:.52rem .6rem;border-top:1px solid var(--border);font-weight:600;color:#223c43;}
@@ -990,19 +1007,40 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
     <div class="nav-section-title">Navigation</div>
     <ul class="nav-list">
       <li><a href="#" class="nav-link-modern active" data-module="health_stats" data-label="Dashboard"><span class="icon-wrap"><i class="bi bi-grid-1x2"></i></span><span>Dashboard</span></a></li>
-      <li><a href="#" class="nav-link-modern" data-module="maternal_health" data-label="Maternal Health"><span class="icon-wrap"><i class="bi bi-person-heart"></i></span><span>Maternal Health</span></a></li>
+      <li class="nav-dropdown">
+        <a href="#" class="nav-link-modern dropdown-toggle" data-module="maternal_health" data-label="Maternal Health">
+          <span class="icon-wrap"><i class="bi bi-person-heart"></i></span>
+          <span>Maternal Health</span>
+          <i class="bi bi-chevron-down dropdown-arrow"></i>
+        </a>
+        <div class="dropdown-menu">
+          <a href="#" class="dropdown-item" data-tab="patients">Patient List</a>
+          <a href="#" class="dropdown-item" data-tab="consults">Consultations</a>
+          <a href="#" class="dropdown-item" data-tab="monitor">Pregnancy Monitoring</a>
+          <a href="#" class="dropdown-item" data-tab="labor">Labor & Delivery</a>
+        </div>
+      </li>
       <li>
   <a href="#" class="nav-link-modern" data-module="parent_registry" data-label="Parent Registry">
     <span class="icon-wrap"><i class="bi bi-person-lines-fill"></i></span>
     <span>Parent Registry</span>
   </a>
 </li>
-      <li>
-  <a href="#" class="nav-link-modern" data-module="vaccination_entry" data-label="Vaccination Entry">
-    <span class="icon-wrap"><i class="bi bi-capsule"></i></span>
-    <span>Immunization</span>
-  </a>
-</li>
+      <li class="nav-dropdown">
+        <a href="#" class="nav-link-modern dropdown-toggle" data-module="vaccination_entry" data-label="Immunization">
+          <span class="icon-wrap"><i class="bi bi-capsule"></i></span>
+          <span>Immunization</span>
+          <i class="bi bi-chevron-down dropdown-arrow"></i>
+        </a>
+        <div class="dropdown-menu">
+          <a href="#" class="dropdown-item" data-tab="children">Registered Children</a>
+          <a href="#" class="dropdown-item" data-tab="schedule">Vaccine Schedule</a>
+          <a href="#" class="dropdown-item" data-tab="records">Vaccination Records</a>
+          <a href="#" class="dropdown-item" data-tab="overdue">Overdue Alerts</a>
+          <a href="#" class="dropdown-item" data-tab="cards">Immunization Cards</a>
+          <a href="#" class="dropdown-item" data-tab="parent_notifs">Parent Notifications</a>
+        </div>
+      </li>
       <li><a href="#" class="nav-link-modern" data-module="create_parent_accounts" data-label="Parent Accounts"><span class="icon-wrap"><i class="bi bi-people"></i></span><span>Parent Accounts</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="health_records_all" data-label="Health Records"><span class="icon-wrap"><i class="bi bi-journal-medical"></i></span><span>Health Records</span></a></li>
       <li><a href="#" class="nav-link-modern" data-module="health_calendar" data-label="Event Scheduling"><span class="icon-wrap"><i class="bi bi-calendar3"></i></span><span>Event Scheduling</span></a></li>
@@ -1017,7 +1055,7 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
       </div>
     </div>
     <div class="sidebar-logout">
-      <a href="logout.php" class="btn btn-outline-danger w-100"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+      <a href="logout" class="btn btn-outline-danger w-100"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
     </div>
   </aside>
 
@@ -1063,6 +1101,23 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 window.__BHW_CSRF = "<?php echo htmlspecialchars($csrf); ?>";
 const CURRENT_USER_NAME = <?php echo json_encode($username); ?>; // ADDED LINE
 
+// Function to toggle description fields for OO/HINDI checkboxes
+function toggleDescriptionField(checkbox, fieldId) {
+  const descriptionField = document.getElementById(fieldId);
+  if (descriptionField) {
+    if (checkbox.checked) {
+      descriptionField.style.display = 'block';
+    } else {
+      descriptionField.style.display = 'none';
+      // Clear the textarea when unchecked
+      const textarea = descriptionField.querySelector('textarea');
+      if (textarea) {
+        textarea.value = '';
+      }
+    }
+  }
+}
+
 const moduleContent=document.getElementById('moduleContent');
 const titleEl=document.getElementById('currentModuleTitle');
 
@@ -1072,6 +1127,7 @@ const titleEl=document.getElementById('currentModuleTitle');
   health:'bhw_modules/api_health_records.php',
   postnatal:'bhw_modules/api_postnatal.php',
   immun:'bhw_modules/api_immunization.php',
+  labor:'bhw_modules/api_labor.php',
   notif:'bhw_modules/api_notifications.php',
   caps:'bhw_modules/api_capabilities.php',
   parent:'bhw_modules/api_parent_accounts.php',
@@ -1666,6 +1722,18 @@ function motherDetailHTML(m, kids){
       <td>${c.birth_date?formatShortDate(c.birth_date):'—'}</td>
     </tr>
   `).join('');
+  
+  // Check if EDD has been reached
+  const today = new Date();
+  const eddDate = m.expected_delivery_date ? new Date(m.expected_delivery_date) : null;
+  const isEddReached = eddDate ? today >= eddDate : false;
+  
+  // Determine button state and text
+  const buttonDisabled = !isEddReached;
+  const buttonClass = buttonDisabled ? 'pr-add-child-btn pr-add-child-btn-disabled' : 'pr-add-child-btn';
+  const buttonText = buttonDisabled ? 'Add Child (EDD not reached)' : 'Add Child';
+  const buttonTitle = buttonDisabled ? 'Cannot add child until Expected Delivery Date is reached' : 'Add a new child';
+  
   return `
     <div>
       <h3 class="pr-detail-title">${escapeHtml(m.full_name||'')}</h3>
@@ -1687,6 +1755,11 @@ function motherDetailHTML(m, kids){
           <div>
             <span>Birthday</span>${m.date_of_birth?formatShortDate(m.date_of_birth):'—'}
           </div>
+          ${m.expected_delivery_date ? `
+          <div>
+            <span>Expected Delivery Date</span>${formatShortDate(m.expected_delivery_date)}
+          </div>
+          ` : ''}
           <div style="grid-column:1/-1;">
             <span>Address</span>${escapeHtml(address)}
           </div>
@@ -1696,8 +1769,8 @@ function motherDetailHTML(m, kids){
       <div class="pr-card">
         <div class="pr-children-head">
           <h6>Children</h6>
-          <button class="pr-add-child-btn" data-add-child="${m.mother_id}">
-            <i class="bi bi-plus-lg"></i> Add Child
+          <button class="${buttonClass}" data-add-child="${m.mother_id}" ${buttonDisabled ? 'disabled' : ''} title="${buttonTitle}">
+            <i class="bi bi-plus-lg"></i> ${buttonText}
           </button>
         </div>
         <div style="font-size:.58rem;font-weight:600;color:#607078;margin-top:-4px;">
@@ -1942,11 +2015,11 @@ function renderMaternalHealth(label){
   Promise.allSettled([
     fetchJSON(api.maternal+'?list=1'),          // full mother list with counts
     fetchJSON(api.health+'?risk_summary=1'),   // latest consult + risk per mother
-    fetchJSON(api.postnatal+'?followups=1')    // optional; if not implemented will just fail silently
+    fetchJSON(api.labor+'?list=1')             // labor & delivery records count
   ]).then(results=>{
     const mothersFull = results[0].value?.mothers || [];
     const riskRows    = results[1].value?.risks || [];
-    const postnatalData = (results[2].status==='fulfilled' && results[2].value?.followups) ? results[2].value.followups : [];
+    const laborData = (results[2].status==='fulfilled' && results[2].value?.records) ? results[2].value.records : [];
 
     // Build quick maps
     const riskMap = {};
@@ -1976,18 +2049,8 @@ function renderMaternalHealth(label){
       }
     });
 
-    // Postnatal follow-ups (fallback heuristic if endpoint missing)
-    let postnatalCount;
-    if(postnatalData.length){
-      postnatalCount = postnatalData.filter(v=> v.needs_followup==1).length;
-    } else {
-      postnatalCount = riskRows.filter(r=>{
-        // Consider GA >= 40 or past EDD as needing postnatal follow-up
-        const ga = parseInt(r.pregnancy_age_weeks||0,10);
-        const edd = parseDate(r.expected_delivery_date);
-        return ga>=40 || (edd && edd < today);
-      }).length;
-    }
+    // Labor & Delivery records count
+    let laborCount = laborData.length;
 
     // Patient list rows
     const patientRowsHtml = mothersFull.map(m=>{
@@ -2081,19 +2144,13 @@ function renderMaternalHealth(label){
           </div>
           <div class="col-sm-6 col-xl-3">
             <div class="mh-metric-card">
-              <div class="mh-metric-label"><i class="bi bi-activity"></i> Postnatal Care</div>
-              <div class="mh-metric-value">${postnatalCount}</div>
-              <div class="mh-metric-sub">Follow-ups needed</div>
+              <div class="mh-metric-label"><i class="bi bi-activity"></i> Labor & Delivery</div>
+              <div class="mh-metric-value">${laborCount}</div>
+              <div class="mh-metric-sub">Records saved</div>
             </div>
           </div>
         </div>
 
-        <div class="mh-tabs nav" id="mhTabs">
-          <button class="nav-link active" data-tab="patients">Patient List</button>
-          <button class="nav-link" data-tab="consults">Consultations</button>
-          <button class="nav-link" data-tab="monitor">Pregnancy Monitoring</button>
-          <button class="nav-link" data-tab="postnatal">Postnatal Care</button>
-        </div>
 
         <div id="mhPanel"></div>
       </div>
@@ -2232,6 +2289,18 @@ function renderMaternalHealth(label){
 
   // Insert Patient List panel by default
   loadPatientList();
+  
+  // Initialize dropdown state
+  window.currentMaternalHealthTab = 'patients';
+  
+  // Set default active dropdown item
+  setTimeout(() => {
+    const defaultItem = document.querySelector('.dropdown-item[data-tab="patients"]');
+    if(defaultItem) {
+      document.querySelectorAll('.dropdown-item').forEach(di => di.classList.remove('active'));
+      defaultItem.classList.add('active');
+    }
+  }, 100);
 
     function loadPatientList(){
       const panel = document.getElementById('mhPanel');
@@ -2414,44 +2483,28 @@ function renderMotherRow(m){
       loadMothers();
     }
 
-    // Tabs switching with debounce + soft fade to prevent flicker/glitch
-    (function(){
-      const tabsEl = document.getElementById('mhTabs');
+    // Global function to switch maternal health tabs
+    window.switchMaternalHealthTab = function(tab) {
       const panelEl = document.getElementById('mhPanel');
-      let switching = false; // debounce flag
-      let switchTimer = null;
-      tabsEl.addEventListener('click',e=>{
-        const btn = e.target.closest('.nav-link');
-        if(!btn) return;
-        if(switching) return; // ignore rapid double click
-        switching = true;
-        clearTimeout(switchTimer);
-
-        document.querySelectorAll('#mhTabs .nav-link').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        const tab = btn.dataset.tab;
-
-        // apply a short fade class to avoid abrupt reflow
-        panelEl.classList.add('is-swapping');
-
-        const exec = ()=>{
-          if(tab==='patients') loadPatientList();
-          else if(tab==='consults') loadConsultsPanel();
-          else if(tab==='monitor') loadMonitorPanel();
-          else if(tab==='postnatal') loadPostnatalPanel();
-          // small delay to let content paint then remove fade
-          requestAnimationFrame(()=>{
-            setTimeout(()=>{
-              panelEl.classList.remove('is-swapping');
-              switching = false;
-            }, 60);
-          });
-        };
-
-        // slight delay before render to ensure CSS class takes effect
-        switchTimer = setTimeout(exec, 30);
-      });
-    })();
+      if(!panelEl) return;
+      
+      // apply a short fade class to avoid abrupt reflow
+      panelEl.classList.add('is-swapping');
+      
+      setTimeout(() => {
+        if(tab==='patients') loadPatientList();
+        else if(tab==='consults') loadConsultsPanel();
+        else if(tab==='monitor') loadMonitorPanel();
+        else if(tab==='labor') loadLaborPanel();
+        
+        // small delay to let content paint then remove fade
+        requestAnimationFrame(()=>{
+          setTimeout(()=>{
+            panelEl.classList.remove('is-swapping');
+          }, 60);
+        });
+      }, 30);
+    };
 
     function placeholderPanel(title, note){
       return `<div class="mh-card"><h6 class="mh-card-title mb-1">${title}</h6>
@@ -2545,21 +2598,21 @@ function renderMotherRow(m){
             <input type="number" name="blood_pressure_diastolic" class="form-control">
           </div>
           <div class="col-4">
-            <label>LINGGO NG PAGBUBUNTIS</label>
+            <label>Edad ng Pagbubuntis (Weeks)</label>
             <input type="number" min="0" max="45" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
           </div>
 
           <div class="col-6">
             <label>HULING REGLA (LMP)</label>
-            <input type="date" name="last_menstruation_date" class="form-control">
+            <input type="date" name="last_menstruation_date" class="form-control" value="${mother?.last_menstruation_date || ''}" readonly style="background-color: #f8f9fa;">
           </div>
           <div class="col-6">
             <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
-            <input type="date" name="expected_delivery_date" class="form-control">
+            <input type="date" name="expected_delivery_date" class="form-control" value="${mother?.expected_delivery_date || ''}" readonly style="background-color: #f8f9fa;">
           </div>
           <div class="col-12">
             <div class="mh-inline-hint">
-              Awtomatiko mula sa LMP/EDD (maaari mong baguhin ang Linggo ng Pagbubuntis at Edad).
+              LMP at EDD ay mula sa registration ng mother (maaari mong baguhin ang Edad ng Pagbubuntis (Weeks) at Edad).
             </div>
           </div>
         </div>
@@ -2591,10 +2644,10 @@ function renderMotherRow(m){
             ['high_blood_pressure','Mataas na Presyon'],
             ['fever_38_celsius','Lagnat ≥38°C'],
             ['pallor','Pamumutla'],
-            ['abnormal_abdominal_size','Hindi Normal na Laki ng Tiyan'],
-            ['abnormal_presentation','Abnormal na Posisyon'],
-            ['absent_fetal_heartbeat','Walang Tibok ng Puso'],
-            ['swelling','Pamamaga'],
+            ['abnormal_abdominal_size','Abnormanl na laki ng tiyan'],
+            ['abnormal_presentation','Abnormal na Presentasyon  '],
+            ['absent_fetal_heartbeat','Nawawalang tibok ng puso'],
+            ['swelling','Namamanas'],
             ['vaginal_infection','Impeksiyon sa Puwerta']
           ].map(([k,l])=>`
             <label class="mh-risk-box">
@@ -2618,44 +2671,84 @@ function renderMotherRow(m){
         <label style="margin-bottom:.4rem; font-weight: 700;">KILOS / LUNAS NA GINAWA</label>
         <div class="row g-2 mb-3">
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;"> Iron/Folate # Reseta
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'iron_folate_notes_consult')"> Iron/Folate # Reseta
+              </label>
+              <div id="iron_folate_notes_consult" style="display:none;">
+                <textarea name="iron_folate_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="additional_iodine" value="1" style="margin:0;"> Dagdag na Iodine sa delikadong lugar
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="additional_iodine" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'additional_iodine_notes_consult')"> Dagdag na Iodine sa delikadong lugar
+              </label>
+              <div id="additional_iodine_notes_consult" style="display:none;">
+                <textarea name="additional_iodine_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;"> Malaria Prophylaxis (Oo/Hindi)
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'malaria_prophylaxis_notes_consult')"> Malaria Prophylaxis (Oo/Hindi)
+              </label>
+              <div id="malaria_prophylaxis_notes_consult" style="display:none;">
+                <textarea name="malaria_prophylaxis_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;"> Balak Magpasuso ng Nanay (Oo/Hindi)
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'breastfeeding_plan_notes_consult')"> Balak Magpasuso ng Nanay (Oo/Hindi)
+              </label>
+              <div id="breastfeeding_plan_notes_consult" style="display:none;">
+                <textarea name="breastfeeding_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="danger_advice" value="1" style="margin:0;"> Payo sa 4 na Panganib (Oo/Hindi)
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="danger_advice" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'danger_advice_notes_consult')"> Payo sa 4 na Panganib (Oo/Hindi)
+              </label>
+              <div id="danger_advice_notes_consult" style="display:none;">
+                <textarea name="danger_advice_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="dental_checkup" value="1" style="margin:0;"> Nagpasuri ng Ngipin (Oo/Hindi)
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="dental_checkup" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'dental_checkup_notes_consult')"> Nagpasuri ng Ngipin (Oo/Hindi)
+              </label>
+              <div id="dental_checkup_notes_consult" style="display:none;">
+                <textarea name="dental_checkup_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="emergency_plan" value="1" style="margin:0;"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="emergency_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'emergency_plan_notes_consult')"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
+              </label>
+              <div id="emergency_plan_notes_consult" style="display:none;">
+                <textarea name="emergency_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
-            <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-              <input type="checkbox" name="general_risk" value="1" style="margin:0;"> Panganib (Oo/Hindi)
-            </label>
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                <input type="checkbox" name="general_risk" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'general_risk_notes_consult')"> Panganib (Oo/Hindi)
+              </label>
+              <div id="general_risk_notes_consult" style="display:none;">
+                <textarea name="general_risk_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+              </div>
+            </div>
           </div>
           <div class="col-md-6">
             <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw</label>
@@ -2715,8 +2808,9 @@ function renderMotherRow(m){
         }
 
         function autoGA(){
-          const lmp = lmpEl.value;
-          const edd = eddEl.value;
+          // For consultation form, use mother data since LMP/EDD fields are read-only
+          const lmp = mother?.last_menstruation_date;
+          const edd = mother?.expected_delivery_date;
           const cd  = cdEl.value;
           if(!cd){ gaBadge.textContent='GA: --'; return; }
           let weeks=null;
@@ -2738,9 +2832,9 @@ function renderMotherRow(m){
           gaBadge.textContent = 'GA: ' + (weeks!==null? weeks+' wks':'--');
         }
 
-        [cdEl,lmpEl,eddEl].forEach(el=>el.addEventListener('change',()=>{
+        cdEl.addEventListener('change',()=>{
           autoGA(); autoAge();
-        }));
+        });
         gaEl.addEventListener('input',()=>{ gaEl.dataset.autofill='0'; gaBadge.textContent='GA: '+(gaEl.value?gaEl.value+' wks':'--'); });
         ageEl.addEventListener('input',()=>{ ageEl.dataset.autofill='0'; });
 
@@ -2802,6 +2896,16 @@ function renderMotherRow(m){
           for (let [key, value] of combinedFd.entries()) {
             console.log(key + ': ' + value);
           }
+          
+          // Debug: Check if notes fields are present
+          const notesFields = ['iron_folate_notes', 'additional_iodine_notes', 'malaria_prophylaxis_notes', 
+                              'breastfeeding_plan_notes', 'danger_advice_notes', 'dental_checkup_notes', 
+                              'emergency_plan_notes', 'general_risk_notes'];
+          console.log('Notes fields check:');
+          notesFields.forEach(field => {
+            const element = consultForm2.querySelector(`[name="${field}"]`);
+            console.log(`${field}: element exists=${!!element}, value="${element?.value || 'N/A'}"`);
+          });
           
           fetch(api.health,{method:'POST',body:combinedFd})
             .then(response => {
@@ -3661,6 +3765,273 @@ function loadPostnatalPanel(){
       bootstrap.Modal.getOrCreateInstance(modalEl).show();
     });
 
+    // Labor & Delivery Panel
+    function loadLaborPanel(){
+      const panel = document.getElementById('mhPanel');
+      const mothers = mothersFull.slice().sort((a,b)=>a.full_name.localeCompare(b.full_name));
+      let activeMotherId = mothers.length ? mothers[0].mother_id : null;
+
+      panel.innerHTML = `
+        <div class="mh-post-layout">
+          <div class="mh-mother-list">
+            <h6>Mothers</h6>
+            <input type="text" class="form-control mh-mother-search" id="mhLaborMotherSearch" placeholder="Search mother / purok">
+            <div class="mh-mother-scroll" id="mhLaborMotherList">
+              ${mothers.map(m=>`
+                <div class="mh-mother-item ${m.mother_id===activeMotherId?'active':''}" data-id="${m.mother_id}">
+                  <span>${escapeHtml(m.full_name)}</span>
+                  <small>${escapeHtml(m.purok_name||'')}</small>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="mh-post-main" id="mhLaborMain">
+            <div class="text-muted" style="font-size:.7rem;">${activeMotherId?'Loading labor data...':'No mothers.'}</div>
+          </div>
+        </div>
+      `;
+
+      // Wire up mother selection
+      const motherList = panel.querySelector('#mhLaborMotherList');
+      const mainPanel = panel.querySelector('#mhLaborMain');
+      const searchInput = panel.querySelector('#mhLaborMotherSearch');
+
+      motherList.addEventListener('click',(e)=>{
+        const item = e.target.closest('.mh-mother-item');
+        if(!item) return;
+        const id = parseInt(item.dataset.id);
+        if(id === activeMotherId) return;
+        
+        motherList.querySelectorAll('.mh-mother-item').forEach(x=>x.classList.remove('active'));
+        item.classList.add('active');
+        activeMotherId = id;
+        loadLaborForm(id);
+      });
+
+      // Search functionality
+      searchInput.addEventListener('input',(e)=>{
+        const q = e.target.value.toLowerCase();
+        motherList.querySelectorAll('.mh-mother-item').forEach(item=>{
+          const name = item.querySelector('span').textContent.toLowerCase();
+          const purok = item.querySelector('small').textContent.toLowerCase();
+          const match = name.includes(q) || purok.includes(q);
+          item.classList.toggle('d-none', !match);
+        });
+      });
+
+      // Load initial form if mother is selected
+      if(activeMotherId) loadLaborForm(activeMotherId);
+
+      function loadLaborForm(motherId){
+        mainPanel.innerHTML = '<div class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>';
+        
+        fetchJSON(api.maternal+`?detail=1&mother_id=${encodeURIComponent(motherId)}`)
+          .then(j=>{
+            if(!j.success) throw new Error(j.error||'Load failed');
+            const mother = j.mother;
+            
+            mainPanel.innerHTML = `
+              <div class="mh-post-head d-flex justify-content-between align-items-center mb-3">
+                <h6>Labor & Delivery - ${escapeHtml(mother.full_name)}</h6>
+                <button class="btn btn-sm btn-success" id="btnAddLaborRecord">
+                  <i class="bi bi-plus-lg me-1"></i> Add Labor Record
+                </button>
+              </div>
+              <div id="laborFormContainer">
+                <div class="text-muted text-center py-4">Click "Add Labor Record" to create a new labor and delivery record.</div>
+              </div>
+            `;
+
+            // Wire up add button
+            mainPanel.querySelector('#btnAddLaborRecord')?.addEventListener('click',()=>{
+              showLaborForm(mother);
+            });
+          })
+          .catch(err=>{
+            mainPanel.innerHTML = `<div class="text-danger small py-4 text-center">Failed to load: ${escapeHtml(err.message)}</div>`;
+          });
+      }
+
+      function showLaborForm(mother){
+        const container = mainPanel.querySelector('#laborFormContainer');
+        container.innerHTML = `
+          <form id="laborForm" class="mh-consult-form">
+            <div class="row g-3">
+              <div class="col-12">
+                <h6 class="fw-semibold mb-3">PAGHILAB AT PANGANGANAK</h6>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="row g-2">
+                  <div class="col-12">
+                    <label>Dagliang Pagpapasuso (Oo/Hindi)</label>
+                    <div class="d-flex gap-3">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="immediate_breastfeeding" value="1" id="breastfeeding_yes">
+                        <label class="form-check-label" for="breastfeeding_yes">Oo</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="immediate_breastfeeding" value="0" id="breastfeeding_no">
+                        <label class="form-check-label" for="breastfeeding_no">Hindi</label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="col-12">
+                    <label>Tipo/Paraan ng Panganganak</label>
+                    <select name="delivery_type" class="form-control">
+                      <option value="">Select delivery type</option>
+                      <option value="Normal Spontaneous Vaginal Delivery">Normal Spontaneous Vaginal Delivery</option>
+                      <option value="Cesarean Section">Cesarean Section</option>
+                      <option value="Vacuum Extraction">Vacuum Extraction</option>
+                      <option value="Forceps Delivery">Forceps Delivery</option>
+                      <option value="Breech Delivery">Breech Delivery</option>
+                    </select>
+                  </div>
+                  
+                  <div class="col-12">
+                    <label>Petsa ng Panganganak</label>
+                    <input type="date" name="delivery_date" class="form-control" required>
+                  </div>
+                  
+                  <div class="col-12">
+                    <label>Lugar ng Panganganakan</label>
+                    <select name="delivery_place" class="form-control">
+                      <option value="">Select delivery place</option>
+                      <option value="Hospital">Hospital</option>
+                      <option value="Birthing Center">Birthing Center</option>
+                      <option value="Home">Home</option>
+                      <option value="Health Center">Health Center</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div class="col-12">
+                    <label>Ang Nagpaanak (Duktor, Nars, Kumadrona, Hilot Atbp.)</label>
+                    <select name="birth_attendant" class="form-control">
+                      <option value="">Select birth attendant</option>
+                      <option value="Doctor">Doctor</option>
+                      <option value="Nurse">Nurse</option>
+                      <option value="Midwife">Midwife</option>
+                      <option value="Traditional Birth Attendant">Traditional Birth Attendant</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="row g-2">
+                  <div class="col-12">
+                    <label>Timbang ng Kapanganakan (Gms)</label>
+                    <input type="number" name="birth_weight" class="form-control" placeholder="Enter weight in grams" min="0" max="10000">
+                  </div>
+                  
+                  <div class="col-12">
+                    <label>Labis na Pagdurugo (500 cc+) (Oo/Hindi)</label>
+                    <div class="d-flex gap-3">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="excessive_bleeding" value="1" id="bleeding_yes">
+                        <label class="form-check-label" for="bleeding_yes">Oo</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="excessive_bleeding" value="0" id="bleeding_no">
+                        <label class="form-check-label" for="bleeding_no">Hindi</label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="col-12">
+                    <label>Sanggol ay Buhay (Oo/Hindi)</label>
+                    <div class="d-flex gap-3">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="baby_alive" value="1" id="alive_yes">
+                        <label class="form-check-label" for="alive_yes">Oo</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="baby_alive" value="0" id="alive_no">
+                        <label class="form-check-label" for="alive_no">Hindi</label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="col-12">
+                    <label>Sanggol ay Malusog (Oo/Hindi)</label>
+                    <div class="d-flex gap-3">
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="baby_healthy" value="1" id="healthy_yes">
+                        <label class="form-check-label" for="healthy_yes">Oo</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="baby_healthy" value="0" id="healthy_no">
+                        <label class="form-check-label" for="healthy_no">Hindi</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-12">
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-lg me-1"></i> Save Labor Record
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" id="btnCancelLabor">
+                    <i class="bi bi-x-lg me-1"></i> Cancel
+                  </button>
+                </div>
+                <div class="small text-danger d-none mt-2" id="laborErr"></div>
+                <div class="small text-success d-none mt-2" id="laborOk">Labor record saved successfully!</div>
+              </div>
+            </div>
+          </form>
+        `;
+
+        // Wire up form submission
+        const form = container.querySelector('#laborForm');
+        const cancelBtn = container.querySelector('#btnCancelLabor');
+        
+        form.addEventListener('submit',(e)=>{
+          e.preventDefault();
+          const formData = new FormData(form);
+          formData.append('mother_id', mother.mother_id);
+          formData.append('csrf_token', window.__BHW_CSRF);
+          
+          // Clear previous messages
+          form.querySelector('#laborErr').classList.add('d-none');
+          form.querySelector('#laborOk').classList.add('d-none');
+          
+          fetch(api.labor, {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.text())
+          .then(text => {
+            try {
+              const result = JSON.parse(text);
+              if(result.success) {
+                form.querySelector('#laborOk').classList.remove('d-none');
+                setTimeout(() => {
+                  container.innerHTML = '<div class="text-muted text-center py-4">Click "Add Labor Record" to create a new labor and delivery record.</div>';
+                }, 1500);
+              } else {
+                throw new Error(result.error || 'Save failed');
+              }
+            } catch(err) {
+              throw new Error('Invalid response from server');
+            }
+          })
+          .catch(err => {
+            form.querySelector('#laborErr').textContent = err.message;
+            form.querySelector('#laborErr').classList.remove('d-none');
+          });
+        });
+        
+        cancelBtn.addEventListener('click',()=>{
+          container.innerHTML = '<div class="text-muted text-center py-4">Click "Add Labor Record" to create a new labor and delivery record.</div>';
+        });
+      }
+    }
 
     // View mother details (simple placeholder – expand as needed)
     function openMotherModal(mother_id){
@@ -3675,23 +4046,50 @@ function loadPostnatalPanel(){
         </div>`;
       bootstrap.Modal.getOrCreateInstance(modal).show();
 
-      fetchJSON(api.maternal+`?detail=1&mother_id=${encodeURIComponent(mother_id)}`)
-        .then(j=>{
-          if(!j.success) throw new Error(j.error||'Load failed');
+      // Fetch both mother details and all consultations
+      Promise.all([
+        fetchJSON(api.maternal+`?detail=1&mother_id=${encodeURIComponent(mother_id)}`),
+        fetchJSON(api.health+`?list=1&mother_id=${encodeURIComponent(mother_id)}`)
+      ])
+        .then(([motherResp, consultResp]) => {
+          if(!motherResp.success) throw new Error(motherResp.error||'Load failed');
+          if(!consultResp.success) throw new Error(consultResp.error||'Load failed');
 
-          const m = j.mother;
-          const latest = j.latest_consultation;
-          const riskScore = parseInt(j.latest_risk_score ?? 0, 10);
+          const m = motherResp.mother;
+          const allConsultations = consultResp.records || [];
+          const latest = motherResp.latest_consultation;
+          const riskScore = parseInt(motherResp.latest_risk_score ?? 0, 10);
 
             let riskClass='risk-normal', riskLabel='Normal';
             if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High Risk'; }
             else if(riskScore === 1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
 
           title.textContent = m.full_name;
+          const addressTxt = formatAddress(m);
 
-          // Build flag chips
-          let flagsHTML = '';
-          if(latest){
+          // Store consultations data for navigation
+          modal.dataset.consultations = JSON.stringify(allConsultations);
+          modal.dataset.currentConsultIndex = '0';
+
+          // Function to render consultation snapshot
+          function renderConsultationSnapshot(consultIndex) {
+            const consultation = allConsultations[consultIndex];
+            if (!consultation) return '';
+
+            // Calculate risk score
+            const riskScore = 
+              (parseInt(consultation.vaginal_bleeding) + parseInt(consultation.urinary_infection) + 
+               parseInt(consultation.high_blood_pressure) + parseInt(consultation.fever_38_celsius) + 
+               parseInt(consultation.pallor) + parseInt(consultation.abnormal_abdominal_size) + 
+               parseInt(consultation.abnormal_presentation) + parseInt(consultation.absent_fetal_heartbeat) + 
+               parseInt(consultation.swelling) + parseInt(consultation.vaginal_infection));
+
+            let riskClass='risk-normal', riskLabel='Normal';
+            if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High Risk'; }
+            else if(riskScore === 1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
+
+            // Build flag chips
+            let flagsHTML = '';
             const map = {
               vaginal_bleeding:'VB',
               urinary_infection:'UTI',
@@ -3705,24 +4103,56 @@ function loadPostnatalPanel(){
               vaginal_infection:'VAG'
             };
             Object.keys(map).forEach(k=>{
-              if(parseInt(latest[k])===1){
+              if(parseInt(consultation[k])===1){
                 flagsHTML += `<span class="mh-flag-chip">${map[k]}</span>`;
               }
             });
-          }
-          if(!flagsHTML) flagsHTML = '<span class="text-muted" style="font-size:.65rem;">None</span>';
+            if(!flagsHTML) flagsHTML = '<span class="text-muted" style="font-size:.65rem;">None</span>';
 
-          const gaTxt = latest && latest.pregnancy_age_weeks != null
-            ? `${latest.pregnancy_age_weeks} wks`
-            : '—';
-
-          const eddTxt = latest?.expected_delivery_date || '—';
-          const bpTxt = (latest?.blood_pressure_systolic && latest?.blood_pressure_diastolic)
-              ? `${latest.blood_pressure_systolic}/${latest.blood_pressure_diastolic}`
+            const gaTxt = consultation.pregnancy_age_weeks != null
+              ? `${consultation.pregnancy_age_weeks} wks`
               : '—';
 
-          const hgbTxt = latest?.hgb_result ? escapeHtml(latest.hgb_result) : '—';
-          const addressTxt = formatAddress(m);
+            const eddTxt = consultation.expected_delivery_date || '—';
+            const bpTxt = (consultation.blood_pressure_systolic && consultation.blood_pressure_diastolic)
+                ? `${consultation.blood_pressure_systolic}/${consultation.blood_pressure_diastolic}`
+                : '—';
+
+            const hgbTxt = consultation.hgb_result ? escapeHtml(consultation.hgb_result) : '—';
+
+            // Navigation buttons
+            const hasPrev = consultIndex > 0;
+            const hasNext = consultIndex < allConsultations.length - 1;
+            const navButtons = allConsultations.length > 1 ? `
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <button class="btn btn-sm btn-outline-secondary" ${!hasPrev ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex - 1})" style="font-size:.6rem; padding:.2rem .4rem;">
+                  <i class="bi bi-chevron-left"></i> Previous
+                </button>
+                <span class="text-muted" style="font-size:.6rem;">${consultIndex + 1} of ${allConsultations.length}</span>
+                <button class="btn btn-sm btn-outline-secondary" ${!hasNext ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex + 1})" style="font-size:.6rem; padding:.2rem .4rem;">
+                  Next <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            ` : '';
+
+            return `
+              ${navButtons}
+              <h6 class="fw-semibold mb-2 d-flex align-items-center gap-2" style="font-size:.8rem;">
+                Consultation Snapshot
+                <span class="risk-badge ${riskClass}">${riskLabel}</span>
+              </h6>
+              <div class="row small g-2">
+                <div class="col-6"><strong>Date:</strong> ${escapeHtml(consultation.consultation_date||'')}</div>
+                <div class="col-6"><strong>GA:</strong> ${gaTxt}</div>
+                <div class="col-6"><strong>BP:</strong> ${bpTxt}</div>
+                <div class="col-6"><strong>EDD:</strong> ${escapeHtml(eddTxt)}</div>
+                <div class="col-6"><strong>HGB:</strong> ${hgbTxt}</div>
+                <div class="col-12 mt-2">
+                  <strong>Risk Flags:</strong><br>${flagsHTML}
+                </div>
+              </div>
+            `;
+          }
 
           body.innerHTML = `
             <div class="row g-3">
@@ -3738,34 +4168,15 @@ function loadPostnatalPanel(){
                 </div>
               </div>
               <div class="col-md-8">
-                <div class="border rounded p-3 h-100 d-flex flex-column">
-                  <h6 class="fw-semibold mb-2 d-flex align-items-center gap-2" style="font-size:.8rem;">
-                    Latest Consultation Snapshot
-                    ${latest ? `<span class="risk-badge ${riskClass}">${riskLabel}</span>` : ''}
-                  </h6>
-                  ${
-                    latest ? `
-                      <div class="row small g-2">
-                        <div class="col-6"><strong>Date:</strong> ${escapeHtml(latest.consultation_date||'')}</div>
-                        <div class="col-6"><strong>GA:</strong> ${gaTxt}</div>
-                        <div class="col-6"><strong>BP:</strong> ${bpTxt}</div>
-                        <div class="col-6"><strong>EDD:</strong> ${escapeHtml(eddTxt)}</div>
-                        <div class="col-6"><strong>HGB:</strong> ${hgbTxt}</div>
-                        <div class="col-12 mt-2">
-                          <strong>Risk Flags:</strong><br>${flagsHTML}
-                        </div>
-                      </div>
-                    ` : `
-                      <div class="text-muted small">No consultations recorded yet.</div>
-                    `
-                  }
+                <div class="border rounded p-3 h-100 d-flex flex-column" id="consultationSnapshot">
+                  ${allConsultations.length > 0 ? renderConsultationSnapshot(0) : `
+                    <h6 class="fw-semibold mb-2" style="font-size:.8rem;">Consultation Snapshot</h6>
+                    <div class="text-muted small">No consultations recorded yet.</div>
+                  `}
                   <hr class="my-3">
                   <div class="mt-auto">
-                    <button class="btn btn-sm btn-success me-2" id="btnQuickConsult">
+                    <button class="btn btn-sm btn-success" id="btnQuickConsult">
                       <i class="bi bi-journal-plus me-1"></i> Add Consultation
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" id="btnOpenFullConsults">
-                      <i class="bi bi-list-ul me-1"></i> View All Consultations
                     </button>
                   </div>
                 </div>
@@ -3773,14 +4184,18 @@ function loadPostnatalPanel(){
             </div>
           `;
 
-          body.querySelector('#btnOpenFullConsults')?.addEventListener('click',()=>{
-            bootstrap.Modal.getInstance(modal).hide();
-            document.querySelector('#mhTabs .nav-link[data-tab="consults"]')?.click();
-          });
           body.querySelector('#btnQuickConsult')?.addEventListener('click',()=>{
             bootstrap.Modal.getInstance(modal).hide();
+            // Switch to consultations tab and select the mother
             document.querySelector('#mhTabs .nav-link[data-tab="consults"]')?.click();
-            // Optional: could auto-select mother in Consults tab if you add logic
+            // Auto-select the mother in the consultations tab
+            setTimeout(() => {
+              const motherSelect = document.querySelector('#motherSelect');
+              if (motherSelect) {
+                motherSelect.value = mother_id;
+                motherSelect.dispatchEvent(new Event('change'));
+              }
+            }, 100);
           });
 
         })
@@ -3789,6 +4204,102 @@ function loadPostnatalPanel(){
           body.innerHTML = `<div class="text-danger small py-4 text-center">Failed to load details: ${escapeHtml(err.message)}</div>`;
         });
     }
+
+    // Global function to navigate consultations in the modal
+    window.navigateConsultation = function(consultIndex) {
+      const modal = document.getElementById('modalViewMother');
+      const snapshotEl = document.getElementById('consultationSnapshot');
+      const consultations = JSON.parse(modal.dataset.consultations || '[]');
+      
+      if (consultIndex >= 0 && consultIndex < consultations.length) {
+        modal.dataset.currentConsultIndex = consultIndex.toString();
+        
+        // Re-render the consultation snapshot
+        const consultation = consultations[consultIndex];
+        if (!consultation) return;
+
+        // Calculate risk score
+        const riskScore = 
+          (parseInt(consultation.vaginal_bleeding) + parseInt(consultation.urinary_infection) + 
+           parseInt(consultation.high_blood_pressure) + parseInt(consultation.fever_38_celsius) + 
+           parseInt(consultation.pallor) + parseInt(consultation.abnormal_abdominal_size) + 
+           parseInt(consultation.abnormal_presentation) + parseInt(consultation.absent_fetal_heartbeat) + 
+           parseInt(consultation.swelling) + parseInt(consultation.vaginal_infection));
+
+        let riskClass='risk-normal', riskLabel='Normal';
+        if(riskScore >= 2){ riskClass='risk-high'; riskLabel='High Risk'; }
+        else if(riskScore === 1){ riskClass='risk-monitor'; riskLabel='Monitor'; }
+
+        // Build flag chips
+        let flagsHTML = '';
+        const map = {
+          vaginal_bleeding:'VB',
+          urinary_infection:'UTI',
+          high_blood_pressure:'HBP',
+          fever_38_celsius:'FEV',
+          pallor:'PAL',
+          abnormal_abdominal_size:'ABD',
+          abnormal_presentation:'PRES',
+          absent_fetal_heartbeat:'FHT',
+          swelling:'SWL',
+          vaginal_infection:'VAG'
+        };
+        Object.keys(map).forEach(k=>{
+          if(parseInt(consultation[k])===1){
+            flagsHTML += `<span class="mh-flag-chip">${map[k]}</span>`;
+          }
+        });
+        if(!flagsHTML) flagsHTML = '<span class="text-muted" style="font-size:.65rem;">None</span>';
+
+        const gaTxt = consultation.pregnancy_age_weeks != null
+          ? `${consultation.pregnancy_age_weeks} wks`
+          : '—';
+
+        const eddTxt = consultation.expected_delivery_date || '—';
+        const bpTxt = (consultation.blood_pressure_systolic && consultation.blood_pressure_diastolic)
+            ? `${consultation.blood_pressure_systolic}/${consultation.blood_pressure_diastolic}`
+            : '—';
+
+        const hgbTxt = consultation.hgb_result ? escapeHtml(consultation.hgb_result) : '—';
+
+        // Navigation buttons
+        const hasPrev = consultIndex > 0;
+        const hasNext = consultIndex < consultations.length - 1;
+        const navButtons = consultations.length > 1 ? `
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <button class="btn btn-sm btn-outline-secondary" ${!hasPrev ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex - 1})" style="font-size:.6rem; padding:.2rem .4rem;">
+              <i class="bi bi-chevron-left"></i> Previous
+            </button>
+            <span class="text-muted" style="font-size:.6rem;">${consultIndex + 1} of ${consultations.length}</span>
+            <button class="btn btn-sm btn-outline-secondary" ${!hasNext ? 'disabled' : ''} onclick="navigateConsultation(${consultIndex + 1})" style="font-size:.6rem; padding:.2rem .4rem;">
+              Next <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        ` : '';
+
+        // Update the snapshot content (preserve the Add Consultation button at the bottom)
+        const buttonsHTML = snapshotEl.querySelector('.mt-auto').outerHTML;
+        snapshotEl.innerHTML = `
+          ${navButtons}
+          <h6 class="fw-semibold mb-2 d-flex align-items-center gap-2" style="font-size:.8rem;">
+            Consultation Snapshot
+            <span class="risk-badge ${riskClass}">${riskLabel}</span>
+          </h6>
+          <div class="row small g-2">
+            <div class="col-6"><strong>Date:</strong> ${escapeHtml(consultation.consultation_date||'')}</div>
+            <div class="col-6"><strong>GA:</strong> ${gaTxt}</div>
+            <div class="col-6"><strong>BP:</strong> ${bpTxt}</div>
+            <div class="col-6"><strong>EDD:</strong> ${escapeHtml(eddTxt)}</div>
+            <div class="col-6"><strong>HGB:</strong> ${hgbTxt}</div>
+            <div class="col-12 mt-2">
+              <strong>Risk Flags:</strong><br>${flagsHTML}
+            </div>
+          </div>
+          <hr class="my-3">
+          ${buttonsHTML}
+        `;
+      }
+    };
 
     function buildFlagChips(r){
       const map = {
@@ -3927,14 +4438,6 @@ function renderVaccinationEntry(label){
       ${metricCard('Overdue', overdue,'Require follow-up','bi-exclamation-octagon')}
     </div>
 
-    <div class="imm-tabs nav" id="immTabs">
-      <button class="nav-link active" data-tab="children">Registered Children</button>
-      <button class="nav-link" data-tab="schedule">Vaccine Schedule</button>
-      <button class="nav-link" data-tab="records">Vaccination Records</button>
-      <button class="nav-link" data-tab="overdue">Overdue Alerts</button>
-      <button class="nav-link" data-tab="cards">Immunization Cards</button>
-      <button class="nav-link" data-tab="parent_notifs">Parent Notifications</button>
-    </div>
     <div id="immPanel"></div>
   </div>
 
@@ -4143,19 +4646,6 @@ function renderVaccinationEntry(label){
 });
 /* === END Quick Child Registration === */
 
-    // Tab switching
-    document.getElementById('immTabs').addEventListener('click',e=>{
-      const b=e.target.closest('.nav-link'); if(!b) return;
-      document.querySelectorAll('#immTabs .nav-link').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      const tab=b.dataset.tab;
-      if(tab==='children') loadChildrenPanel();
-      else if(tab==='schedule') loadSchedulePanel();
-      else if(tab==='records') loadRecordsPanel();
-      else if(tab==='overdue') loadOverduePanel();
-      else if(tab==='cards') loadCardsPanel();
-      else if(tab==='parent_notifs') loadParentNotifPanel();
-    });
 
     /* Open modal */
     document.getElementById('immRecordBtn').addEventListener('click',()=>{
@@ -4239,6 +4729,27 @@ function renderVaccinationEntry(label){
     });
 
     /* Panels */
+    // Initialize current tab tracking for immunization
+    window.currentImmunizationTab = 'children';
+    
+    // Function to switch immunization tabs (for dropdown navigation)
+    window.switchImmunizationTab = function(tab) {
+      if(tab === 'children') loadChildrenPanel();
+      else if(tab === 'schedule') loadSchedulePanel();
+      else if(tab === 'records') loadRecordsPanel();
+      else if(tab === 'overdue') loadOverduePanel();
+      else if(tab === 'cards') loadCardsPanel();
+      else if(tab === 'parent_notifs') loadParentNotifPanel();
+    };
+    
+    // Set the first dropdown item as active for the Immunization dropdown
+    const immunizationDropdown = document.querySelector('.nav-link-modern[data-module="vaccination_entry"]')?.closest('.nav-dropdown');
+    if(immunizationDropdown) {
+      immunizationDropdown.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
+      const firstItem = immunizationDropdown.querySelector('.dropdown-item[data-tab="children"]');
+      if(firstItem) firstItem.classList.add('active');
+    }
+    
     loadChildrenPanel();
 
 function loadOverduePanel(){
@@ -4813,6 +5324,10 @@ function loadCardsPanel(){
     pageSizeSelect.value = page_size;
   }
 
+  function formatShortDate(d){
+    const dt=new Date(d+'T00:00:00'); if(isNaN(dt)) return escapeHtml(d);
+    return dt.toLocaleDateString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+  }
 
   // Initial load
   loadCards();
@@ -7969,6 +8484,12 @@ function renderParentRegistry(label){
       childrenByMother[ch.mother_id].push(ch);
     });
 
+    // Pagination state
+    let currentPage = 1;
+    let pageSize = 15; // Show 15 mothers per page
+    let totalPages = Math.ceil(mothers.length / pageSize);
+    let filteredMothers = mothers; // For search functionality
+
     moduleContent.innerHTML = `
       <div class="fade-in">
         <div class="pr-layout">
@@ -7981,13 +8502,16 @@ function renderParentRegistry(label){
                 <input id="prSearch" type="text" class="form-control" placeholder="Search parents...">
               </div>
             </div>
-            <ul class="pr-parent-list" id="prParentList">
-              ${
-                mothers.length
-                  ? mothers.map((m,i)=>motherListItem(m, childrenByMother[m.mother_id]?.length || 0, i===0)).join('')
-                  : '<li class="pr-parent-item" style="cursor:default;">No mothers found.</li>'
-              }
-            </ul>
+            <div class="pr-list-container" style="flex: 1; overflow-y: auto; max-height: 60vh; border: 1px solid #e0e6ed; border-radius: 8px;">
+              <ul class="pr-parent-list" id="prParentList">
+                <!-- Mothers list will be rendered by JavaScript -->
+              </ul>
+            </div>
+            <div class="pr-pagination-container" style="border-top: 1px solid #e0e6ed; padding: 0.75rem; background: #f8f9fa;">
+              <div id="prPagination">
+                <!-- Pagination controls will be added here -->
+              </div>
+            </div>
           </div>
 
           <!-- RIGHT DETAIL -->
@@ -8062,6 +8586,62 @@ function renderParentRegistry(label){
       </div>
     `;
 
+    // Pagination functions
+    function renderMothersList() {
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const pageMothers = filteredMothers.slice(startIndex, endIndex);
+      
+      const listHTML = pageMothers.length
+        ? pageMothers.map((m,i)=>motherListItem(m, childrenByMother[m.mother_id]?.length || 0, i===0)).join('')
+        : '<li class="pr-parent-item" style="cursor:default;">No mothers found.</li>';
+
+      const listEl = document.getElementById('prParentList');
+      if (listEl) {
+        listEl.innerHTML = listHTML;
+      }
+      
+      updatePaginationControls();
+    }
+
+    function updatePaginationControls() {
+      const paginationEl = document.getElementById('prPagination');
+      if (!paginationEl) return;
+
+      const hasPrev = currentPage > 1;
+      const hasNext = currentPage < totalPages;
+      const startRecord = (currentPage - 1) * pageSize + 1;
+      const endRecord = Math.min(currentPage * pageSize, filteredMothers.length);
+
+      paginationEl.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="text-muted small">
+            Showing ${startRecord}-${endRecord} of ${filteredMothers.length} mothers
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-secondary" ${!hasPrev ? 'disabled' : ''} onclick="loadParentRegistryPage(${currentPage - 1})">
+              <i class="bi bi-chevron-left"></i> Previous
+            </button>
+            <span class="text-muted small">Page ${currentPage} of ${totalPages}</span>
+            <button class="btn btn-sm btn-outline-secondary" ${!hasNext ? 'disabled' : ''} onclick="loadParentRegistryPage(${currentPage + 1})">
+              Next <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Global function for pagination
+    window.loadParentRegistryPage = function(page) {
+      if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderMothersList();
+      }
+    };
+
+    // Initial render
+    renderMothersList();
+
     // Wire interactions
     const listEl   = document.getElementById('prParentList');
     const detailEl = document.getElementById('prDetail');
@@ -8073,7 +8653,7 @@ function renderParentRegistry(label){
       listEl.querySelectorAll('.pr-parent-item').forEach(x=>x.classList.remove('active'));
       li.classList.add('active');
       const id = parseInt(li.dataset.id,10);
-      const mom = mothers.find(m=>m.mother_id==id);
+      const mom = filteredMothers.find(m=>m.mother_id==id);
       detailEl.innerHTML = motherDetailHTML(mom, childrenByMother[id]||[]);
       wireDetailButtons();
     });
@@ -8082,17 +8662,33 @@ function renderParentRegistry(label){
     searchEl.addEventListener('input', ()=>{
       clearTimeout(timer);
       timer=setTimeout(()=>{
-        const q=(searchEl.value||'').toLowerCase();
-        listEl.querySelectorAll('.pr-parent-item[data-id]').forEach(li=>{
-          const txt=li.innerText.toLowerCase();
-            li.classList.toggle('d-none', !txt.includes(q));
-        });
-      },180);
+        const searchTerm = (searchEl.value||'').toLowerCase();
+        
+        // Filter mothers based on search
+        if (searchTerm) {
+          filteredMothers = mothers.filter(m => 
+            (m.full_name || '').toLowerCase().includes(searchTerm) ||
+            (m.contact_number || '').includes(searchTerm)
+          );
+        } else {
+          filteredMothers = mothers;
+        }
+        
+        // Reset to first page and update pagination
+        currentPage = 1;
+        totalPages = Math.ceil(filteredMothers.length / pageSize);
+        renderMothersList();
+      }, 300);
     });
 
     function wireDetailButtons(){
       detailEl.querySelectorAll('[data-add-child]').forEach(btn=>{
         btn.addEventListener('click',()=>{
+          // Check if button is disabled
+          if(btn.disabled || btn.classList.contains('pr-add-child-btn-disabled')){
+            return; // Don't open modal if button is disabled
+          }
+          
           const mid=btn.getAttribute('data-add-child');
           document.getElementById('prChildMotherId').value=mid;
           const f=document.getElementById('prAddChildForm');
@@ -8181,8 +8777,6 @@ function renderParentRegistry(label){
 }
 
 
-
-
  /* ===== Replace stubs below with your real full module implementations ===== */
  function renderRecentActivities(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Recent Activities code here.</div>';}
  function renderAlertSystem(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Paste original Alert System code here.</div>';}
@@ -8192,376 +8786,6 @@ function renderParentRegistry(label){
  function renderOverdueAlerts(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Overdue Alerts - insert original code.</div>';}
  function renderParentNotifications(l){showLoading(l);moduleContent.innerHTML='<div class="alert alert-info">Parent Notifications - insert original code.</div>';}
 /* ========================================================================== */
-
-/* Immunization Module with robust error handling + graceful fallbacks (Enhanced Override) */
-function renderVaccinationEntry(label){
-  showLoading(label);
-
-  // Helper: always resolve with { ok:true|false, data|error }
-  function safeFetch(url){
-    return fetch(url,{headers:{'X-Requested-With':'fetch'}})
-      .then(async r=>{
-        const text = await r.text();
-        let json=null, parseErr=null;
-        try{ json = text.trim() ? JSON.parse(text) : {}; }catch(e){ parseErr=e; }
-        if(!r.ok){
-          return {ok:false,error:`HTTP ${r.status}`,raw:text.slice(0,180)};
-        }
-        if(parseErr){
-          return {ok:false,error:'Invalid JSON',raw:text.slice(0,180)};
-        }
-        return {ok:(json&&json.success!==false),data:json,error:json.success===false?(json.error||'API error'):null};
-      })
-      .catch(e=>({ok:false,error:e.message||'Network error'}));
-  }
-
-  Promise.all([
-    safeFetch(api.reports+'?vaccination_coverage=1'),   // 0
-    safeFetch(api.immun+'?overdue=1'),                  // 1
-    safeFetch(api.immun+'?schedule=1'),                 // 2
-    safeFetch(api.notif+'?list=1')                      // 3 (non‑critical)
-  ]).then(res=>{
-    const covRes   = res[0];
-    const overRes  = res[1];
-    const schedRes = res[2];
-    const notifRes = res[3];
-
-    // Prepare usable data or safe fallbacks
-    const coverage = covRes.ok && covRes.data ? covRes.data : {overall_dose_coverage_pct:0,total_children:0,fully_immunized_children:0};
-    const overdue  = overRes.ok && overRes.data ? overRes.data : {overdue:[],dueSoon:[]};
-    const schedule = schedRes.ok && schedRes.data ? schedRes.data : {schedule:[]};
-    const notif    = notifRes.ok && notifRes.data ? notifRes.data : {notifications:[]};
-
-    // Collect failures for diagnostics
-    const failures=[];
-    if(!covRes.ok)   failures.push({name:'coverage',detail:covRes.error});
-    if(!overRes.ok)  failures.push({name:'overdue',detail:overRes.error});
-    if(!schedRes.ok) failures.push({name:'schedule',detail:schedRes.error});
-
-    // UI alert block (only if something failed)
-    let alertHTML='';
-    if(failures.length){
-      alertHTML = `
-        <div class="alert alert-warning" style="font-size:.7rem;">
-          <strong>Partial load:</strong> ${failures.map(f=>f.name).join(', ')} failed.
-          <div style="margin-top:4px;">
-            ${failures.map(f=>`<div>• <code>${f.name}</code>: ${escapeHtml(f.detail||'unknown')}</div>`).join('')}
-          </div>
-          <button id="immRetryBtn" class="btn btn-sm btn-outline-secondary mt-2" style="font-size:.6rem;">
-            <i class="bi bi-arrow-clockwise me-1"></i>Retry
-          </button>
-        </div>`;
-    }
-
-    // If ALL three core calls failed, show focused recovery UI
-    if(failures.length===3){
-      moduleContent.innerHTML = `
-        <div class="imm-wrap fade-in">
-          <h2 class="imm-title">Immunization Management</h2>
-          <p class="imm-sub">Diagnostics</p>
-          ${alertHTML}
-          <div class="card p-3" style="border:1px solid var(--border);border-radius:16px;font-size:.75rem;">
-            <p class="mb-2"><strong>Possible causes:</strong></p>
-            <ul style="margin-left:1.1rem;">
-              <li>Missing tables (vaccine_types / immunization_schedule / child_immunizations).</li>
-              <li>PHP error (check server logs).</li>
-              <li>Incorrect path (verify api.immun points to the right file).</li>
-            </ul>
-            <p class="mb-2"><strong>Quick fix if tables exist but empty:</strong></p>
-            <button class="btn btn-success btn-sm" id="immBootstrapVaccines">
-              <i class="bi bi-capsule me-1"></i> Load Standard Vaccines
-            </button>
-            <div id="immBootstrapMsg" class="mt-2 small fw-semibold"></div>
-          </div>
-        </div>`;
-      wireRecoveryButtons();
-      return;
-    }
-
-    // ---- Normal (or partial) render continues even if some failed ----
-    renderImmunizationUI(coverage, overdue, schedule, notif, alertHTML);
-    wireRecoveryButtons();
-
-    function wireRecoveryButtons(){
-      const retry=document.getElementById('immRetryBtn');
-      if(retry){
-        retry.addEventListener('click',()=>renderVaccinationEntry(label));
-      }
-      const boot=document.getElementById('immBootstrapVaccines');
-      if(boot){
-        boot.addEventListener('click',()=>{
-          const msgEl=document.getElementById('immBootstrapMsg');
-            msgEl.textContent='Loading...';
-          const fd=new FormData();
-          fd.append('bulk_add_standard','1');
-          fd.append('csrf_token',window.__BHW_CSRF);
-          fetch(api.immun,{method:'POST',body:fd})
-            .then(parseJSONSafe)
-            .then(j=>{
-              if(!j.success) throw new Error(j.error||'Insert failed');
-              msgEl.innerHTML = `<span class="text-success">Added: ${(j.added||[]).join(', ')||'none'} - Skipped: ${(j.skipped||[]).join(', ')||'none'}</span>`;
-              setTimeout(()=>renderVaccinationEntry(label),900);
-            })
-            .catch(e=>{
-              msgEl.innerHTML = `<span class="text-danger">${escapeHtml(e.message)}</span>`;
-            });
-        });
-      }
-    }
-  }).catch(err=>{
-    moduleContent.innerHTML = `
-      <div class="alert alert-danger">
-        Critical error loading Immunization module: ${escapeHtml(err.message||'Unknown')}
-        <button class="btn btn-sm btn-outline-light ms-2" onclick="renderVaccinationEntry('Immunization')">Retry</button>
-      </div>`;
-  });
-
-  function renderImmunizationUI(cov, over, sched, notif, alertHTML){
-    // (Reuse most of your original rendering logic but replace the initial error check)
-    const totalChildren = cov.total_children ?? 0;
-    const fullyImm = cov.fully_immunized_children ?? 0;
-    const dueSoonCount = (over.dueSoon||[]).length;
-    const overdueCount = (over.overdue||[]).length;
-
-    moduleContent.innerHTML = `
-      <div class="imm-wrap fade-in">
-        <div class="imm-head">
-          <div>
-            <h2 class="imm-title">Immunization Management</h2>
-            <p class="imm-sub">Track vaccinations, schedules, and coverage</p>
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-outline-success btn-sm" id="immChildRegToggle">
-              <i class="bi bi-person-plus me-1"></i> Register Child
-            </button>
-            <button class="imm-add-btn" id="immRecordBtn"><i class="bi bi-plus-lg"></i> Record Vaccination</button>
-          </div>
-        </div>
-        ${alertHTML||''}
-        <div class="imm-metrics">
-          ${metricCard('Total Children', totalChildren,'Registered for immunization','bi-people')}
-          ${metricCard('Fully Immunized', fullyImm,'Completed schedule','bi-clipboard-check')}
-          ${metricCard('Due This Week', dueSoonCount,'Scheduled vaccinations','bi-calendar-week')}
-          ${metricCard('Overdue', overdueCount,'Require follow-up','bi-exclamation-octagon')}
-        </div>
-        <div class="imm-tabs nav" id="immTabs">
-          <button class="nav-link active" data-tab="children">Registered Children</button>
-          <button class="nav-link" data-tab="schedule">Vaccine Schedule</button>
-          <button class="nav-link" data-tab="records">Vaccination Records</button>
-          <button class="nav-link" data-tab="overdue">Overdue Alerts</button>
-          <button class="nav-link" data-tab="cards">Immunization Cards</button>
-          <button class="nav-link" data-tab="parent_notifs">Parent Notifications</button>
-        </div>
-        <div id="immPanel"></div>
-      </div>
-
-      <!-- Vaccination Record Entry Modal -->
-      <div class="modal fade" id="immRecordModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
-          <div class="modal-content">
-            <div class="modal-vax-header">
-              <div>
-                <h5 class="vax-modal-title mb-1">Vaccination Record Entry</h5>
-                <div class="vax-modal-sub">Record vaccine administration details</div>
-              </div>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="immRecordForm" autocomplete="off">
-              <div class="modal-vax-body">
-                <div class="vax-form-grid">
-                  <div class="vax-field-group">
-                    <label class="vax-label">Select Child *</label>
-                    <select name="child_id" id="vaxChildSel" class="form-select" required>
-                      <option value="">Choose child</option>
-                    </select>
-                  </div>
-                  <div class="vax-field-group">
-                    <label class="vax-label">Date of Vaccination *</label>
-                    <input type="date" name="vaccination_date" class="form-control" value="${new Date().toISOString().slice(0,10)}" required>
-                  </div>
-
-                  <div class="vax-field-group">
-                    <label class="vax-label">Vaccine Name *</label>
-                    <select name="vaccine_id" id="vaxVaccineSel" class="form-select" required>
-                      <option value="">Select vaccine</option>
-                    </select>
-                  </div>
-                  <div class="vax-field-group">
-                    <label class="vax-label">Dose Number *</label>
-                    <select name="dose_number" id="vaxDoseSel" class="form-select" required>
-                      <option value="">Select dose</option>
-                    </select>
-                  </div>
-
-                  <div class="vax-field-group">
-                    <label class="vax-label">Batch/Lot Number</label>
-                    <input name="batch_lot_number" class="form-control" placeholder="e.g., HB-2025-089">
-                  </div>
-                  <div class="vax-field-group">
-                    <label class="vax-label">Expiry Date</label>
-                    <input type="date" name="vaccine_expiry_date" class="form-control" placeholder="mm/dd/yyyy">
-                  </div>
-
-                  <div class="vax-field-group">
-                    <label class="vax-label">Vaccination Site</label>
-                    <select name="vaccination_site" id="vaxSiteSel" class="form-select">
-                      <option value="">Select site</option>
-                      <option>Left Deltoid</option>
-                      <option>Right Deltoid</option>
-                      <option>Left Thigh</option>
-                      <option>Right Thigh</option>
-                      <option>Oral</option>
-                      <option value="OTHER">Other...</option>
-                    </select>
-                    <div id="vaxSiteOtherWrap" class="mt-2">
-                      <input type="text" id="vaxSiteOther" class="form-control" placeholder="Specify site">
-                    </div>
-                  </div>
-                  <div class="vax-field-group">
-                    <label class="vax-label">Administered By</label>
-                    <div class="vax-readonly">Health Worker</div>
-                  </div>
-
-                  <div class="vax-field-group">
-                    <label class="vax-label">Next Dose Date (if applicable)</label>
-                    <input type="date" name="next_dose_due_date" class="form-control" placeholder="mm/dd/yyyy">
-                    <div class="vax-subtext">Leave blank to auto-compute (if interval is defined)</div>
-                  </div>
-                  <div class="vax-field-group">
-                    <label class="vax-label">Adverse Reactions (if any)</label>
-                    <textarea name="adverse_reactions" rows="2" class="form-control" placeholder="Record any adverse reactions or complications"></textarea>
-                  </div>
-
-                  <div class="vax-field-group" style="grid-column:1/-1;">
-                    <label class="vax-label">Notes</label>
-                    <textarea name="notes" rows="2" class="form-control" placeholder="Optional notes"></textarea>
-                  </div>
-                </div>
-                <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-              </div>
-              <div class="modal-vax-footer d-flex justify-content-between align-items-center">
-                <div>
-                  <span class="text-danger d-none vax-error" id="vaxErr"></span>
-                  <span class="text-success d-none vax-ok" id="vaxOk">Saved!</span>
-                </div>
-                <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-outline-secondary btn-vax-cancel" data-bs-dismiss="modal">Cancel</button>
-                  <button class="btn-vax-save" id="btnVaxSave" type="submit"><i class="bi bi-save me-1"></i>Save Vaccination Record</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    `;
-
-    if(typeof loadChildrenPanel==='function') loadChildrenPanel();
-
-    document.getElementById('immRecordBtn')?.addEventListener('click',()=>{
-      const m=document.getElementById('immRecordModal');
-      if(m) bootstrap.Modal.getOrCreateInstance(m)?.show();
-      preloadVaccinationForm();
-    });
-
-    /* Form dynamic data caches */
-    let vaccineMeta = []; // store list from API for doses_required mapping
-
-    function preloadVaccinationForm(){
-      // Children
-      fetchJSON(api.immun+'?children=1').then(j=>{
-        const sel=document.getElementById('vaxChildSel');
-        if(!j.success){ sel.innerHTML='<option value="">Error loading children</option>'; return;}
-        sel.innerHTML='<option value="">Choose child</option>'+ (j.children||[]).map(c=>`<option value="${c.child_id}">${escapeHtml(c.full_name)} (${c.age_months}m)</option>`).join('');
-      }).catch(()=>{});
-      // Vaccines
-      fetchJSON(api.immun+'?vaccines=1').then(j=>{
-        const sel=document.getElementById('vaxVaccineSel');
-        if(!j.success){ sel.innerHTML='<option value="">Error loading vaccines</option>'; return;}
-        vaccineMeta = j.vaccines||[];
-        sel.innerHTML='<option value="">Select vaccine</option>' + vaccineMeta.map(v=>`<option value="${v.vaccine_id}" data-doses="${v.doses_required||1}" data-interval="${v.interval_between_doses_days||''}">${escapeHtml(v.vaccine_code)} - ${escapeHtml(v.vaccine_name)}</option>`).join('');
-      }).catch(()=>{});
-    }
-
-    // Vaccine selection changes dose options
-    document.getElementById('vaxVaccineSel')?.addEventListener('change',e=>{
-      const sel=e.target;
-      const doseSel=document.getElementById('vaxDoseSel');
-      if(!doseSel) return;
-      const selected=sel.options[sel.selectedIndex];
-      const doses=parseInt(selected.dataset.doses||'1');
-      doseSel.innerHTML='<option value="">Select dose</option>';
-      for(let i=1;i<=doses;i++){
-        doseSel.innerHTML+=`<option value="${i}">Dose ${i}</option>`;
-      }
-    });
-
-    // Site selection shows/hides custom input
-    document.getElementById('vaxSiteSel')?.addEventListener('change',e=>{
-      const sel=e.target;
-      const otherWrap=document.getElementById('vaxSiteOtherWrap');
-      if(sel.value==='OTHER'){
-        otherWrap.style.display='block';
-      } else {
-        otherWrap.style.display='none';
-        document.getElementById('vaxSiteOther').value='';
-      }
-    });
-
-    // Submit vaccination form
-    document.getElementById('immRecordForm')?.addEventListener('submit',e=>{
-      e.preventDefault();
-      const form=e.target;
-      const fd=new FormData(form);
-
-      // If site OTHER chosen, replace vaccination_site with custom value
-      const siteSel=form.querySelector('#vaxSiteSel');
-      if(siteSel && siteSel.value==='OTHER'){
-        const custom=form.querySelector('#vaxSiteOther').value.trim();
-        fd.set('vaccination_site', custom);
-      }
-
-      // If next dose date left blank, backend will auto-compute; else passes override
-      // Expiry date optional (backend will insert only if column exists)
-
-      fetch(api.immun,{method:'POST',body:fd})
-        .then(parseJSONSafe)
-        .then(j=>{
-          if(!j.success) throw new Error(j.error||'Save failed');
-          form.querySelector('#vaxErr').classList.add('d-none');
-          const ok=form.querySelector('#vaxOk');
-          ok.classList.remove('d-none');
-          setTimeout(()=>ok.classList.add('d-none'),1400);
-          // refresh records tab if active
-          const activeTab=document.querySelector('#immTabs .nav-link.active[data-tab="records"]');
-          if(activeTab && typeof loadRecordsPanel==='function') loadRecordsPanel();
-          // Optionally clear some fields
-          form.reset();
-        }).catch(err=>{
-          const er=form.querySelector('#vaxErr');
-          er.textContent=err.message;
-          er.classList.remove('d-none');
-          setTimeout(()=>er.classList.add('d-none'),4000);
-        });
-    });
-    document.getElementById('immTabs')?.addEventListener('click',e=>{
-      const b=e.target.closest('.nav-link'); if(!b) return;
-      document.querySelectorAll('#immTabs .nav-link').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      const tab=b.dataset.tab;
-      if(tab==='children' && typeof loadChildrenPanel==='function') loadChildrenPanel();
-      else if(tab==='schedule' && typeof loadSchedulePanel==='function') loadSchedulePanel();
-      else if(tab==='records' && typeof loadRecordsPanel==='function') loadRecordsPanel();
-      else if(tab==='overdue' && typeof loadOverduePanel==='function') loadOverduePanel();
-      else if(tab==='cards' && typeof loadCardsPanel==='function') loadCardsPanel();
-      else if(tab==='parent_notifs' && typeof loadParentNotifPanel==='function') loadParentNotifPanel();
-    });
-
-    function metricCard(label,value,sub,icon){
-      return `<div class="imm-metric">\n        <div class="imm-metric-label"><i class="bi ${icon}"></i>${escapeHtml(label)}</div>\n        <div class="imm-metric-value">${escapeHtml(value)}</div>\n        <div class="imm-metric-sub">${escapeHtml(sub)}</div>\n      </div>`;
-    }
-  }
-}
-
 
 const moduleHandlers={
    health_stats:renderHealthStats,
@@ -8585,12 +8809,127 @@ function loadModule(mod,label){
 }
 
 /* Sidebar interactions */
+let isProcessing = false; // Debounce flag
+
 document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
   link.addEventListener('click',e=>{
     e.preventDefault();
-    setActiveLink(link);
-    loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+    
+    // Prevent rapid clicks
+    if(isProcessing) return;
+    isProcessing = true;
+    
+    // Handle dropdown toggle for maternal health
+    if(link.dataset.module === 'maternal_health' && link.classList.contains('dropdown-toggle')) {
+      const dropdown = link.closest('.nav-dropdown');
+      const isActive = dropdown.classList.contains('active');
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
+      
+      // Toggle current dropdown
+      if(!isActive) {
+        dropdown.classList.add('active');
+        // Only load module if not already loaded
+        if(!document.querySelector('.nav-link-modern[data-module="maternal_health"]').classList.contains('active')) {
+          setActiveLink(link);
+          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+        }
+      } else {
+        // If already active, just toggle dropdown without reloading
+        dropdown.classList.remove('active');
+      }
+    } 
+    // Handle dropdown toggle for immunization
+    else if(link.dataset.module === 'vaccination_entry' && link.classList.contains('dropdown-toggle')) {
+      const dropdown = link.closest('.nav-dropdown');
+      const isActive = dropdown.classList.contains('active');
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
+      
+      // Toggle current dropdown
+      if(!isActive) {
+        dropdown.classList.add('active');
+        // Only load module if not already loaded
+        if(!document.querySelector('.nav-link-modern[data-module="vaccination_entry"]').classList.contains('active')) {
+          setActiveLink(link);
+          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+        }
+      } else {
+        // If already active, just toggle dropdown without reloading
+        dropdown.classList.remove('active');
+      }
+    } 
+    else {
+      // Close all dropdowns
+      document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
+      
+      setActiveLink(link);
+      loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+    }
+    
     if(window.innerWidth<992) document.getElementById('sidebar').classList.remove('show');
+    
+    // Reset debounce flag after a short delay
+    setTimeout(() => {
+      isProcessing = false;
+    }, 300);
+  });
+});
+
+// Handle dropdown item clicks
+let isTabProcessing = false; // Debounce flag for tab switching
+
+document.querySelectorAll('.dropdown-item[data-tab]').forEach(item=>{
+  item.addEventListener('click',e=>{
+    e.preventDefault();
+    
+    // Prevent rapid clicks
+    if(isTabProcessing) return;
+    isTabProcessing = true;
+    
+    const tab = item.dataset.tab;
+    const parentDropdown = item.closest('.nav-dropdown');
+    
+    // Determine which module this dropdown belongs to
+    const parentLink = parentDropdown?.querySelector('.nav-link-modern[data-module]');
+    const module = parentLink?.dataset.module;
+    
+    // Check if it's the same tab
+    if(module === 'maternal_health' && window.currentMaternalHealthTab === tab) {
+      setTimeout(() => { isTabProcessing = false; }, 100);
+      return;
+    }
+    if(module === 'vaccination_entry' && window.currentImmunizationTab === tab) {
+      setTimeout(() => { isTabProcessing = false; }, 100);
+      return;
+    }
+    
+    // Set active dropdown item within the same dropdown only
+    if(parentDropdown) {
+      parentDropdown.querySelectorAll('.dropdown-item').forEach(di => di.classList.remove('active'));
+    }
+    item.classList.add('active');
+    
+    // Ensure parent dropdown stays active
+    if (parentDropdown) {
+      parentDropdown.classList.add('active');
+    }
+    
+    // Switch to the selected tab based on module
+    if(module === 'maternal_health' && window.currentMaternalHealthTab !== undefined) {
+      window.currentMaternalHealthTab = tab;
+      switchMaternalHealthTab(tab);
+    } else if(module === 'vaccination_entry' && window.currentImmunizationTab !== undefined) {
+      window.currentImmunizationTab = tab;
+      switchImmunizationTab(tab);
+    }
+    
+    // Reset debounce flag after a short delay
+    setTimeout(() => {
+      isTabProcessing = false;
+    }, 300);
   });
 });
 
@@ -8600,6 +8939,11 @@ document.addEventListener('click',e=>{
   if(window.innerWidth>=992) return;
   if(sidebar.classList.contains('show') && !sidebar.contains(e.target) && !e.target.closest('#sidebarToggle')){
     sidebar.classList.remove('show');
+  }
+  
+  // Close dropdowns when clicking outside
+  if(!e.target.closest('.nav-dropdown')) {
+    document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
   }
 });
 
@@ -8747,13 +9091,18 @@ async function onNext(){
     }
   }catch(_){ /* ignore – fallback proceed */ }
 
-  if(!step2Built) buildStep2();
+  if(!step2Built) buildStep2(form);
   showStep(2);
 }
 
-  function buildStep2(){
+  function buildStep2(formData = null){
     step2Built = true;
     const wrap = document.getElementById('motherConsultWrapper');
+    
+    // Get LMP and EDD from form data if available
+    const lmpValue = formData?.last_menstruation_date?.value || '';
+    const eddValue = formData?.expected_delivery_date?.value || '';
+    
     wrap.innerHTML = `
       <div class="row g-3">
         <div class="col-md-3">
@@ -8786,11 +9135,11 @@ async function onNext(){
         </div>
         <div class="col-md-3">
           <label>HULING REGLA (LMP)</label>
-          <input type="date" name="last_menstruation_date" class="form-control">
+          <input type="date" name="last_menstruation_date" class="form-control" value="${lmpValue}">
         </div>
         <div class="col-md-3">
           <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
-          <input type="date" name="expected_delivery_date" class="form-control">
+          <input type="date" name="expected_delivery_date" class="form-control" value="${eddValue}">
         </div>
         <label>MGA PAGSUSURI (LABS)</label>
         <div class="col-md-3">
@@ -8813,16 +9162,16 @@ async function onNext(){
           <label style="margin-bottom:.3rem;">Mga Palatandaan ng Panganib</label>
           <div class="d-flex flex-wrap gap-2" style="font-size:.65rem;">
             ${[
-              ['vaginal_bleeding','Pagdurugo sa Ari'],
+              ['vaginal_bleeding','Pagdurugo sa Pwerta'],
               ['urinary_infection','Impeksyon sa Ihi'],
               ['high_blood_pressure','Mataas na Presyon ng Dugo'],
               ['fever_38_celsius','Lagnat ≥38°C'],
-              ['pallor','Maputla'],
-              ['abnormal_abdominal_size','Hindi Normal na Laki ng Tiyan'],
-              ['abnormal_presentation','Hindi Normal na Posisyon'],
-              ['absent_fetal_heartbeat','Walang Tibok ng Puso ng Sanggol'],
-              ['swelling','Pamamaga'],
-              ['vaginal_infection','Impeksyon sa Ari'],
+              ['pallor','Pamumutla'],
+              ['abnormal_abdominal_size','Abnoraml na laki ng tiyan'],
+              ['abnormal_presentation','Abnormanl na Presentasyon'],
+              ['absent_fetal_heartbeat','Nawawalang tibok ng puso'],
+              ['swelling','Namamanas'],
+              ['vaginal_infection','Impeksyon sa Puwerta'],
             ].map(([k,l])=>`
               <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6;">
                 <input type="checkbox" name="${k}" value="1" style="margin-right:4px;"> ${l}
@@ -8836,44 +9185,84 @@ async function onNext(){
           <label style="margin-bottom:.3rem; font-weight: 700;">KILOS / LUNAS NA GINAWA</label>
           <div class="row g-2" style="font-size:.65rem;">
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;"> Iron/Folate # Reseta
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'iron_folate_notes')"> Iron/Folate # Reseta
+                </label>
+                <div id="iron_folate_notes" style="display:none;">
+                  <textarea name="iron_folate_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="additional_iodine" value="1" style="margin:0;"> Dagdag na Iodine sa delikadong lugar
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="additional_iodine" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'additional_iodine_notes')"> Dagdag na Iodine sa delikadong lugar
+                </label>
+                <div id="additional_iodine_notes" style="display:none;">
+                  <textarea name="additional_iodine_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;"> Malaria Prophylaxis (Oo/Hindi)
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'malaria_prophylaxis_notes')"> Malaria Prophylaxis (Oo/Hindi)
+                </label>
+                <div id="malaria_prophylaxis_notes" style="display:none;">
+                  <textarea name="malaria_prophylaxis_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;"> Balak Magpasuso ng Nanay (Oo/Hindi)
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'breastfeeding_plan_notes')"> Balak Magpasuso ng Nanay (Oo/Hindi)
+                </label>
+                <div id="breastfeeding_plan_notes" style="display:none;">
+                  <textarea name="breastfeeding_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="danger_advice" value="1" style="margin:0;"> Payo sa 4 na Panganib (Oo/Hindi)
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="danger_advice" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'danger_advice_notes')"> Payo sa 4 na Panganib (Oo/Hindi)
+                </label>
+                <div id="danger_advice_notes" style="display:none;">
+                  <textarea name="danger_advice_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="dental_checkup" value="1" style="margin:0;"> Nagpasuri ng Ngipin (Oo/Hindi)
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="dental_checkup" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'dental_checkup_notes')"> Nagpasuri ng Ngipin (Oo/Hindi)
+                </label>
+                <div id="dental_checkup_notes" style="display:none;">
+                  <textarea name="dental_checkup_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="emergency_plan" value="1" style="margin:0;"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="emergency_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'emergency_plan_notes')"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
+                </label>
+                <div id="emergency_plan_notes" style="display:none;">
+                  <textarea name="emergency_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <label class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; display:flex; align-items:center; gap:.35rem;">
-                <input type="checkbox" name="general_risk" value="1" style="margin:0;"> Panganib (Oo/Hindi)
-              </label>
+              <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+                  <input type="checkbox" name="general_risk" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'general_risk_notes')"> Panganib (Oo/Hindi)
+                </label>
+                <div id="general_risk_notes" style="display:none;">
+                  <textarea name="general_risk_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
               <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw</label>
@@ -9006,6 +9395,17 @@ async function onNext(){
           consultFd.append(field, '1');
         }
       });
+      
+      // Handle notes fields for interventions
+      const notesFields = ['iron_folate_notes', 'additional_iodine_notes', 'malaria_prophylaxis_notes', 
+                          'breastfeeding_plan_notes', 'danger_advice_notes', 'dental_checkup_notes', 
+                          'emergency_plan_notes', 'general_risk_notes'];
+      
+      notesFields.forEach(field => {
+        if (form[field]) {
+          consultFd.append(field, form[field].value);
+        }
+      });
       consultFd.append('mother_id', motherData.mother_id);
       if(!consultFd.get('csrf_token')) consultFd.append('csrf_token', window.__BHW_CSRF);
 
@@ -9068,6 +9468,7 @@ async function onNext(){
     loadPuroks();
   });
 }
+
 
 /* Initial load */
 loadModule('health_stats','Dashboard');

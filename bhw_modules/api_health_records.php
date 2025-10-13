@@ -50,6 +50,32 @@ function hr_has_col($col){
     return isset($cache[strtolower($col)]);
 }
 
+/* Listahan ng intervention flags at katumbas na notes columns */
+function hr_intervention_flags() {
+    return [
+        'iron_folate_prescription',
+        'additional_iodine',
+        'malaria_prophylaxis',
+        'breastfeeding_plan',
+        'danger_advice',
+        'dental_checkup',
+        'emergency_plan',
+        'general_risk'
+    ];
+}
+function hr_intervention_notes_cols() {
+    return [
+        'iron_folate_notes',
+        'additional_iodine_notes',
+        'malaria_prophylaxis_notes',
+        'breastfeeding_plan_notes',
+        'danger_advice_notes',
+        'dental_checkup_notes',
+        'emergency_plan_notes',
+        'general_risk_notes'
+    ];
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 /* =================== GET =================== */
@@ -84,14 +110,13 @@ if ($method === 'GET') {
             'hr.created_at'
         ];
 
-        // Append intervention columns if they exist
-        $interventionCols = [
-          'iron_folate_prescription','additional_iodine','malaria_prophylaxis',
-          'breastfeeding_plan','danger_advice','dental_checkup','emergency_plan',
-          'general_risk','next_visit_date'
-        ];
-        foreach($interventionCols as $c){
-            if(hr_has_col($c)) $cols[] = "hr.$c";
+        // Append intervention flag columns if they exist
+        foreach (hr_intervention_flags() as $c) {
+            if (hr_has_col($c)) $cols[] = "hr.$c";
+        }
+        // Append intervention notes columns if they exist
+        foreach (hr_intervention_notes_cols() as $c) {
+            if (hr_has_col($c)) $cols[] = "hr.$c";
         }
 
         $sql = "
@@ -127,13 +152,11 @@ if ($method === 'GET') {
           'abnormal_presentation','absent_fetal_heartbeat','swelling','vaginal_infection',
           'hgb_result','urine_result','vdrl_result','other_lab_results','created_at'
         ];
-        $interventionCols = [
-          'iron_folate_prescription','additional_iodine','malaria_prophylaxis',
-          'breastfeeding_plan','danger_advice','dental_checkup','emergency_plan',
-          'general_risk','next_visit_date'
-        ];
-        foreach($interventionCols as $c){
-            if(hr_has_col($c)) $baseCols[] = $c;
+        foreach (hr_intervention_flags() as $c) {
+            if (hr_has_col($c)) $baseCols[] = $c;
+        }
+        foreach (hr_intervention_notes_cols() as $c) {
+            if (hr_has_col($c)) $baseCols[] = $c;
         }
 
         $rows = [];
@@ -236,8 +259,9 @@ if ($method === 'POST') {
     $age         = ($_POST['age'] !== '' ? (int)$_POST['age'] : null);
     $height_cm   = ($_POST['height_cm'] !== '' ? (float)$_POST['height_cm'] : null);
     $weight_kg   = ($_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null);
-    $lmp         = $_POST['last_menstruation_date'] ?? null; if ($lmp === '') $lmp = null;
-    $edd         = $_POST['expected_delivery_date'] ?? null; if ($edd === '') $edd = null;
+    // LMP and EDD should come from mother's registration data, not from consultation form
+    $lmp         = null; // Will be set from mother's data if needed
+    $edd         = null; // Will be set from mother's data if needed
     $preg_weeks  = ($_POST['pregnancy_age_weeks'] !== '' ? (int)$_POST['pregnancy_age_weeks'] : null);
 
     $bp_sys      = ($_POST['blood_pressure_systolic'] !== '' ? (int)$_POST['blood_pressure_systolic'] : null);
@@ -258,12 +282,24 @@ if ($method === 'POST') {
     }
 
     if ($preg_weeks === null) {
+        // Get mother's LMP and EDD from the latest health record
+        $stmt = $mysqli->prepare("SELECT last_menstruation_date, expected_delivery_date FROM health_records WHERE mother_id = ? ORDER BY consultation_date DESC LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('i', $mother_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $motherData = $result->num_rows > 0 ? $result->fetch_assoc() : null;
+            $stmt->close();
+        } else {
+            $motherData = null;
+        }
+        
         $cd = strtotime($consultation_date);
-        if ($lmp) {
-            $diffDays = floor(($cd - strtotime($lmp))/86400);
+        if ($motherData && $motherData['last_menstruation_date']) {
+            $diffDays = floor(($cd - strtotime($motherData['last_menstruation_date']))/86400);
             if ($diffDays >= 0) $preg_weeks = (int)floor($diffDays/7);
-        } elseif ($edd) {
-            $diffDaysToEdd = floor((strtotime($edd) - $cd)/86400);
+        } elseif ($motherData && $motherData['expected_delivery_date']) {
+            $diffDaysToEdd = floor((strtotime($motherData['expected_delivery_date']) - $cd)/86400);
             $weeksToEdd = $diffDaysToEdd / 7;
             $preg_weeks = (int)round(40 - $weeksToEdd);
         }
@@ -277,20 +313,24 @@ if ($method === 'POST') {
     $recorded_by = (int)($_SESSION['user_id'] ?? 0);
 
     /* -------- INTERVENTION / ACTION FIELDS -------- */
-    $actionKeys = [
-      'iron_folate_prescription',
-      'additional_iodine',
-      'malaria_prophylaxis',
-      'breastfeeding_plan',
-      'danger_advice',
-      'dental_checkup',
-      'emergency_plan',
-      'general_risk'
-    ];
+    $actionKeys = hr_intervention_flags();
     $actions = [];
     foreach($actionKeys as $ak){
         $actions[$ak] = isset($_POST[$ak]) ? 1 : 0;
     }
+
+    /* Notes para sa bawat intervention (kung meron) */
+    $noteKeys = hr_intervention_notes_cols();
+    $notes = [];
+    foreach($noteKeys as $nk){
+        $val = isset($_POST[$nk]) ? trim($_POST[$nk]) : null;
+        if ($val === '') $val = null;
+        $notes[$nk] = $val;
+    }
+    
+    // Debug: Log received notes data
+    error_log('Health Records API - Notes data received: ' . json_encode($notes));
+
     $next_visit_date = $_POST['next_visit_date'] ?? null;
     if($next_visit_date === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/',$next_visit_date)) $next_visit_date = null;
 
@@ -342,10 +382,15 @@ if ($method === 'POST') {
     $add('vdrl_result',$vdrl,'s');
     $add('other_lab_results',$other_lab,'s');
 
-    /* Conditionally add intervention columns if they exist (safe if migration already run) */
+    /* Conditionally add intervention flag columns if they exist */
     foreach($actionKeys as $ak){
         if(hr_has_col($ak)) $add($ak, $actions[$ak],'i');
     }
+    /* Conditionally add intervention notes columns if they exist */
+    foreach($noteKeys as $nk){
+        if(hr_has_col($nk)) $add($nk, $notes[$nk],'s');
+    }
+
     if(hr_has_col('next_visit_date')) $add('next_visit_date',$next_visit_date,'s');
 
     $add('recorded_by',$recorded_by,'i');

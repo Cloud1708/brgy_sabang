@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Secret staff login shortcut Alt+L
   document.addEventListener('keydown', (e) => {
     if (e.altKey && e.key.toLowerCase() === 'l') {
-      window.location.href = 'staff_login.php';
+      window.location.href = 'staff_login';
     }
   });
 

@@ -544,6 +544,102 @@ LIMIT 1000";
         ]);
     }
 
+    // Get individual child immunization card data for PDF export
+    if (isset($_GET['card'])) {
+        $childId = (int)($_GET['child_id'] ?? 0);
+        if ($childId <= 0) fail('child_id required');
+
+        // Get child info
+        $stmt = $mysqli->prepare("
+            SELECT child_id, full_name, birth_date, sex, 
+                   TIMESTAMPDIFF(MONTH,birth_date,CURDATE()) AS age_months,
+                   parent_id
+            FROM children 
+            WHERE child_id=?
+        ");
+        $stmt->bind_param('i', $childId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if (!$result->num_rows) fail('Child not found', 404);
+        $child = $result->fetch_assoc();
+        $stmt->close();
+
+        // Get parent info if available
+        if ($child['parent_id']) {
+            $pStmt = $mysqli->prepare("
+                SELECT full_name, email, contact_number, address
+                FROM parent_accounts 
+                WHERE parent_id=?
+            ");
+            $pStmt->bind_param('i', $child['parent_id']);
+            $pStmt->execute();
+            $pRes = $pStmt->get_result();
+            if ($pRes->num_rows) {
+                $child['parent_info'] = $pRes->fetch_assoc();
+            }
+            $pStmt->close();
+        }
+
+        // Get all active vaccines with their requirements
+        $vaccineTypes = [];
+        $res = $mysqli->query("
+            SELECT vaccine_id, vaccine_code, vaccine_name, doses_required
+            FROM vaccine_types 
+            WHERE is_active=1
+            ORDER BY vaccine_name
+        ");
+        while ($res && $r = $res->fetch_assoc()) {
+            $vaccineTypes[] = $r;
+        }
+
+        // Get all immunization records for this child
+        $stmt = $mysqli->prepare("
+            SELECT ci.immunization_id, ci.vaccine_id, ci.dose_number,
+                   ci.date_given, ci.batch_number, ci.expiry_date,
+                   ci.next_dose_date, ci.administered_by, ci.remarks,
+                   vt.vaccine_code, vt.vaccine_name, vt.doses_required,
+                   u.username as administered_by_name
+            FROM child_immunizations ci
+            JOIN vaccine_types vt ON vt.vaccine_id = ci.vaccine_id
+            LEFT JOIN users u ON u.user_id = ci.administered_by
+            WHERE ci.child_id = ?
+            ORDER BY ci.date_given ASC, ci.vaccine_id ASC
+        ");
+        $stmt->bind_param('i', $childId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        
+        $doses = [];
+        while ($r = $res->fetch_assoc()) {
+            $doses[] = $r;
+        }
+        $stmt->close();
+
+        // Organize doses by vaccine
+        $vaccines = [];
+        foreach ($vaccineTypes as $vt) {
+            $vid = (int)$vt['vaccine_id'];
+            $childDoses = array_filter($doses, function($d) use ($vid) {
+                return (int)$d['vaccine_id'] === $vid;
+            });
+            
+            $vaccines[] = [
+                'vaccine_id' => $vid,
+                'vaccine_code' => $vt['vaccine_code'],
+                'vaccine_name' => $vt['vaccine_name'],
+                'doses_required' => (int)$vt['doses_required'],
+                'doses_given' => count($childDoses),
+                'doses' => array_values($childDoses)
+            ];
+        }
+
+        ok([
+            'child' => $child,
+            'vaccines' => $vaccines,
+            'generated_date' => date('Y-m-d H:i:s')
+        ]);
+    }
+
     fail('Unknown GET action',404);
 }
 

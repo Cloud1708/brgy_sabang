@@ -169,6 +169,10 @@ function risk_flag_value($key){
     return isset($_POST[$key]) ? 1 : 0;
 }
 
+function get_notes_value($key){
+    return nz($_POST[$key] ?? '');
+}
+
 /* ======================= GET ======================= */
 if ($method === 'GET') {
     try {
@@ -216,6 +220,12 @@ if ($method === 'GET') {
         $res2 = $stmt2->get_result();
         $latest = $res2->fetch_assoc();
         $stmt2->close();
+        
+        // Add LMP and EDD from latest health record to mother data
+        if ($latest) {
+            $mother['last_menstruation_date'] = $latest['last_menstruation_date'];
+            $mother['expected_delivery_date'] = $latest['expected_delivery_date'];
+        }
 
         $latest_risk_score = null;
         $risk_flags = [];
@@ -308,6 +318,7 @@ if ($method === 'GET') {
 
          lt.consultation_date AS latest_consultation_date,
          lt.pregnancy_age_weeks,
+         lt.last_menstruation_date,
          lt.expected_delivery_date,
          (
            IFNULL(lt.vaginal_bleeding,0) + IFNULL(lt.urinary_infection,0) + IFNULL(lt.high_blood_pressure,0) +
@@ -428,6 +439,7 @@ if ($method === 'POST') {
         $bp_sys                 = ($_POST['blood_pressure_systolic'] !== '' && isset($_POST['blood_pressure_systolic'])) ? (int)$_POST['blood_pressure_systolic'] : null;
         $bp_dia                 = ($_POST['blood_pressure_diastolic'] !== '' && isset($_POST['blood_pressure_diastolic'])) ? (int)$_POST['blood_pressure_diastolic'] : null;
         $pregnancy_age_weeks    = ($_POST['pregnancy_age_weeks'] !== '' && isset($_POST['pregnancy_age_weeks'])) ? (int)$_POST['pregnancy_age_weeks'] : null;
+        // LMP and EDD are collected during consultations
         $last_menstruation_date = valid_date_or_null(nz($_POST['last_menstruation_date'] ?? ''));
         $expected_delivery_date = valid_date_or_null(nz($_POST['expected_delivery_date'] ?? ''));
         $hgb_result             = nz($_POST['hgb_result'] ?? '');
@@ -438,6 +450,16 @@ if ($method === 'POST') {
         $riskFields = [
             'vaginal_bleeding','urinary_infection','high_blood_pressure','fever_38_celsius','pallor',
             'abnormal_abdominal_size','abnormal_presentation','absent_fetal_heartbeat','swelling','vaginal_infection'
+        ];
+        
+        $checkboxFields = [
+            'iron_folate_prescription','additional_iodine','malaria_prophylaxis','breastfeeding_plan',
+            'danger_advice','dental_checkup','emergency_plan','general_risk'
+        ];
+        
+        $notesFields = [
+            'iron_folate_notes','additional_iodine_notes','malaria_prophylaxis_notes','breastfeeding_plan_notes',
+            'danger_advice_notes','dental_checkup_notes','emergency_plan_notes','general_risk_notes'
         ];
 
         // DUPLICATE CHECK (enhanced)
@@ -495,6 +517,12 @@ if ($method === 'POST') {
                     ];
                     foreach($riskFields as $rf){
                         $fields[$rf] = risk_flag_value($rf);
+                    }
+                    foreach($checkboxFields as $cf){
+                        $fields[$cf] = risk_flag_value($cf);
+                    }
+                    foreach($notesFields as $nf){
+                        $fields[$nf] = get_notes_value($nf);
                     }
                     $sets=[]; $types=''; $vals=[];
                     foreach($fields as $col=>$val){
@@ -557,6 +585,14 @@ if ($method === 'POST') {
             foreach($riskFields as $rf){
                 $cCols[]=$rf;
                 $cVals[]=risk_flag_value($rf);
+            }
+            foreach($checkboxFields as $cf){
+                $cCols[]=$cf;
+                $cVals[]=risk_flag_value($cf);
+            }
+            foreach($notesFields as $nf){
+                $cCols[]=$nf;
+                $cVals[]=get_notes_value($nf);
             }
             $cTypes=''; $bindVals=[];
             foreach($cVals as $v){
@@ -665,6 +701,14 @@ if ($method === 'POST') {
             foreach($riskFields as $rf){
                 $cCols[]=$rf;
                 $cVals[]=risk_flag_value($rf);
+            }
+            foreach($checkboxFields as $cf){
+                $cCols[]=$cf;
+                $cVals[]=risk_flag_value($cf);
+            }
+            foreach($notesFields as $nf){
+                $cCols[]=$nf;
+                $cVals[]=get_notes_value($nf);
             }
             $cTypes=''; $bindVals=[];
             foreach($cVals as $v){
