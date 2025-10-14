@@ -164,8 +164,12 @@ function getChildrenList() {
                 ) AS mother_name,
                 COALESCE(mp.contact_number, mc.contact_number) AS mother_contact,
 
-                -- Purok (prefer maternal_patients.purok_id)
-                COALESCE(p_mp.purok_name, p_mc.purok_name) AS purok_name,
+                -- Purok (prefer maternal_patients.purok_name or purok_id, then mothers_caregivers)
+                COALESCE(
+                    NULLIF(TRIM(mp.purok_name), ''),
+                    p_mp.purok_name,
+                    p_mc.purok_name
+                ) AS purok_name,
 
                 -- Address composed (adds 'Street' if missing)
                 COALESCE(
@@ -324,7 +328,11 @@ function getChildDetails($child_id) {
                 mp.emergency_contact_number,
 
                 -- Purok (hiwalay na field)
-                COALESCE(p_mp.purok_name, p_mc.purok_name) AS purok_name,
+                COALESCE(
+                    NULLIF(TRIM(mp.purok_name), ''),
+                    p_mp.purok_name,
+                    p_mc.purok_name
+                ) AS purok_name,
 
                 -- Address composed (adds 'Street' if missing)
                 COALESCE(

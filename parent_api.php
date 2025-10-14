@@ -1,5 +1,4 @@
 <?php
-date_default_timezone_set('Asia/Manila');
 require_once __DIR__.'/inc/db.php';
 require_once __DIR__.'/auth.php';
 require_role(['Parent']);
@@ -12,18 +11,6 @@ function bad($m,$c=400){ http_response_code($c); out(['success'=>false,'error'=>
 
 $pid = (int)($_SESSION['user_id'] ?? 0);
 if ($pid <= 0) bad('Not authenticated',401);
-
-/*
- Endpoints:
-  ?children=1
-  ?immunization_card=child_id
-  ?vaccination_timeline=child_id
-  ?growth=child_id
-  ?nutrition_chart=child_id
-  ?notifications=1
-  ?appointments=child_id
-  ?summary=child_id
-*/
 
 if (isset($_GET['children'])) {
     $rows=[];
@@ -167,6 +154,75 @@ if (isset($_GET['summary'])) {
     $pct = ($vaccTotal>0)? round(($vaccGiven/$vaccTotal)*100,1):0.0;
 
     out(['success'=>true,'child'=>$child,'vaccination_completion_pct'=>$pct,'doses_given'=>$vaccGiven,'doses_total'=>$vaccTotal]);
+}
+
+// Mutations: require POST and CSRF
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $hdr = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+  if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $hdr)) {
+    bad('CSRF failed', 419);
+  }
+
+  // Read body
+  $raw = file_get_contents('php://input');
+  $data = json_decode($raw, true);
+  if (!is_array($data)) $data = [];
+
+  // mark_read: { notification_id }
+  if (isset($_GET['mark_read'])) {
+    $id = (int)($data['notification_id'] ?? 0);
+    if ($id <= 0) bad('Invalid notification_id');
+    $stmt = $mysqli->prepare("UPDATE parent_notifications SET read_at=NOW() WHERE notification_id=? AND parent_user_id=? AND read_at IS NULL");
+    $stmt->bind_param('ii', $id, $pid);
+    $ok = $stmt->execute(); $aff = $stmt->affected_rows; $stmt->close();
+    out(['success'=>true,'updated'=>$ok,'affected'=>$aff]);
+  }
+
+  // mark_all: mark all unread as read
+  if (isset($_GET['mark_all'])) {
+    $stmt = $mysqli->prepare("UPDATE parent_notifications SET read_at=NOW() WHERE parent_user_id=? AND read_at IS NULL");
+    $stmt->bind_param('i', $pid);
+    $ok = $stmt->execute(); $aff = $stmt->affected_rows; $stmt->close();
+    out(['success'=>true,'updated'=>$ok,'affected'=>$aff]);
+  }
+
+  // confirm: treat as mark_read and add audit log
+  if (isset($_GET['confirm'])) {
+    $id = (int)($data['notification_id'] ?? 0);
+    $cid = isset($data['child_id']) ? (int)$data['child_id'] : null;
+    if ($id <= 0) bad('Invalid notification_id');
+    $stmt = $mysqli->prepare("UPDATE parent_notifications SET read_at=NOW() WHERE notification_id=? AND parent_user_id=? AND read_at IS NULL");
+    $stmt->bind_param('ii', $id, $pid);
+    $stmt->execute(); $stmt->close();
+    // lightweight audit
+    $meta = json_encode(['action'=>'confirm','notification_id'=>$id]);
+    $ins = $mysqli->prepare("INSERT INTO parent_audit_log (parent_user_id, action_code, child_id, meta_json, ip_address, user_agent, created_at) VALUES (?,?,?,?,?,?,NOW())");
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $code = 'confirm_notification';
+    $ins->bind_param('isisss', $pid, $code, $cid, $meta, $ip, $ua);
+    $ins->execute(); $ins->close();
+    out(['success'=>true]);
+  }
+
+  // reschedule request: log request (no dedicated table yet; use audit)
+  if (isset($_GET['reschedule'])) {
+    $id = (int)($data['notification_id'] ?? 0);
+    $cid = isset($data['child_id']) ? (int)$data['child_id'] : null;
+    $proposed = isset($data['proposed_date']) ? (string)$data['proposed_date'] : '';
+    if ($id <= 0) bad('Invalid notification_id');
+    if ($proposed !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $proposed)) $proposed = '';
+    $meta = json_encode(['action'=>'reschedule','notification_id'=>$id,'proposed_date'=>$proposed]);
+    $ins = $mysqli->prepare("INSERT INTO parent_audit_log (parent_user_id, action_code, child_id, meta_json, ip_address, user_agent, created_at) VALUES (?,?,?,?,?,?,NOW())");
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $code = 'request_reschedule';
+    $ins->bind_param('isisss', $pid, $code, $cid, $meta, $ip, $ua);
+    $ins->execute(); $ins->close();
+    out(['success'=>true]);
+  }
+
+  bad('Unknown POST action',404);
 }
 
 bad('Unknown action',404);

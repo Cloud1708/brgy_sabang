@@ -1,6 +1,6 @@
 <?php
-date_default_timezone_set('Asia/Manila');
 session_start();
+require_once __DIR__ . '/inc/db.php';
  
 // Get current view from URL parameter, default to dashboard
 $current_view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
@@ -10,15 +10,51 @@ $valid_views = ['dashboard', 'immunization', 'growth', 'notifications', 'appoint
 if (!in_array($current_view, $valid_views)) {
     $current_view = 'dashboard';
 }
- 
-// User data (in real app, this would come from database)
+
+// Build user info from session/DB
 $user = [
-    'first_name' => 'Sarah',
-    'last_name' => 'Johnson',
+    'first_name' => '',
+    'last_name' => '',
     'role' => 'Parent/Guardian',
-    'initials' => 'SJ',
-    'notification_count' => 5
+    'initials' => 'PP',
+    'notification_count' => 0,
 ];
+
+$uid = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+if ($uid > 0) {
+    if ($stmt = $mysqli->prepare("SELECT u.first_name, u.last_name, r.role_name FROM users u JOIN roles r ON r.role_id=u.role_id WHERE u.user_id=? LIMIT 1")) {
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            $user['first_name'] = trim($row['first_name'] ?? '');
+            $user['last_name']  = trim($row['last_name'] ?? '');
+            $user['role']       = $row['role_name'] ?? ($_SESSION['role'] ?? 'Parent/Guardian');
+        }
+        $stmt->close();
+    }
+    // Fallback to session full_name if names are empty
+    if ($user['first_name'] === '' && $user['last_name'] === '' && !empty($_SESSION['full_name'])) {
+        $parts = preg_split('/\s+/', trim((string)$_SESSION['full_name']));
+        $user['first_name'] = $parts[0] ?? 'Parent';
+        $user['last_name']  = isset($parts[1]) ? $parts[1] : '';
+    }
+    // Compute initials
+    $fi = $user['first_name'] !== '' ? mb_substr($user['first_name'], 0, 1) : '';
+    $li = $user['last_name']  !== '' ? mb_substr($user['last_name'], 0, 1)  : '';
+    $user['initials'] = strtoupper(($fi . $li) ?: 'PP');
+
+    // Unread notifications count for header badge
+    if ($stmt = $mysqli->prepare("SELECT COUNT(*) AS c FROM parent_notifications WHERE parent_user_id=? AND read_at IS NULL")) {
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($row = $res->fetch_assoc()) {
+            $user['notification_count'] = (int)($row['c'] ?? 0);
+        }
+        $stmt->close();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,6 +84,14 @@ $user = [
             --destructive: #ef4444;
         }
     </style>
+    <?php
+    // Ensure CSRF token exists for API POSTs
+    if (empty($_SESSION['csrf_token'])) {
+        try { $_SESSION['csrf_token'] = bin2hex(random_bytes(16)); }
+        catch (Throwable $e) { $_SESSION['csrf_token'] = bin2hex(uniqid('', true)); }
+    }
+    ?>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body class="min-h-screen" style="background-color: #f8f9fc;">
    

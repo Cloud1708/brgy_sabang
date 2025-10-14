@@ -378,6 +378,10 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .mh-modal .modal-title{font-size:.9rem;font-weight:700;}
 .mh-modal label{font-size:.65rem;font-weight:600;letter-spacing:.05em;color:#34525a;text-transform:uppercase;margin-bottom:.25rem;}
 .mh-modal .form-control,.mh-modal .form-select{font-size:.8rem;border-radius:.7rem;padding:.55rem .75rem;}
+.mh-modal #motherStep1 input[name="date_of_birth"].is-invalid {
+  padding-right: 2.5em !important;
+  margin-bottom: 18px !important;
+}
 .mh-modal .form-text{font-size:.6rem;}
 
 .mh-search-wrap{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;}
@@ -2241,59 +2245,72 @@ function renderMaternalHealth(label){
         <div class="modal-body" id="motherStep1">
           <div class="row g-3">
             <div class="col-md-4">
-              <label>First Name *</label>
+              <label>First Name <span style="color:red">*</span></label>
               <input name="first_name" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
               <label>Middle Name</label>
               <input name="middle_name" class="form-control">
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
-              <label>Last Name *</label>
+              <label>Last Name <span style="color:red">*</span></label>
               <input name="last_name" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
 
             <div class="col-md-4">
-              <label>Date of Birth</label>
-              <input type="date" name="date_of_birth" class="form-control">
+              <label>Date of Birth <span style="color:red">*</span></label>
+              <input type="date" name="date_of_birth" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
-              <label>Contact Number</label>
-              <input name="contact_number" class="form-control">
+              <label>Contact Number <span style="color:red">*</span></label>
+              <input name="contact_number" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
-              <label>Blood Type</label>
-              <input name="blood_type" class="form-control" placeholder="O+ / A- ...">
+              <label>Blood Type <span style="color:red">*</span></label>
+              <input name="blood_type" class="form-control" placeholder="O+ / A- ..." required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
 
             <div class="col-md-4">
-              <label>Gravida</label>
-              <input type="number" min="0" name="gravida" class="form-control">
+              <label>Gravida <span style="color:red">*</span></label>
+              <input type="number" min="0" name="gravida" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
-              <label>Para</label>
-              <input type="number" min="0" name="para" class="form-control">
+              <label>Para <span style="color:red">*</span></label>
+              <input type="number" min="0" name="para" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
               <label>Emergency Contact Name</label>
               <input name="emergency_contact_name" class="form-control">
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
               <label>Emergency Contact No.</label>
               <input name="emergency_contact_number" class="form-control">
+              <div class="invalid-feedback text-danger small"></div>
             </div>
 
             <div class="col-md-4">
-              <label>House #</label>
-              <input name="house_number" class="form-control">
+              <label>House # <span style="color:red">*</span></label>
+              <input name="house_number" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
-              <label>Street Name</label>
-              <input name="street_name" class="form-control">
+              <label>Street Name <span style="color:red">*</span></label>
+              <input name="street_name" class="form-control" required>
+              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
-              <label>Purok</label>
-              <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off" placeholder="Type number (e.g., 1, 2, 3)...">
+              <label>Purok <span style="color:red">*</span></label>
+              <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off" placeholder="Type number (e.g., 1, 2, 3)..." required>
+              <div class="invalid-feedback text-danger small"></div>
               <datalist id="purokOptions">
                 <!-- Options will be populated by JavaScript -->
               </datalist>
@@ -2301,12 +2318,12 @@ function renderMaternalHealth(label){
             <div class="col-md-4">
               <label>Subdivision / Village</label>
               <input name="subdivision_name" class="form-control">
+              <div class="invalid-feedback text-danger small"></div>
             </div>
 
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
             <div class="col-12">
               <div class="form-text">Please ensure no duplicate (first + last name) before proceeding.</div>
-              <div class="text-danger small d-none" id="motherError"></div>
               <div class="text-success small d-none" id="motherSuccess">Saved!</div>
             </div>
           </div>
@@ -2643,41 +2660,50 @@ function renderMotherRow(m){
           <div class="col-12">
             <label>PETSA NG KONSULTASYON *</label>
             <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
 
           <div class="col-4">
             <label>EDAD</label>
             <input type="number" name="age" class="form-control" placeholder="Auto">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-4">
             <label>TAAS (CM)</label>
             <input type="number" step="0.1" name="height_cm" class="form-control">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-4">
             <label>TIMBANG (KG)</label>
             <input type="number" step="0.01" name="weight_kg" class="form-control">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
 
           <div class="col-4">
             <label>BP (SISTOLIC)</label>
             <input type="number" name="blood_pressure_systolic" class="form-control">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-4">
             <label>BP (DIASTOLIC)</label>
             <input type="number" name="blood_pressure_diastolic" class="form-control">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-4">
             <label>Edad ng Pagbubuntis (Weeks)</label>
             <input type="number" min="0" max="45" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
 
           <div class="col-6">
             <label>HULING REGLA (LMP)</label>
             <input type="date" name="last_menstruation_date" class="form-control" value="${mother?.last_menstruation_date || ''}" readonly style="background-color: #f8f9fa;">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-6">
             <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
             <input type="date" name="expected_delivery_date" class="form-control" value="${mother?.expected_delivery_date || ''}" readonly style="background-color: #f8f9fa;">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-12">
             <div class="mh-inline-hint">
@@ -2692,15 +2718,19 @@ function renderMotherRow(m){
         <div class="row g-2 mb-2">
           <div class="col-6">
             <input name="hgb_result" class="form-control" placeholder="HGB">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-6">
             <input name="urine_result" class="form-control" placeholder="Ihi">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
           <div class="col-6">
             <input name="vdrl_result" class="form-control" placeholder="VDRL">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
             <div class="col-6">
             <input name="other_lab_results" class="form-control" placeholder="Ibang resulta ng laboratoryo">
+            <div class="invalid-feedback text-danger small"></div>
           </div>
         </div>
 
@@ -2739,9 +2769,9 @@ function renderMotherRow(m){
         <div class="mh-form-divider"></div>
         <label style="margin-bottom:.4rem; font-weight: 700;">KILOS / LUNAS NA GINAWA</label>
         <div class="row g-2 mb-3">
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Middle Name <span style="color:red">*</span></label>
+            <input name="middle_name" class="form-control" required>
                 <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'iron_folate_notes_consult')"> Iron/Folate # Reseta
               </label>
               <div id="iron_folate_notes_consult" style="display:none;">
@@ -2749,9 +2779,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Last Name <span style="color:red">*</span></label>
+            <input name="last_name" class="form-control" required>
                 <input type="checkbox" name="additional_iodine" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'additional_iodine_notes_consult')"> Dagdag na Iodine sa delikadong lugar
               </label>
               <div id="additional_iodine_notes_consult" style="display:none;">
@@ -2759,9 +2789,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Date of Birth <span style="color:red">*</span></label>
+            <input type="date" name="date_of_birth" class="form-control" required>
                 <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'malaria_prophylaxis_notes_consult')"> Malaria Prophylaxis (Oo/Hindi)
               </label>
               <div id="malaria_prophylaxis_notes_consult" style="display:none;">
@@ -2769,9 +2799,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Contact Number <span style="color:red">*</span></label>
+            <input name="contact_number" class="form-control" required>
                 <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'breastfeeding_plan_notes_consult')"> Balak Magpasuso ng Nanay (Oo/Hindi)
               </label>
               <div id="breastfeeding_plan_notes_consult" style="display:none;">
@@ -2779,9 +2809,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Blood Type <span style="color:red">*</span></label>
+            <input name="blood_type" class="form-control" placeholder="O+ / A- ..." required>
                 <input type="checkbox" name="danger_advice" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'danger_advice_notes_consult')"> Payo sa 4 na Panganib (Oo/Hindi)
               </label>
               <div id="danger_advice_notes_consult" style="display:none;">
@@ -2789,9 +2819,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Gravida <span style="color:red">*</span></label>
+            <input type="number" min="0" name="gravida" class="form-control" required>
                 <input type="checkbox" name="dental_checkup" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'dental_checkup_notes_consult')"> Nagpasuri ng Ngipin (Oo/Hindi)
               </label>
               <div id="dental_checkup_notes_consult" style="display:none;">
@@ -2799,9 +2829,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Para <span style="color:red">*</span></label>
+            <input type="number" min="0" name="para" class="form-control" required>
                 <input type="checkbox" name="emergency_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'emergency_plan_notes_consult')"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
               </label>
               <div id="emergency_plan_notes_consult" style="display:none;">
@@ -2809,9 +2839,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
-              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
+          <div class="col-md-4">
+            <label>Emergency Contact Name <span style="color:red">*</span></label>
+            <input name="emergency_contact_name" class="form-control" required>
                 <input type="checkbox" name="general_risk" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'general_risk_notes_consult')"> Panganib (Oo/Hindi)
               </label>
               <div id="general_risk_notes_consult" style="display:none;">
@@ -2819,9 +2849,9 @@ function renderMotherRow(m){
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw</label>
-            <input type="date" name="next_visit_date" class="form-control" style="font-size:.7rem;">
+          <div class="col-md-4">
+            <label>Emergency Contact No. <span style="color:red">*</span></label>
+            <input name="emergency_contact_number" class="form-control" required>
           </div>
         </div>
 
@@ -3930,9 +3960,9 @@ function loadPostnatalPanel(){
                 <h6 class="fw-semibold mb-3">PAGHILAB AT PANGANGANAK</h6>
               </div>
               
-              <div class="col-md-6">
-                <div class="row g-2">
-                  <div class="col-12">
+              <div class="col-md-4">
+                <label>House # <span style="color:red">*</span></label>
+                <input name="house_number" class="form-control" required>
                     <label>Dagliang Pagpapasuso (Oo/Hindi)</label>
                     <div class="d-flex gap-3">
                       <div class="form-check">
@@ -3989,9 +4019,9 @@ function loadPostnatalPanel(){
                 </div>
               </div>
               
-              <div class="col-md-6">
-                <div class="row g-2">
-                  <div class="col-12">
+              <div class="col-md-4">
+                <label>Street Name <span style="color:red">*</span></label>
+                <input name="street_name" class="form-control" required>
                     <label>Timbang ng Kapanganakan (Gms)</label>
                     <input type="number" name="birth_weight" class="form-control" placeholder="Enter weight in grams" min="0" max="10000">
                   </div>
@@ -4256,10 +4286,10 @@ function loadPostnatalPanel(){
                     <small class="text-muted">${escapeHtml(m.emergency_contact_number||'')}</small></p>
                 </div>
               </div>
-              <div class="col-md-8">
-                <div class="border rounded p-3 h-100 d-flex flex-column">
-                  ${renderConsultationHistory()}
-                  <hr class="my-3">
+              <div class="col-md-4">
+                <label>Purok <span style="color:red">*</span></label>
+                <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off" placeholder="Type number (e.g., 1, 2, 3)..." required>
+                <datalist id="purokOptions"></datalist>
                   <div class="mt-auto">
                     <button class="btn btn-sm btn-success" id="btnQuickConsult">
                       <i class="bi bi-journal-plus me-1"></i> Add Consultation
@@ -6679,9 +6709,9 @@ function openParentEditModal(p, triggerBtn){
 
                 <div class="border rounded p-2 mt-3">
                   <div class="row g-2 align-items-end">
-                    <div class="col-md-7">
-                      <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">Select Child to Link</label>
-                      <select class="form-select form-select-sm" id="paLinkChildSel">
+                    <div class="col-md-4">
+                      <label>Subdivision / Village <span style="color:red">*</span></label>
+                      <input name="subdivision_name" class="form-control" required>
                         <option value="">Choose child</option>
                       </select>
                     </div>
@@ -9071,13 +9101,39 @@ function initMotherWizard(){
 
 async function onNext(){
   clearMsgs();
-  const fn = form.first_name.value.trim();
-  const ln = form.last_name.value.trim();
-  if(!fn || !ln){
-    showError('First name at Last name ay required.');
+  let valid = true;
+  // List of required fields in Step 1
+  const requiredFields = [
+    'first_name', 'last_name', 'date_of_birth',
+    'contact_number', 'blood_type', 'gravida', 'para',
+    'house_number', 'street_name', 'purok_name'
+  ];
+  requiredFields.forEach(function(field) {
+    const input = form[field];
+    if (input) {
+      const feedback = input.parentNode.querySelector('.invalid-feedback');
+      if (!input.value.trim()) {
+        valid = false;
+        if (feedback) {
+          feedback.textContent = 'Required field';
+          feedback.style.display = 'block';
+        }
+        input.classList.add('is-invalid');
+      } else {
+        if (feedback) {
+          feedback.textContent = '';
+          feedback.style.display = 'none';
+        }
+        input.classList.remove('is-invalid');
+      }
+    }
+  });
+  if (!valid) {
     return;
   }
 
+  const fn = form.first_name.value.trim();
+  const ln = form.last_name.value.trim();
   try{
     // Quick check kung existing na (first + last only)
     const res = await fetch(api.maternal+'?list_basic=1').then(r=>r.json()).catch(()=>({}));

@@ -16,10 +16,14 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <button class="p-2 hover:bg-gray-100 rounded-lg relative">
+            <a href="parent_portal.php?view=notifications" class="p-2 hover:bg-gray-100 rounded-lg relative">
                 <i data-lucide="bell" class="w-5 h-5"></i>
-                <span class="absolute top-1 right-1 h-2 w-2 rounded-full" style="background-color: #ef4444;"></span>
-            </button>
+                <?php if (!empty($user['notification_count'])): ?>
+                    <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] leading-[18px] text-white text-center" style="background-color:#ef4444;">
+                        <?php echo (int)$user['notification_count']; ?>
+                    </span>
+                <?php endif; ?>
+            </a>
             <button class="p-2 hover:bg-gray-100 rounded-lg">
                 <i data-lucide="settings" class="w-5 h-5"></i>
             </button>
@@ -31,6 +35,11 @@
                     <p class="font-medium"><?php echo $user['first_name'] . ' ' . $user['last_name']; ?></p>
                     <p class="text-sm" style="color: #6b7280;"><?php echo $user['role']; ?></p>
                 </div>
+                <a href="logout.php" class="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
+                   style="background-color:#ef4444; color:white;">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Logout</span>
+                </a>
             </div>
         </div>
     </div>

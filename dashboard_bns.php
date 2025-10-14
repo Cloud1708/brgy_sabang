@@ -5394,15 +5394,15 @@ function renderFeedingProgramsModule(label) {
           </div>
         </div>
 
-        <!-- Right-side controls: Days first, then Notify (no action on click) -->
+        <!-- Right-side controls: Days first, then Notify -->
         <div class="d-flex align-items-center" style="gap:.45rem;">
           ${badge}
           <button
             type="button"
             class="btn btn-outline-success btn-sm notify-supp-btn"
-            aria-disabled="true"
-            tabindex="-1"
-            style="font-size:.6rem;border-radius:8px;pointer-events:none;">
+            data-child-id="${r.child_id}"
+            data-child-name="${escapeHtml(r.child_name || 'Unknown')}"
+            style="font-size:.6rem;border-radius:8px;">
             <i class="bi bi-envelope me-1"></i> Notify
           </button>
         </div>
@@ -5706,6 +5706,55 @@ function renderFeedingProgramsModule(label) {
       if (warn) { warn.classList.add('d-none'); warn.classList.remove('d-flex'); }
       if (btn){ btn.disabled = false; btn.classList.remove('disabled'); }
     });
+
+    // Global delegated click for Notify buttons
+    if (!document.__suppNotifyHandlerBound) {
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.notify-supp-btn');
+        if (!btn) return;
+        e.preventDefault();
+        const childId = parseInt(btn.getAttribute('data-child-id')||'0',10);
+        const childName = btn.getAttribute('data-child-name') || 'Unknown';
+        if (!childId) { alert('Invalid child ID.'); return; }
+        
+        // Show loading state
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Sending...';
+        
+        // Send notification
+        const url = `${api.supplementation}?notify=1&child_id=${childId}`;
+        fetchJSON(url)
+          .then(data => {
+            if (data.success) {
+              // Show success state
+              btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Sent!';
+              btn.classList.remove('btn-outline-success');
+              btn.classList.add('btn-success');
+              
+              // Show success message
+              alert(`✅ Notification sent successfully to parent for ${childName}`);
+              
+              // Reset button after 3 seconds
+              setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-success');
+              }, 3000);
+            } else {
+              throw new Error(data.error || 'Failed to send notification');
+            }
+          })
+          .catch(err => {
+            // Reset button on error
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            alert(`❌ Failed to send notification: ${err.message}`);
+          });
+      });
+      document.__suppNotifyHandlerBound = true;
+    }
 
     // Global delegated click for Update buttons
     if (!document.__suppUpdateHandlerBound) {
