@@ -24,7 +24,10 @@ if (!function_exists('bhw_mail_send')) {
             'from_name'    => getenv('FROM_NAME') ?: 'Barangay Health Center',
             'reply_email'  => getenv('REPLY_EMAIL') ?: '',
             'reply_name'   => getenv('REPLY_NAME') ?: 'BHW Desk',
-            'debug'        => (bool)(getenv('MAIL_DEBUG') ?: false) // export MAIL_DEBUG=1
+            'debug'        => (bool)(getenv('MAIL_DEBUG') ?: false), // export MAIL_DEBUG=1
+            // Email alias configuration
+            'alias_email'  => getenv('ALIAS_EMAIL') ?: 'updates@sabanghealthportal.site',
+            'alias_name'   => getenv('ALIAS_NAME') ?: 'Barangay Health Center'
         ];
     }
 
@@ -106,9 +109,17 @@ if (!function_exists('bhw_mail_send')) {
                 $mail->Username   = $cfg['smtp_user'];
                 $mail->Password   = $smtpPass;
                 $mail->CharSet    = 'UTF-8';
-                $mail->setFrom($cfg['from_email'], $cfg['from_name']);
-                if (!empty($cfg['reply_email'])) {
-                    $mail->addReplyTo($cfg['reply_email'], $cfg['reply_name'] ?: $cfg['reply_email']);
+                
+                // Use alias email for "From" field, but authenticate with personal email
+                $fromEmail = $cfg['alias_email'] ?? $cfg['from_email'];
+                $fromName = $cfg['alias_name'] ?? $cfg['from_name'];
+                $mail->setFrom($fromEmail, $fromName);
+                
+                // Set reply-to to alias email as well
+                $replyEmail = $cfg['alias_email'] ?? $cfg['reply_email'];
+                $replyName = $cfg['alias_name'] ?? $cfg['reply_name'];
+                if (!empty($replyEmail)) {
+                    $mail->addReplyTo($replyEmail, $replyName ?: $replyEmail);
                 }
                 $mail->addAddress($to);
                 $mail->Subject = $subject;
@@ -139,9 +150,16 @@ if (!function_exists('bhw_mail_send')) {
 
         $headers  = "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: ".$cfg['from_name']." <".$cfg['from_email'].">\r\n";
-        if (!empty($cfg['reply_email'])) {
-            $headers .= "Reply-To: ".$cfg['reply_name']." <".$cfg['reply_email'].">\r\n";
+        
+        // Use alias email for "From" field in fallback mail() function
+        $fromEmail = $cfg['alias_email'] ?? $cfg['from_email'];
+        $fromName = $cfg['alias_name'] ?? $cfg['from_name'];
+        $headers .= "From: ".$fromName." <".$fromEmail.">\r\n";
+        
+        $replyEmail = $cfg['alias_email'] ?? $cfg['reply_email'];
+        $replyName = $cfg['alias_name'] ?? $cfg['reply_name'];
+        if (!empty($replyEmail)) {
+            $headers .= "Reply-To: ".$replyName." <".$replyEmail.">\r\n";
         }
         $ok = @mail(
             $to,

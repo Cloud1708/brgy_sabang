@@ -372,6 +372,7 @@ if ($method === 'POST') {
         $passwordInput     = trim($_POST['password'] ?? '');
         $plain_password    = $passwordInput;
         $first_name        = trim($_POST['first_name'] ?? '');
+        $middle_name       = trim($_POST['middle_name'] ?? '');
         $last_name         = trim($_POST['last_name'] ?? '');
         $relationship_type = $_POST['relationship_type'] ?? '';
         $parent_birth_date = trim($_POST['parent_birth_date'] ?? '');
@@ -460,8 +461,8 @@ if ($method === 'POST') {
 
         $mysqli->begin_transaction();
         try{
-            $ins=$mysqli->prepare("INSERT INTO users (username,email,password_hash,first_name,last_name,role_id,barangay,created_by_user_id) VALUES (?,?,?,?,?,?,?,?)");
-            $ins->bind_param('sssssssi',$username,$email,$hash,$first_name,$last_name,$rid,$barangay,$creator);
+            $ins=$mysqli->prepare("INSERT INTO users (username,email,password_hash,first_name,middle_name,last_name,role_id,barangay,birthday,created_by_user_id) VALUES (?,?,?,?,?,?,?,?,?,?)");
+            $ins->bind_param('sssssssssi',$username,$email,$hash,$first_name,$middle_name,$last_name,$rid,$barangay,$parent_birth_date,$creator);
             if(!$ins->execute()) throw new Exception('Insert user failed: '.$ins->error);
             $parent_user_id=$ins->insert_id;
             $ins->close();

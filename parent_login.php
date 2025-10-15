@@ -67,7 +67,7 @@ if ($err === '1') {
 
         <?php echo $msg; ?>
 
-        <form method="post" action="auth/login_parent_process.php" novalidate>
+        <form method="post" action="auth/login_parent_process" novalidate>
           <div class="mb-3">
             <label class="form-label small fw-semibold">Username</label>
             <div class="input-group">
@@ -94,7 +94,7 @@ if ($err === '1') {
           </div>
 
           <div class="text-center mt-3">
-            <a href="index.php#contact" class="small d-inline-block mt-2">Need help? Contact us</a>
+            <a href="index#contact" class="small d-inline-block mt-2">Need help? Contact us</a>
           </div>
         </form>
       </div>

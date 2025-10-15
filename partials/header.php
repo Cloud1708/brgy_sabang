@@ -7,14 +7,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Official Barangay Health and Nutrition Information Portal">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body>
+<body class="bg-dark">
 <header class="navbar navbar-expand-lg fixed-top py-1 navbar-dark navbar-glass">
   <div class="container">
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="index.php">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
       <img src="assets/img/Lipa_City_Seal.svg.png" alt="" width="60" height="60" class="d-inline-block align-text-top rounded-circle border">
       <img src="assets/img/sabang.jpg" alt="" width="60" height="60" class="d-inline-block align-text-top rounded-circle border">
       <span class="px-3">Brgy. Sabang Health</span>
@@ -24,13 +25,14 @@
     </button>
     <nav id="topNav" class="collapse navbar-collapse">
       <ul class="navbar-nav fw-bold ms-auto align-items-lg-center gap-3">
-        <li class="nav-item"><a href="#updates" class="nav-link" style="border-bottom: 2px solid #fd0d0dff;">Announcements & Programs</a></li>
-        <li class="nav-item"><a href="#about" class="nav-link" style="border-bottom: 2px solid #fd0d0dff;">About Barangay</a></li>
-        <li class="nav-item"><a href="#contact" class="nav-link" style="border-bottom: 2px solid #fd0d0dff;">Contacts</a></li>
+        <li class="nav-item"><a href="#services" class="nav-link" style="border-bottom: 2px solid #fd0d0dff;">Services</a></li>
+        <li class="nav-item"><a href="#officials" class="nav-link" style="border-bottom: 2px solid #fd0d0dff;">Officials</a></li>
+        <li class="nav-item"><a href="#updates" class="nav-link" style="border-bottom: 2px solid #fd0d0dff;">Updates</a></li>
+        <li class="nav-item"><a href="#about" class="nav-link" style="border-bottom: 2px solid #fd0d0dff;">About</a></li>
       </ul>
-      <!-- Hidden staff login trigger (not visible, accessible via keyboard shortcut Alt+L) -->
-      <a href="staff_login.php" class="visually-hidden" id="staffLoginLink" aria-hidden="true" tabindex="-1">Staff Login</a>
     </nav>
+      <button type="button" id="parentLoginLink" class="btn btn-outline-danger ms-3 fw-bold" onclick="window.location.href='parent_login'">Parent / Guardian Login</button>
+      <a href="staff_login" class="visually-hidden" id="staffLoginLink" aria-hidden="true" tabindex="-1">Staff Login</a>
   </div>
 </header>
 <main class="page-content">

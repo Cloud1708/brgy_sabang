@@ -22,6 +22,7 @@ $firstName = explode(' ', trim($username))[0];
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   
 /* =========================================
@@ -378,10 +379,6 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .mh-modal .modal-title{font-size:.9rem;font-weight:700;}
 .mh-modal label{font-size:.65rem;font-weight:600;letter-spacing:.05em;color:#34525a;text-transform:uppercase;margin-bottom:.25rem;}
 .mh-modal .form-control,.mh-modal .form-select{font-size:.8rem;border-radius:.7rem;padding:.55rem .75rem;}
-.mh-modal #motherStep1 input[name="date_of_birth"].is-invalid {
-  padding-right: 2.5em !important;
-  margin-bottom: 18px !important;
-}
 .mh-modal .form-text{font-size:.6rem;}
 
 .mh-search-wrap{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;}
@@ -1790,7 +1787,11 @@ function motherDetailHTML(m, kids){
   
   // Check if EDD has been reached
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to start of day
   const eddDate = m.expected_delivery_date ? new Date(m.expected_delivery_date) : null;
+  if (eddDate) {
+    eddDate.setHours(0, 0, 0, 0); // Normalize to start of day
+  }
   const isEddReached = eddDate ? today >= eddDate : false;
   
   // Determine button state and text
@@ -2245,85 +2246,92 @@ function renderMaternalHealth(label){
         <div class="modal-body" id="motherStep1">
           <div class="row g-3">
             <div class="col-md-4">
-              <label>First Name <span style="color:red">*</span></label>
+              <label>First Name <span style="color: red;">*</span></label>
               <input name="first_name" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <div class="text-danger small d-none" id="error_first_name">This field is required</div>
             </div>
             <div class="col-md-4">
               <label>Middle Name</label>
               <input name="middle_name" class="form-control">
-              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
-              <label>Last Name <span style="color:red">*</span></label>
+              <label>Last Name <span style="color: red;">*</span></label>
               <input name="last_name" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <div class="text-danger small d-none" id="error_last_name">This field is required</div>
             </div>
 
             <div class="col-md-4">
-              <label>Date of Birth <span style="color:red">*</span></label>
-              <input type="date" name="date_of_birth" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <label>Date of Birth <span style="color: red;">*</span></label>
+              <input type="date" name="date_of_birth" class="form-control" required max="<?php echo date('Y-m-d'); ?>">
+              <div class="text-danger small d-none" id="error_date_of_birth">This field is required</div>
             </div>
             <div class="col-md-4">
-              <label>Contact Number <span style="color:red">*</span></label>
-              <input name="contact_number" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <label>Contact Number <span style="color: red;">*</span></label>
+              <input name="contact_number" class="form-control" required maxlength="11" pattern="[0-9]{11}" title="Please enter 11 digits only">
+              <div class="text-danger small d-none" id="error_contact_number">This field is required</div>
             </div>
             <div class="col-md-4">
-              <label>Blood Type <span style="color:red">*</span></label>
-              <input name="blood_type" class="form-control" placeholder="O+ / A- ..." required>
-              <div class="invalid-feedback text-danger small"></div>
+              <label>Blood Type <span style="color: red;">*</span></label>
+              <select name="blood_type" class="form-control" required>
+                <option value="">Select Blood Type</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+              </select>
+              <div class="text-danger small d-none" id="error_blood_type">This field is required</div>
             </div>
 
             <div class="col-md-4">
-              <label>Gravida <span style="color:red">*</span></label>
+              <label>Gravida <span style="color: red;">*</span></label>
               <input type="number" min="0" name="gravida" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <div class="text-danger small d-none" id="error_gravida">This field is required</div>
             </div>
             <div class="col-md-4">
-              <label>Para <span style="color:red">*</span></label>
+              <label>Para <span style="color: red;">*</span></label>
               <input type="number" min="0" name="para" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <div class="text-danger small d-none" id="error_para">This field is required</div>
             </div>
             <div class="col-md-4">
               <label>Emergency Contact Name</label>
               <input name="emergency_contact_name" class="form-control">
-              <div class="invalid-feedback text-danger small"></div>
             </div>
             <div class="col-md-4">
               <label>Emergency Contact No.</label>
-              <input name="emergency_contact_number" class="form-control">
-              <div class="invalid-feedback text-danger small"></div>
+              <input name="emergency_contact_number" class="form-control" maxlength="11" pattern="[0-9]{11}" title="Please enter 11 digits only">
             </div>
 
             <div class="col-md-4">
-              <label>House # <span style="color:red">*</span></label>
-              <input name="house_number" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <label>House # <span style="color: red;">*</span></label>
+              <input name="house_number" class="form-control" required pattern="[0-9]+" title="Please enter numbers only">
+              <div class="text-danger small d-none" id="error_house_number">This field is required</div>
             </div>
             <div class="col-md-4">
-              <label>Street Name <span style="color:red">*</span></label>
+              <label>Street Name <span style="color: red;">*</span></label>
               <input name="street_name" class="form-control" required>
-              <div class="invalid-feedback text-danger small"></div>
+              <div class="text-danger small d-none" id="error_street_name">This field is required</div>
             </div>
             <div class="col-md-4">
-              <label>Purok <span style="color:red">*</span></label>
+              <label>Purok <span style="color: red;">*</span></label>
               <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off" placeholder="Type number (e.g., 1, 2, 3)..." required>
-              <div class="invalid-feedback text-danger small"></div>
               <datalist id="purokOptions">
                 <!-- Options will be populated by JavaScript -->
               </datalist>
+              <div class="text-danger small d-none" id="error_purok_name">This field is required</div>
             </div>
             <div class="col-md-4">
               <label>Subdivision / Village</label>
               <input name="subdivision_name" class="form-control">
-              <div class="invalid-feedback text-danger small"></div>
             </div>
 
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
             <div class="col-12">
               <div class="form-text">Please ensure no duplicate (first + last name) before proceeding.</div>
+              <div class="text-danger small d-none" id="motherError"></div>
               <div class="text-success small d-none" id="motherSuccess">Saved!</div>
             </div>
           </div>
@@ -2656,54 +2664,55 @@ function renderMotherRow(m){
   <div class="row g-4">
     <div class="col-lg-5">
       <form class="mh-consult-form" id="consultForm" autocomplete="off">
+        <div class="small text-danger mb-2 d-none" id="consultErr">Please fill in all required fields.</div>
         <div class="row g-2">
           <div class="col-12">
-            <label>PETSA NG KONSULTASYON *</label>
+            <label>PETSA NG KONSULTASYON <span style="color: red;">*</span></label>
             <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
-            <div class="invalid-feedback text-danger small"></div>
+            <div class="text-danger small d-none" id="error_consultation_date_consult">This field is required</div>
           </div>
 
           <div class="col-4">
-            <label>EDAD</label>
-            <input type="number" name="age" class="form-control" placeholder="Auto">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>EDAD <span style="color: red;">*</span></label>
+            <input type="number" name="age" class="form-control" placeholder="Auto" required>
+            <div class="text-danger small d-none" id="error_age_consult">This field is required</div>
           </div>
           <div class="col-4">
-            <label>TAAS (CM)</label>
-            <input type="number" step="0.1" name="height_cm" class="form-control">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>TAAS (CM) <span style="color: red;">*</span></label>
+            <input type="number" step="0.1" name="height_cm" class="form-control" required>
+            <div class="text-danger small d-none" id="error_height_cm_consult">This field is required</div>
           </div>
           <div class="col-4">
-            <label>TIMBANG (KG)</label>
-            <input type="number" step="0.01" name="weight_kg" class="form-control">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>TIMBANG (KG) <span style="color: red;">*</span></label>
+            <input type="number" step="0.01" name="weight_kg" class="form-control" required>
+            <div class="text-danger small d-none" id="error_weight_kg_consult">This field is required</div>
           </div>
 
           <div class="col-4">
-            <label>BP (SISTOLIC)</label>
-            <input type="number" name="blood_pressure_systolic" class="form-control">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>BP (SISTOLIC) <span style="color: red;">*</span></label>
+            <input type="number" name="blood_pressure_systolic" class="form-control" required>
+            <div class="text-danger small d-none" id="error_blood_pressure_systolic_consult">This field is required</div>
           </div>
           <div class="col-4">
-            <label>BP (DIASTOLIC)</label>
-            <input type="number" name="blood_pressure_diastolic" class="form-control">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>BP (DIASTOLIC) <span style="color: red;">*</span></label>
+            <input type="number" name="blood_pressure_diastolic" class="form-control" required>
+            <div class="text-danger small d-none" id="error_blood_pressure_diastolic_consult">This field is required</div>
           </div>
           <div class="col-4">
-            <label>Edad ng Pagbubuntis (Weeks)</label>
-            <input type="number" min="0" max="45" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>Edad ng Pagbubuntis (Weeks) <span style="color: red;">*</span></label>
+            <input type="number" min="0" max="45" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1" required>
+            <div class="text-danger small d-none" id="error_pregnancy_age_weeks_consult">This field is required</div>
           </div>
 
           <div class="col-6">
-            <label>HULING REGLA (LMP)</label>
-            <input type="date" name="last_menstruation_date" class="form-control" value="${mother?.last_menstruation_date || ''}" readonly style="background-color: #f8f9fa;">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>HULING REGLA (LMP) <span style="color: red;">*</span></label>
+            <input type="date" name="last_menstruation_date" class="form-control" value="${mother?.last_menstruation_date || ''}" readonly style="background-color: #f8f9fa;" required>
+            <div class="text-danger small d-none" id="error_last_menstruation_date_consult">This field is required</div>
           </div>
           <div class="col-6">
-            <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
-            <input type="date" name="expected_delivery_date" class="form-control" value="${mother?.expected_delivery_date || ''}" readonly style="background-color: #f8f9fa;">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>TINATAYANG PETSA NG PANGANGANAK (EDD) <span style="color: red;">*</span></label>
+            <input type="date" name="expected_delivery_date" class="form-control" value="${mother?.expected_delivery_date || ''}" readonly style="background-color: #f8f9fa;" required>
+            <div class="text-danger small d-none" id="error_expected_delivery_date_consult">This field is required</div>
           </div>
           <div class="col-12">
             <div class="mh-inline-hint">
@@ -2717,20 +2726,23 @@ function renderMotherRow(m){
         <label style="margin-bottom:.4rem;">MGA PAGSUSURI (LABS)</label>
         <div class="row g-2 mb-2">
           <div class="col-6">
-            <input name="hgb_result" class="form-control" placeholder="HGB">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>HGB <span style="color: red;">*</span></label>
+            <input name="hgb_result" class="form-control" placeholder="HGB" required>
+            <div class="text-danger small d-none" id="error_hgb_result_consult">This field is required</div>
           </div>
           <div class="col-6">
-            <input name="urine_result" class="form-control" placeholder="Ihi">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>Urine Result <span style="color: red;">*</span></label>
+            <input name="urine_result" class="form-control" placeholder="Ihi" required>
+            <div class="text-danger small d-none" id="error_urine_result_consult">This field is required</div>
           </div>
           <div class="col-6">
-            <input name="vdrl_result" class="form-control" placeholder="VDRL">
-            <div class="invalid-feedback text-danger small"></div>
+            <label>VDRL Result <span style="color: red;">*</span></label>
+            <input name="vdrl_result" class="form-control" placeholder="VDRL" required>
+            <div class="text-danger small d-none" id="error_vdrl_result_consult">This field is required</div>
           </div>
             <div class="col-6">
+            <label>Ibang resulta ng laboratoryo</label>
             <input name="other_lab_results" class="form-control" placeholder="Ibang resulta ng laboratoryo">
-            <div class="invalid-feedback text-danger small"></div>
           </div>
         </div>
 
@@ -2769,89 +2781,90 @@ function renderMotherRow(m){
         <div class="mh-form-divider"></div>
         <label style="margin-bottom:.4rem; font-weight: 700;">KILOS / LUNAS NA GINAWA</label>
         <div class="row g-2 mb-3">
-          <div class="col-md-4">
-            <label>Middle Name <span style="color:red">*</span></label>
-            <input name="middle_name" class="form-control" required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'iron_folate_notes_consult')"> Iron/Folate # Reseta
               </label>
               <div id="iron_folate_notes_consult" style="display:none;">
-                <textarea name="iron_folate_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="iron_folate_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Last Name <span style="color:red">*</span></label>
-            <input name="last_name" class="form-control" required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="additional_iodine" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'additional_iodine_notes_consult')"> Dagdag na Iodine sa delikadong lugar
               </label>
               <div id="additional_iodine_notes_consult" style="display:none;">
-                <textarea name="additional_iodine_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="additional_iodine_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Date of Birth <span style="color:red">*</span></label>
-            <input type="date" name="date_of_birth" class="form-control" required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'malaria_prophylaxis_notes_consult')"> Malaria Prophylaxis (Oo/Hindi)
               </label>
               <div id="malaria_prophylaxis_notes_consult" style="display:none;">
-                <textarea name="malaria_prophylaxis_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="malaria_prophylaxis_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Contact Number <span style="color:red">*</span></label>
-            <input name="contact_number" class="form-control" required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'breastfeeding_plan_notes_consult')"> Balak Magpasuso ng Nanay (Oo/Hindi)
               </label>
               <div id="breastfeeding_plan_notes_consult" style="display:none;">
-                <textarea name="breastfeeding_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="breastfeeding_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Blood Type <span style="color:red">*</span></label>
-            <input name="blood_type" class="form-control" placeholder="O+ / A- ..." required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="danger_advice" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'danger_advice_notes_consult')"> Payo sa 4 na Panganib (Oo/Hindi)
               </label>
               <div id="danger_advice_notes_consult" style="display:none;">
-                <textarea name="danger_advice_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="danger_advice_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Gravida <span style="color:red">*</span></label>
-            <input type="number" min="0" name="gravida" class="form-control" required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="dental_checkup" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'dental_checkup_notes_consult')"> Nagpasuri ng Ngipin (Oo/Hindi)
               </label>
               <div id="dental_checkup_notes_consult" style="display:none;">
-                <textarea name="dental_checkup_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="dental_checkup_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Para <span style="color:red">*</span></label>
-            <input type="number" min="0" name="para" class="form-control" required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="emergency_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'emergency_plan_notes_consult')"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
               </label>
               <div id="emergency_plan_notes_consult" style="display:none;">
-                <textarea name="emergency_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="emergency_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Emergency Contact Name <span style="color:red">*</span></label>
-            <input name="emergency_contact_name" class="form-control" required>
+          <div class="col-md-6">
+            <div class="mh-risk-box" style="background:#f2f6f7;border:1px solid #d9e2e6; padding:.5rem;">
+              <label style="display:flex; align-items:center; gap:.35rem; margin-bottom:.3rem;">
                 <input type="checkbox" name="general_risk" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'general_risk_notes_consult')"> Panganib (Oo/Hindi)
               </label>
               <div id="general_risk_notes_consult" style="display:none;">
-                <textarea name="general_risk_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                <textarea name="general_risk_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label>Emergency Contact No. <span style="color:red">*</span></label>
-            <input name="emergency_contact_number" class="form-control" required>
+          <div class="col-md-6">
+            <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw <span style="color: red;">*</span></label>
+            <input type="date" name="next_visit_date" class="form-control" style="font-size:.7rem;" required>
+            <div class="text-danger small d-none" id="error_next_visit_date_consult">This field is required</div>
           </div>
         </div>
 
@@ -2974,6 +2987,52 @@ function renderMotherRow(m){
         // Handle form submission for both steps
         function handleConsultSubmit(e) {
           e.preventDefault();
+          
+          // Clear all error messages
+          const errorElements = document.querySelectorAll('[id^="error_"][id$="_consult"]');
+          errorElements.forEach(el => el.classList.add('d-none'));
+          
+          // Define required fields for consultation
+          const requiredFields = [
+            { name: 'consultation_date', message: 'Consultation date is required' },
+            { name: 'age', message: 'Age is required' },
+            { name: 'height_cm', message: 'Height is required' },
+            { name: 'weight_kg', message: 'Weight is required' },
+            { name: 'blood_pressure_systolic', message: 'BP Systolic is required' },
+            { name: 'blood_pressure_diastolic', message: 'BP Diastolic is required' },
+            { name: 'pregnancy_age_weeks', message: 'Pregnancy age is required' },
+            { name: 'last_menstruation_date', message: 'LMP is required' },
+            { name: 'expected_delivery_date', message: 'EDD is required' },
+            { name: 'hgb_result', message: 'HGB result is required' },
+            { name: 'urine_result', message: 'Urine result is required' },
+            { name: 'vdrl_result', message: 'VDRL result is required' },
+            { name: 'next_visit_date', message: 'Next visit date is required' }
+          ];
+          
+          let hasErrors = false;
+          
+          // Check each required field
+          requiredFields.forEach(field => {
+            const input = consultForm1[field.name];
+            const errorElement = document.getElementById(`error_${field.name}_consult`);
+            
+            if (!input || !input.value.trim()) {
+              hasErrors = true;
+              if (errorElement) {
+                errorElement.classList.remove('d-none');
+              }
+            }
+          });
+          
+          if (hasErrors) {
+            // Show error message
+            const errorEl = consultForm1.querySelector('#consultErr');
+            if (errorEl) {
+              errorEl.textContent = 'Please fill in all required fields.';
+              errorEl.classList.remove('d-none');
+            }
+            return;
+          }
           
           // Combine data from both forms
           const fd1 = new FormData(consultForm1);
@@ -3862,6 +3921,64 @@ function loadPostnatalPanel(){
     document.getElementById('btnRegisterMother').addEventListener('click',()=>{
       const modalEl = document.getElementById('modalRegisterMother');
       bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      
+      // Add input validation for contact numbers and house number
+      const contactNumber = modalEl.querySelector('input[name="contact_number"]');
+      const emergencyContact = modalEl.querySelector('input[name="emergency_contact_number"]');
+      const houseNumber = modalEl.querySelector('input[name="house_number"]');
+      
+      // Contact Number validation - only numbers, max 11 digits
+      if (contactNumber) {
+        contactNumber.addEventListener('input', function(e) {
+          // Remove any non-numeric characters
+          this.value = this.value.replace(/[^0-9]/g, '');
+          // Limit to 11 digits
+          if (this.value.length > 11) {
+            this.value = this.value.slice(0, 11);
+          }
+        });
+        
+        contactNumber.addEventListener('keypress', function(e) {
+          // Only allow numbers
+          if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+          }
+        });
+      }
+      
+      // Emergency Contact validation - only numbers, max 11 digits
+      if (emergencyContact) {
+        emergencyContact.addEventListener('input', function(e) {
+          // Remove any non-numeric characters
+          this.value = this.value.replace(/[^0-9]/g, '');
+          // Limit to 11 digits
+          if (this.value.length > 11) {
+            this.value = this.value.slice(0, 11);
+          }
+        });
+        
+        emergencyContact.addEventListener('keypress', function(e) {
+          // Only allow numbers
+          if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+          }
+        });
+      }
+      
+      // House Number validation - only numbers
+      if (houseNumber) {
+        houseNumber.addEventListener('input', function(e) {
+          // Remove any non-numeric characters
+          this.value = this.value.replace(/[^0-9]/g, '');
+        });
+        
+        houseNumber.addEventListener('keypress', function(e) {
+          // Only allow numbers
+          if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+          }
+        });
+      }
     });
 
     // Labor & Delivery Panel
@@ -3924,10 +4041,17 @@ function loadPostnatalPanel(){
       function loadLaborForm(motherId){
         mainPanel.innerHTML = '<div class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>';
         
-        fetchJSON(api.maternal+`?detail=1&mother_id=${encodeURIComponent(motherId)}`)
-          .then(j=>{
-            if(!j.success) throw new Error(j.error||'Load failed');
-            const mother = j.mother;
+        // Load both mother details and labor records
+        Promise.all([
+          fetchJSON(api.maternal+`?detail=1&mother_id=${encodeURIComponent(motherId)}`),
+          fetchJSON(api.labor+`?list=1&mother_id=${encodeURIComponent(motherId)}`)
+        ])
+          .then(([motherRes, laborRes]) => {
+            if(!motherRes.success) throw new Error(motherRes.error||'Load mother failed');
+            if(!laborRes.success) throw new Error(laborRes.error||'Load labor records failed');
+            
+            const mother = motherRes.mother;
+            const laborRecords = laborRes.records || [];
             
             mainPanel.innerHTML = `
               <div class="mh-post-head d-flex justify-content-between align-items-center mb-3">
@@ -3938,6 +4062,9 @@ function loadPostnatalPanel(){
               </div>
               <div id="laborFormContainer">
                 <div class="text-muted text-center py-4">Click "Add Labor Record" to create a new labor and delivery record.</div>
+              </div>
+              <div id="laborHistoryContainer" class="mt-4">
+                ${renderLaborHistory(laborRecords)}
               </div>
             `;
 
@@ -3951,6 +4078,150 @@ function loadPostnatalPanel(){
           });
       }
 
+      function renderLaborHistory(records) {
+        if (!records || records.length === 0) {
+          return `
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">Labor & Delivery History</h6>
+              </div>
+              <div class="card-body">
+                <div class="text-muted text-center py-3">No labor and delivery records found.</div>
+              </div>
+            </div>
+          `;
+        }
+
+        const recordsHTML = records.map(record => {
+          const deliveryDate = new Date(record.delivery_date).toLocaleDateString('en-PH', {
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+
+          const birthWeight = record.birth_weight_grams ? 
+            `${(record.birth_weight_grams / 1000).toFixed(1)} kg` : '—';
+
+          const deliveryType = record.delivery_type || '—';
+          const placeOfDelivery = record.place_of_delivery || '—';
+          const attendant = record.attendant || '—';
+
+          // Status indicators
+          const breastfeedingStatus = record.immediate_breastfeeding ? 
+            '<span class="badge bg-success">Yes</span>' : 
+            '<span class="badge bg-secondary">No</span>';
+
+          const babyStatus = record.baby_alive ? 
+            '<span class="badge bg-success">Alive</span>' : 
+            '<span class="badge bg-danger">Not Alive</span>';
+
+          const babyHealth = record.baby_healthy ? 
+            '<span class="badge bg-success">Healthy</span>' : 
+            '<span class="badge bg-warning">Not Healthy</span>';
+
+          const hemorrhageStatus = record.postpartum_hemorrhage ? 
+            '<span class="badge bg-danger">Yes</span>' : 
+            '<span class="badge bg-success">No</span>';
+
+          return `
+            <div class="card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Delivery Record</h6>
+                <small class="text-muted">${deliveryDate}</small>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Delivery Type:</span>
+                      <span class="fw-semibold">${escapeHtml(deliveryType)}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Place of Delivery:</span>
+                      <span class="fw-semibold">${escapeHtml(placeOfDelivery)}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Attendant:</span>
+                      <span class="fw-semibold">${escapeHtml(attendant)}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Birth Weight:</span>
+                      <span class="fw-semibold">${birthWeight}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Immediate Breastfeeding:</span>
+                      ${breastfeedingStatus}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Postpartum Hemorrhage:</span>
+                      ${hemorrhageStatus}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Baby Status:</span>
+                      ${babyStatus}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Baby Health:</span>
+                      ${babyHealth}
+                    </div>
+                  </div>
+                  ${record.notes ? `
+                    <div class="col-12">
+                      <div class="mt-2">
+                        <span class="text-muted">Notes:</span>
+                        <div class="mt-1 p-2 bg-light rounded">${escapeHtml(record.notes)}</div>
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">Labor & Delivery History (${records.length} record${records.length !== 1 ? 's' : ''})</h6>
+            </div>
+            <div class="card-body p-0">
+              ${recordsHTML}
+            </div>
+          </div>
+        `;
+      }
+
+      function refreshLaborHistory(motherId) {
+        const historyContainer = mainPanel.querySelector('#laborHistoryContainer');
+        if (!historyContainer) return;
+
+        fetchJSON(api.labor+`?list=1&mother_id=${encodeURIComponent(motherId)}`)
+          .then(laborRes => {
+            if (laborRes.success) {
+              const laborRecords = laborRes.records || [];
+              historyContainer.innerHTML = renderLaborHistory(laborRecords);
+            }
+          })
+          .catch(err => {
+            console.error('Failed to refresh labor history:', err);
+          });
+      }
+
       function showLaborForm(mother){
         const container = mainPanel.querySelector('#laborFormContainer');
         container.innerHTML = `
@@ -3960,9 +4231,9 @@ function loadPostnatalPanel(){
                 <h6 class="fw-semibold mb-3">PAGHILAB AT PANGANGANAK</h6>
               </div>
               
-              <div class="col-md-4">
-                <label>House # <span style="color:red">*</span></label>
-                <input name="house_number" class="form-control" required>
+              <div class="col-md-6">
+                <div class="row g-2">
+                  <div class="col-12">
                     <label>Dagliang Pagpapasuso (Oo/Hindi)</label>
                     <div class="d-flex gap-3">
                       <div class="form-check">
@@ -4019,9 +4290,9 @@ function loadPostnatalPanel(){
                 </div>
               </div>
               
-              <div class="col-md-4">
-                <label>Street Name <span style="color:red">*</span></label>
-                <input name="street_name" class="form-control" required>
+              <div class="col-md-6">
+                <div class="row g-2">
+                  <div class="col-12">
                     <label>Timbang ng Kapanganakan (Gms)</label>
                     <input type="number" name="birth_weight" class="form-control" placeholder="Enter weight in grams" min="0" max="10000">
                   </div>
@@ -4112,6 +4383,8 @@ function loadPostnatalPanel(){
                 form.querySelector('#laborOk').classList.remove('d-none');
                 setTimeout(() => {
                   container.innerHTML = '<div class="text-muted text-center py-4">Click "Add Labor Record" to create a new labor and delivery record.</div>';
+                  // Refresh the labor history
+                  refreshLaborHistory(mother.mother_id);
                 }, 1500);
               } else {
                 throw new Error(result.error || 'Save failed');
@@ -4286,10 +4559,10 @@ function loadPostnatalPanel(){
                     <small class="text-muted">${escapeHtml(m.emergency_contact_number||'')}</small></p>
                 </div>
               </div>
-              <div class="col-md-4">
-                <label>Purok <span style="color:red">*</span></label>
-                <input name="purok_name" class="form-control" id="purokInput" list="purokOptions" autocomplete="off" placeholder="Type number (e.g., 1, 2, 3)..." required>
-                <datalist id="purokOptions"></datalist>
+              <div class="col-md-8">
+                <div class="border rounded p-3 h-100 d-flex flex-column">
+                  ${renderConsultationHistory()}
+                  <hr class="my-3">
                   <div class="mt-auto">
                     <button class="btn btn-sm btn-success" id="btnQuickConsult">
                       <i class="bi bi-journal-plus me-1"></i> Add Consultation
@@ -4384,73 +4657,10 @@ function renderVaccinationEntry(label){
         <p class="imm-sub">Track vaccinations, schedules, and coverage</p>
       </div>
       <div class="d-flex gap-2 flex-wrap">
-        <button class="btn btn-outline-success btn-sm" id="immChildRegToggle">
-          <i class="bi bi-person-plus me-1"></i> Register Child
-        </button>
         <button class="imm-add-btn" id="immRecordBtn"><i class="bi bi-plus-lg"></i> Record Vaccination</button>
       </div>
     </div>
 
-    <!-- QUICK CHILD REGISTRATION (hidden default) -->
-    <div id="immChildRegWrap" class="imm-child-reg-card" style="display:none;">
-      <div class="imm-child-reg-head">
-        <h6>Register New Child</h6>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="immChildRegClose">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      <div class="text-muted mb-3" style="font-size:.62rem;font-weight:600;">Quick registration for immunization tracking</div>
-      <form id="immChildRegForm" autocomplete="off">
-  <div class="imm-child-form-grid">
-  <div>
-    <label>First Name *</label>
-    <input name="first_name" class="form-control" required>
-  </div>
-  <div>
-    <label>Middle Name</label>
-    <input name="middle_name" class="form-control">
-  </div>
-  <div>
-    <label>Last Name *</label>
-    <input name="last_name" class="form-control" required>
-  </div>
-  <div>
-    <label>Date of Birth *</label>
-    <input type="date" name="birth_date" class="form-control" required>
-  </div>
-  <div>
-    <label>Gender *</label>
-    <select name="sex" class="form-select" required>
-      <option value="">Select</option>
-      <option value="male">Male</option>
-      <option value="female">Female</option>
-    </select>
-  </div>
-  <div>
-    <label>Weight (kg)</label>
-    <input name="weight_kg" type="number" step="0.01" class="form-control">
-  </div>
-  <div>
-    <label>Height (cm)</label>
-    <input name="height_cm" type="number" step="0.1" class="form-control">
-  </div>
-  <!-- Parent fields remain below -->
-  ...
-  </div>
-        <div class="imm-child-divider"></div>
-        <div class="imm-reg-actions">
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="immChildRegCancel">Cancel</button>
-          <button type="submit" class="btn btn-success btn-sm" id="immChildRegSubmit">
-            <span class="reg-btn-label"><i class="bi bi-person-plus me-1"></i> Register Child</span>
-            <span class="reg-btn-spin d-none"><span class="spinner-border spinner-border-sm me-1"></span>Saving</span>
-          </button>
-        </div>
-        <div class="imm-inline-hint mt-2">Parent automatically created if not existing.</div>
-        <div class="imm-msg-ok" id="immChildRegOk"><i class="bi bi-check-circle me-1"></i>Saved!</div>
-        <div class="imm-msg-err" id="immChildRegErr"></div>
-        <input type="hidden" name="csrf_token" value="${window.__BHW_CSRF}">
-      </form>
-    </div>
 
     <div class="imm-metrics">
       ${metricCard('Total Children', totalChildren,'Registered for immunization','bi-people')}
@@ -4501,17 +4711,19 @@ function renderVaccinationEntry(label){
                   </div>
 
                   <div class="vax-field-group">
-                    <label class="vax-label">Batch/Lot Number</label>
-                    <input name="batch_lot_number" class="form-control" placeholder="e.g., HB-2025-089">
+                    <label class="vax-label">Batch/Lot Number <span style="color: red;">*</span></label>
+                    <input name="batch_lot_number" class="form-control" placeholder="e.g., HB-2025-089" required>
+                    <div class="text-danger small d-none" id="error_batch_lot_number_vax">Please fill up this field</div>
                   </div>
                   <div class="vax-field-group">
-                    <label class="vax-label">Expiry Date</label>
-                    <input type="date" name="vaccine_expiry_date" class="form-control" placeholder="mm/dd/yyyy">
+                    <label class="vax-label">Expiry Date <span style="color: red;">*</span></label>
+                    <input type="date" name="vaccine_expiry_date" class="form-control" placeholder="mm/dd/yyyy" required>
+                    <div class="text-danger small d-none" id="error_vaccine_expiry_date_vax">Please fill up this field</div>
                   </div>
 
                   <div class="vax-field-group">
-                    <label class="vax-label">Vaccination Site</label>
-                    <select name="vaccination_site" id="vaxSiteSel" class="form-select">
+                    <label class="vax-label">Vaccination Site <span style="color: red;">*</span></label>
+                    <select name="vaccination_site" id="vaxSiteSel" class="form-select" required>
                       <option value="">Select site</option>
                       <option>Left Deltoid</option>
                       <option>Right Deltoid</option>
@@ -4520,6 +4732,7 @@ function renderVaccinationEntry(label){
                       <option>Oral</option>
                       <option value="OTHER">Other...</option>
                     </select>
+                    <div class="text-danger small d-none" id="error_vaccination_site_vax">Please select an item</div>
                     <div id="vaxSiteOtherWrap" class="mt-2">
                       <input type="text" id="vaxSiteOther" class="form-control" placeholder="Specify site">
                     </div>
@@ -4562,110 +4775,6 @@ function renderVaccinationEntry(label){
       </div>
     `;
 
-    /* === Quick Child Registration Logic === */
-  const regToggleBtn = document.getElementById('immChildRegToggle');
-  const regWrap      = document.getElementById('immChildRegWrap');
-  const regCloseBtn  = document.getElementById('immChildRegClose');
-  const regCancelBtn = document.getElementById('immChildRegCancel');
-  const regForm      = document.getElementById('immChildRegForm');
-  const regSubmitBtn = document.getElementById('immChildRegSubmit');
-  const regOkMsg     = document.getElementById('immChildRegOk');
-  const regErrMsg    = document.getElementById('immChildRegErr');
-
-  function toggleRegForm(show){
-  const willShow = (typeof show==='boolean')? show : (regWrap.style.display==='none');
-  regWrap.style.display = willShow ? 'block':'none';
-  regToggleBtn.classList.toggle('active', willShow);
-  if(willShow){ regForm.reset(); regOkMsg.style.display='none'; regErrMsg.style.display='none'; }
-  }
-  regToggleBtn.addEventListener('click',()=>toggleRegForm());
-  regCloseBtn.addEventListener('click',()=>toggleRegForm(false));
-  regCancelBtn.addEventListener('click',()=>toggleRegForm(false));
-
-  function setRegSaving(on){
-  const label=regSubmitBtn.querySelector('.reg-btn-label');
-  const spin =regSubmitBtn.querySelector('.reg-btn-spin');
-  if(on){label.classList.add('d-none');spin.classList.remove('d-none');regSubmitBtn.disabled=true;}
-  else {label.classList.remove('d-none');spin.classList.add('d-none');regSubmitBtn.disabled=false;}
-  }
-
-  regForm.addEventListener('submit',e=>{
-  e.preventDefault();
-  regOkMsg.style.display='none';
-  regErrMsg.style.display='none';
-
-  const childName   = regForm.child_full_name.value.trim();
-  const dob         = regForm.birth_date.value;
-  const sex         = regForm.sex.value;
-  const parentName  = regForm.parent_name.value.trim();
-  const contact     = regForm.contact_number.value.trim();
-  const parentDob   = regForm.parent_date_of_birth.value;
-  const emgName     = regForm.emergency_contact_name.value.trim();
-  const emgNumber   = regForm.emergency_contact_number.value.trim();
-  const purok       = regForm.purok_name.value.trim();
-  const address     = regForm.address_details.value.trim();
-
-  if(!childName || !dob || !sex || !parentName || !purok){
-    regErrMsg.textContent='Please complete all required (*) fields.';
-    regErrMsg.style.display='block';
-    return;
-  }
-
-  setRegSaving(true);
-
-  // Step 1: find existing mother (basic list)
-  fetchJSON(api.mothers+'?list_basic=1').then(list=>{
-    let existing = null;
-    if(list.success){
-      const target = parentName.toLowerCase();
-      existing = (list.mothers||[]).find(m=> (m.full_name||'').toLowerCase()===target);
-    }
-
-    if(existing){
-      return Promise.resolve({mother_id: existing.mother_id, created:false});
-    }
-    // Step 2: create mother
-    const fdMother = new FormData();
-    fdMother.append('full_name', parentName);
-    fdMother.append('purok_name', purok);
-    fdMother.append('contact_number', contact);
-    fdMother.append('address_details', address);
-    if(parentDob) fdMother.append('date_of_birth', parentDob);
-    if(emgName) fdMother.append('emergency_contact_name', emgName);
-    if(emgNumber) fdMother.append('emergency_contact_number', emgNumber);
-    fdMother.append('csrf_token', window.__BHW_CSRF);
-    return fetch(api.mothers,{method:'POST',body:fdMother})
-      .then(parseJSONSafe)
-      .then(j=>{
-        if(!j.success) throw new Error(j.error||'Mother create failed');
-        return {mother_id:j.mother_id, created:true};
-      });
-  }).then(({mother_id})=>{
-    // Step 3: create child
-    const fdChild = new FormData();
-    fdChild.append('add_child','1');
-  fdChild.append('first_name', regForm.first_name.value.trim());
-  fdChild.append('middle_name', regForm.middle_name.value.trim());
-  fdChild.append('last_name', regForm.last_name.value.trim());
-  fdChild.append('weight_kg', regForm.weight_kg.value.trim());
-  fdChild.append('height_cm', regForm.height_cm.value.trim());
-    fdChild.append('sex', sex);
-    fdChild.append('birth_date', dob);
-    fdChild.append('mother_id', mother_id);
-    fdChild.append('csrf_token', window.__BHW_CSRF);
-    return fetch(api.immun,{method:'POST',body:fdChild}).then(parseJSONSafe);
-  }).then(j=>{
-    if(!j.success) throw new Error(j.error||'Child save failed');
-    regOkMsg.style.display='block';
-    // (Optional) refresh module metrics quickly:
-    // Re-run only coverage + overdue counts (lite refresh)
-    setTimeout(()=>{ toggleRegForm(false); renderVaccinationEntry(label); },900);
-  }).catch(err=>{
-    regErrMsg.textContent=err.message;
-    regErrMsg.style.display='block';
-  }).finally(()=>setRegSaving(false));
-});
-/* === END Quick Child Registration === */
 
 
     /* Open modal */
@@ -4716,6 +4825,38 @@ function renderVaccinationEntry(label){
     document.getElementById('immRecordForm').addEventListener('submit',e=>{
       e.preventDefault();
       const form=e.target;
+      
+      // Clear all individual error messages
+      const errorElements = document.querySelectorAll('[id^="error_"][id$="_vax"]');
+      errorElements.forEach(el => el.classList.add('d-none'));
+
+      // Validate required fields
+      const requiredFields = [
+        { name: 'batch_lot_number', message: 'Please fill up this field' },
+        { name: 'vaccine_expiry_date', message: 'Please fill up this field' },
+        { name: 'vaccination_site', message: 'Please select an item' }
+      ];
+
+      let hasErrors = false;
+      requiredFields.forEach(field => {
+        const input = form[field.name];
+        const errorElement = document.getElementById(`error_${field.name}_vax`);
+        
+        if (!input || !input.value.trim()) {
+          hasErrors = true;
+          if (errorElement) {
+            errorElement.classList.remove('d-none');
+          }
+        }
+      });
+
+      if (hasErrors) {
+        const errEl = form.querySelector('#vaxErr');
+        errEl.textContent = 'Please fill in all required fields.';
+        errEl.classList.remove('d-none');
+        return;
+      }
+
       const fd=new FormData(form);
 
       // If site OTHER chosen, replace vaccination_site with custom value
@@ -5982,12 +6123,14 @@ function renderCreateParentAccounts(label){
                     </select>
                   </div>
                   <div>
-                    <label>Contact Number</label>
-                    <input name="contact_number" class="form-control" placeholder="09XX-XXX-XXXX">
+                    <label>Contact Number <span style="color: red;">*</span></label>
+                    <input name="contact_number" class="form-control" placeholder="09XX-XXX-XXXX" required>
+                    <div class="text-danger small d-none" id="error_contact_number_parent">Please fill in this field</div>
                   </div>
                   <div>
-                    <label>Email Address (Optional)</label>
-                    <input type="email" name="email" class="form-control" placeholder="email@example.com">
+                    <label>Email Address <span style="color: red;">*</span></label>
+                    <input type="email" name="email" class="form-control" placeholder="email@example.com" required>
+                    <div class="text-danger small d-none" id="error_email_parent">Please fill in this field</div>
                   </div>
                   <!-- REPLACED Address WITH Parent Birthday -->
                   <div>
@@ -6016,13 +6159,14 @@ function renderCreateParentAccounts(label){
                     <div class="pa-small-hint" id="paUserHint">Format: firstword + first & last letter of surname (e.g. Maria Marvic → mariamc)</div>
                   </div>
                   <div>
-                    <label>Password</label>
+                    <label>Password <span style="color: red;">*</span></label>
                     <div class="d-flex align-items-center gap-2">
-                      <input name="password" id="paPassword" class="form-control" type="password" placeholder="Auto-generated if blank">
+                      <input name="password" id="paPassword" class="form-control" type="password" placeholder="Enter password" required>
                       <button type="button" class="btn btn-outline-secondary pa-gen-btn" id="paGenPass">Generate</button>
                       <button type="button" class="btn btn-outline-secondary pa-gen-btn" id="paShowPass"><i class="bi bi-eye"></i></button>
                     </div>
-                    <div class="pa-small-hint" id="paPassHint">If blank: LastName + birth month (e.g. Marvic02) or secure random if birthday missing.</div>
+                    <div class="text-danger small d-none" id="error_password_parent">Please fill in this field</div>
+                    <div class="pa-small-hint" id="paPassHint">Enter a secure password for the account.</div>
                   </div>
                 </div>
 
@@ -6508,6 +6652,36 @@ function renderCreateParentAccounts(label){
         msgOk.style.display='none';
         msgErr.style.display='none';
 
+        // Clear all individual error messages
+        const errorElements = document.querySelectorAll('[id^="error_"][id$="_parent"]');
+        errorElements.forEach(el => el.classList.add('d-none'));
+
+        // Validate required fields
+        const requiredFields = [
+          { name: 'contact_number', message: 'Please fill in this field' },
+          { name: 'email', message: 'Please fill in this field' },
+          { name: 'password', message: 'Please fill in this field' }
+        ];
+
+        let hasErrors = false;
+        requiredFields.forEach(field => {
+          const input = form[field.name];
+          const errorElement = document.getElementById(`error_${field.name}_parent`);
+          
+          if (!input || !input.value.trim()) {
+            hasErrors = true;
+            if (errorElement) {
+              errorElement.classList.remove('d-none');
+            }
+          }
+        });
+
+        if (hasErrors) {
+          msgErr.textContent = 'Please fill in all required fields.';
+          msgErr.style.display = 'block';
+          return;
+        }
+
         const rows=[...childRowsBox.querySelectorAll('.pa-child-row')];
         if(!rows.length){
           msgErr.textContent='Add at least one child.'; msgErr.style.display='block'; return;
@@ -6530,12 +6704,8 @@ function renderCreateParentAccounts(label){
         fd.append('create_parent','1');
         fd.append('csrf_token', window.__BHW_CSRF);
         // updated field list (parent_birth_date instead of address_details)
-        ['first_name','last_name','relationship_type','email','contact_number','parent_birth_date','username','password']
+        ['first_name','middle_name','last_name','relationship_type','email','contact_number','parent_birth_date','username','password']
           .forEach(k=>{ if(form[k]) fd.append(k, form[k].value); });
-        if(!passInput.value.trim()){ // auto-generate if user left blank
-          const rulePwd=generatePasswordFromBirthday();
-          fd.set('password', rulePwd || generateSecureFallback());
-        }
         fd.append('new_children', JSON.stringify(newChildren));
 
         saveBtn.disabled=true;
@@ -6709,9 +6879,9 @@ function openParentEditModal(p, triggerBtn){
 
                 <div class="border rounded p-2 mt-3">
                   <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
-                      <label>Subdivision / Village <span style="color:red">*</span></label>
-                      <input name="subdivision_name" class="form-control" required>
+                    <div class="col-md-7">
+                      <label class="form-label" style="font-size:.62rem;font-weight:700;letter-spacing:.06em;">Select Child to Link</label>
+                      <select class="form-select form-select-sm" id="paLinkChildSel">
                         <option value="">Choose child</option>
                       </select>
                     </div>
@@ -8248,8 +8418,20 @@ function renderHealthReports(label){
           </div>
           <div class="imm-small-muted mt-1">Note: Risk is based on latest consultation per mother.</div>
         </div>
+        
+        <div class="imm-card mt-3">
+          <h6 class="mb-3">Maternal Health Trends</h6>
+          <div class="chart-container" style="position: relative; height: 300px;">
+            <canvas id="maternalHealthChart"></canvas>
+          </div>
+        </div>
       `;
       document.getElementById('expMat').addEventListener('click',()=>exportSection(panel.querySelector('.imm-card')));
+      
+      // Create the chart after a short delay to ensure the canvas is rendered
+      setTimeout(() => {
+        createMaternalHealthChart();
+      }, 100);
     }
 
 
@@ -8276,6 +8458,94 @@ function renderHealthReports(label){
       </div>`;
     }
     function fmtPct(v){ if(v==null) return '0%'; const n=+v; return (isNaN(n)?0:n).toFixed(0)+'%'; }
+
+    function createMaternalHealthChart() {
+      const ctx = document.getElementById('maternalHealthChart');
+      if (!ctx) return;
+      
+      // Destroy existing chart if it exists
+      if (window.maternalHealthChartInstance) {
+        window.maternalHealthChartInstance.destroy();
+      }
+      
+      // Sample data - in a real implementation, you would fetch this from the API
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      const consultations = [12, 19, 15, 25, 22, 30];
+      const newMothers = [3, 5, 4, 7, 6, 8];
+      const riskCases = [2, 3, 2, 4, 3, 5];
+      
+      window.maternalHealthChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: months,
+          datasets: [
+            {
+              label: 'Consultations',
+              data: consultations,
+              borderColor: '#0b6f46',
+              backgroundColor: 'rgba(11, 111, 70, 0.1)',
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'New Mothers',
+              data: newMothers,
+              borderColor: '#0a63c9',
+              backgroundColor: 'rgba(10, 99, 201, 0.1)',
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'Risk Cases',
+              data: riskCases,
+              borderColor: '#b81f14',
+              backgroundColor: 'rgba(184, 31, 20, 0.1)',
+              tension: 0.4,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 20
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+            }
+          },
+          scales: {
+            x: {
+              display: true,
+              title: {
+                display: true,
+                text: 'Month'
+              }
+            },
+            y: {
+              display: true,
+              title: {
+                display: true,
+                text: 'Count'
+              },
+              beginAtZero: true
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+          }
+        }
+      });
+    }
 
     function buildMonthlyTrend(records, monthsBack){
       // Aggregate by YYYY-MM
@@ -8480,36 +8750,42 @@ function renderParentRegistry(label){
                 <input type="hidden" name="mother_id" id="prChildMotherId">
                 <div class="row g-3">
                   <div class="col-md-4">
-                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">First Name *</label>
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">First Name <span style="color: red;">*</span></label>
                     <input name="first_name" class="form-control" required>
+                    <div class="text-danger small d-none" id="error_first_name_child">Please fill in this field</div>
                   </div>
                   <div class="col-md-4">
                     <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Middle Name</label>
                     <input name="middle_name" class="form-control">
                   </div>
                   <div class="col-md-4">
-                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Last Name *</label>
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Last Name <span style="color: red;">*</span></label>
                     <input name="last_name" class="form-control" required>
+                    <div class="text-danger small d-none" id="error_last_name_child">Please fill in this field</div>
                   </div>
                   <div class="col-md-6">
-                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Date of Birth *</label>
-                    <input name="birth_date" type="date" class="form-control" required>
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Date of Birth <span style="color: red;">*</span></label>
+                    <input name="birth_date" type="date" class="form-control" required max="<?php echo date('Y-m-d'); ?>">
+                    <div class="text-danger small d-none" id="error_birth_date_child">Please fill in this field</div>
                   </div>
                   <div class="col-md-6">
-                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Gender *</label>
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Gender <span style="color: red;">*</span></label>
                     <select name="sex" class="form-select" required>
                       <option value="">Select</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                     </select>
+                    <div class="text-danger small d-none" id="error_sex_child">Please fill in this field</div>
                   </div>
                   <div class="col-md-6">
-                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Weight (kg)</label>
-                    <input name="weight_kg" type="number" step="0.01" class="form-control">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Weight (kg) <span style="color: red;">*</span></label>
+                    <input name="weight_kg" type="number" step="0.01" class="form-control" required>
+                    <div class="text-danger small d-none" id="error_weight_kg_child">Please fill in this field</div>
                   </div>
                   <div class="col-md-6">
-                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Height (cm)</label>
-                    <input name="height_cm" type="number" step="0.1" class="form-control">
+                    <label style="font-size:.55rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">Height (cm) <span style="color: red;">*</span></label>
+                    <input name="height_cm" type="number" step="0.1" class="form-control" required>
+                    <div class="text-danger small d-none" id="error_height_cm_child">Please fill in this field</div>
                   </div>
                 </div>
                 <input type="hidden" name="add_child" value="1">
@@ -8659,11 +8935,40 @@ function renderParentRegistry(label){
       const okEl=document.getElementById('prChildOk');
       errEl.classList.add('d-none'); okEl.classList.add('d-none');
 
-      const fd=new FormData(form);
-      // Ensure optional numeric fields posted correctly (blank -> remove)
-      ['weight_kg','height_cm'].forEach(f=>{
-        if(fd.get(f)==='') fd.delete(f);
+      // Clear all individual error messages
+      const errorElements = document.querySelectorAll('[id^="error_"][id$="_child"]');
+      errorElements.forEach(el => el.classList.add('d-none'));
+
+      // Validate required fields
+      const requiredFields = [
+        { name: 'first_name', message: 'First name is required' },
+        { name: 'last_name', message: 'Last name is required' },
+        { name: 'birth_date', message: 'Date of birth is required' },
+        { name: 'sex', message: 'Gender is required' },
+        { name: 'weight_kg', message: 'Weight is required' },
+        { name: 'height_cm', message: 'Height is required' }
+      ];
+
+      let hasErrors = false;
+      requiredFields.forEach(field => {
+        const input = form[field.name];
+        const errorElement = document.getElementById(`error_${field.name}_child`);
+        
+        if (!input || !input.value.trim()) {
+          hasErrors = true;
+          if (errorElement) {
+            errorElement.classList.remove('d-none');
+          }
+        }
       });
+
+      if (hasErrors) {
+        errEl.textContent = 'Please fill in all required fields.';
+        errEl.classList.remove('d-none');
+        return;
+      }
+
+      const fd=new FormData(form);
 
       fetch(api.immun,{method:'POST',body:fd})
         .then(parseJSONSafe)
@@ -9101,39 +9406,70 @@ function initMotherWizard(){
 
 async function onNext(){
   clearMsgs();
-  let valid = true;
-  // List of required fields in Step 1
+  
+  // Clear all individual error messages
+  const errorElements = document.querySelectorAll('[id^="error_"]');
+  errorElements.forEach(el => el.classList.add('d-none'));
+  
+  // Define required fields and their error messages
   const requiredFields = [
-    'first_name', 'last_name', 'date_of_birth',
-    'contact_number', 'blood_type', 'gravida', 'para',
-    'house_number', 'street_name', 'purok_name'
+    { name: 'first_name', message: 'First Name is required' },
+    { name: 'last_name', message: 'Last Name is required' },
+    { name: 'date_of_birth', message: 'Date of Birth is required' },
+    { name: 'contact_number', message: 'Contact Number is required' },
+    { name: 'blood_type', message: 'Blood Type is required' },
+    { name: 'gravida', message: 'Gravida is required' },
+    { name: 'para', message: 'Para is required' },
+    { name: 'house_number', message: 'House # is required' },
+    { name: 'street_name', message: 'Street Name is required' },
+    { name: 'purok_name', message: 'Purok is required' }
   ];
-  requiredFields.forEach(function(field) {
-    const input = form[field];
-    if (input) {
-      const feedback = input.parentNode.querySelector('.invalid-feedback');
-      if (!input.value.trim()) {
-        valid = false;
-        if (feedback) {
-          feedback.textContent = 'Required field';
-          feedback.style.display = 'block';
+  
+  let hasErrors = false;
+  
+  // Check each required field
+  requiredFields.forEach(field => {
+    const input = form[field.name];
+    const errorElement = document.getElementById(`error_${field.name}`);
+    
+    if (!input.value.trim()) {
+      hasErrors = true;
+      if (errorElement) {
+        errorElement.classList.remove('d-none');
+      }
+    } else {
+      // Additional validation for specific fields
+      if (field.name === 'contact_number' && input.value.length !== 11) {
+        hasErrors = true;
+        if (errorElement) {
+          errorElement.textContent = 'Contact number must be exactly 11 digits';
+          errorElement.classList.remove('d-none');
         }
-        input.classList.add('is-invalid');
-      } else {
-        if (feedback) {
-          feedback.textContent = '';
-          feedback.style.display = 'none';
+      } else if (field.name === 'house_number' && !/^[0-9]+$/.test(input.value)) {
+        hasErrors = true;
+        if (errorElement) {
+          errorElement.textContent = 'House number must contain only numbers';
+          errorElement.classList.remove('d-none');
         }
-        input.classList.remove('is-invalid');
       }
     }
   });
-  if (!valid) {
+  
+  // Check emergency contact number format if provided
+  const emergencyContact = form.emergency_contact_number;
+  if (emergencyContact.value.trim() && emergencyContact.value.length !== 11) {
+    hasErrors = true;
+    showError('Emergency contact number must be exactly 11 digits if provided.');
+  }
+  
+  if (hasErrors) {
+    showError('Please fill in all required fields.');
     return;
   }
-
+  
   const fn = form.first_name.value.trim();
   const ln = form.last_name.value.trim();
+
   try{
     // Quick check kung existing na (first + last only)
     const res = await fetch(api.maternal+'?list_basic=1').then(r=>r.json()).catch(()=>({}));
@@ -9169,54 +9505,65 @@ async function onNext(){
     wrap.innerHTML = `
       <div class="row g-3">
         <div class="col-md-3">
-          <label>PETSA NG KONSULTASYON *</label>
+          <label>PETSA NG KONSULTASYON <span style="color: red;">*</span></label>
           <input type="date" name="consultation_date" class="form-control" required value="${new Date().toISOString().slice(0,10)}">
         </div>
         <div class="col-md-2">
-          <label>EDAD</label>
-          <input type="number" name="age" class="form-control" placeholder="Auto">
+          <label>EDAD <span style="color: red;">*</span></label>
+          <input type="number" name="age" class="form-control" placeholder="Auto" required>
+          <div class="text-danger small d-none" id="error_age">This field is required</div>
         </div>
         <div class="col-md-2">
-          <label>TAAS (CM)</label>
-          <input type="number" step="0.1" name="height_cm" class="form-control">
+          <label>TAAS (CM) <span style="color: red;">*</span></label>
+          <input type="number" step="0.1" name="height_cm" class="form-control" required>
+          <div class="text-danger small d-none" id="error_height_cm">This field is required</div>
         </div>
         <div class="col-md-2">
-          <label>TIMBANG (KG)</label>
-          <input type="number" step="0.1" name="weight_kg" class="form-control">
+          <label>TIMBANG (KG) <span style="color: red;">*</span></label>
+          <input type="number" step="0.1" name="weight_kg" class="form-control" required>
+          <div class="text-danger small d-none" id="error_weight_kg">This field is required</div>
         </div>
         <div class="col-md-2">
-          <label>Edad ng Pagbubuntis (weeks)</label>
-          <input type="number" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1">
+          <label>Edad ng Pagbubuntis (weeks) <span style="color: red;">*</span></label>
+          <input type="number" name="pregnancy_age_weeks" class="form-control" placeholder="Auto" data-autofill="1" required>
+          <div class="text-danger small d-none" id="error_pregnancy_age_weeks">This field is required</div>
         </div>
         <div class="col-md-3">
-          <label>BP Systolic</label>
-          <input type="number" name="blood_pressure_systolic" class="form-control">
+          <label>BP Systolic <span style="color: red;">*</span></label>
+          <input type="number" name="blood_pressure_systolic" class="form-control" required>
+          <div class="text-danger small d-none" id="error_blood_pressure_systolic">This field is required</div>
         </div>
         <div class="col-md-3">
-          <label>BP Diastolic</label>
-          <input type="number" name="blood_pressure_diastolic" class="form-control">
+          <label>BP Diastolic <span style="color: red;">*</span></label>
+          <input type="number" name="blood_pressure_diastolic" class="form-control" required>
+          <div class="text-danger small d-none" id="error_blood_pressure_diastolic">This field is required</div>
         </div>
         <div class="col-md-3">
-          <label>HULING REGLA (LMP)</label>
-          <input type="date" name="last_menstruation_date" class="form-control" value="${lmpValue}">
+          <label>HULING REGLA (LMP) <span style="color: red;">*</span></label>
+          <input type="date" name="last_menstruation_date" class="form-control" value="${lmpValue}" required>
+          <div class="text-danger small d-none" id="error_last_menstruation_date">This field is required</div>
         </div>
         <div class="col-md-3">
-          <label>TINATAYANG PETSA NG PANGANGANAK (EDD)</label>
-          <input type="date" name="expected_delivery_date" class="form-control" value="${eddValue}">
+          <label>TINATAYANG PETSA NG PANGANGANAK (EDD) <span style="color: red;">*</span></label>
+          <input type="date" name="expected_delivery_date" class="form-control" value="${eddValue}" required>
           <small class="text-muted">Auto-calculated from LMP + 280 days</small>
+          <div class="text-danger small d-none" id="error_expected_delivery_date">This field is required</div>
         </div>
         <label>MGA PAGSUSURI (LABS)</label>
         <div class="col-md-3">
-          <label>HGB</label>
-          <input name="hgb_result" class="form-control">
+          <label>HGB <span style="color: red;">*</span></label>
+          <input name="hgb_result" class="form-control" required>
+          <div class="text-danger small d-none" id="error_hgb_result">This field is required</div>
         </div>
         <div class="col-md-3">
-          <label>Urine Result</label>
-          <input name="urine_result" class="form-control">
+          <label>Urine Result <span style="color: red;">*</span></label>
+          <input name="urine_result" class="form-control" required>
+          <div class="text-danger small d-none" id="error_urine_result">This field is required</div>
         </div>
         <div class="col-md-3">
-          <label>VDRL Result</label>
-          <input name="vdrl_result" class="form-control">
+          <label>VDRL Result <span style="color: red;">*</span></label>
+          <input name="vdrl_result" class="form-control" required>
+          <div class="text-danger small d-none" id="error_vdrl_result">This field is required</div>
         </div>
         <div class="col-md-3">
           <label>Other Lab Results</label>
@@ -9254,7 +9601,7 @@ async function onNext(){
                   <input type="checkbox" name="iron_folate_prescription" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'iron_folate_notes')"> Iron/Folate # Reseta
                 </label>
                 <div id="iron_folate_notes" style="display:none;">
-                  <textarea name="iron_folate_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="iron_folate_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
@@ -9264,7 +9611,7 @@ async function onNext(){
                   <input type="checkbox" name="additional_iodine" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'additional_iodine_notes')"> Dagdag na Iodine sa delikadong lugar
                 </label>
                 <div id="additional_iodine_notes" style="display:none;">
-                  <textarea name="additional_iodine_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="additional_iodine_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
@@ -9274,7 +9621,7 @@ async function onNext(){
                   <input type="checkbox" name="malaria_prophylaxis" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'malaria_prophylaxis_notes')"> Malaria Prophylaxis (Oo/Hindi)
                 </label>
                 <div id="malaria_prophylaxis_notes" style="display:none;">
-                  <textarea name="malaria_prophylaxis_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="malaria_prophylaxis_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
@@ -9284,7 +9631,7 @@ async function onNext(){
                   <input type="checkbox" name="breastfeeding_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'breastfeeding_plan_notes')"> Balak Magpasuso ng Nanay (Oo/Hindi)
                 </label>
                 <div id="breastfeeding_plan_notes" style="display:none;">
-                  <textarea name="breastfeeding_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="breastfeeding_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
@@ -9294,7 +9641,7 @@ async function onNext(){
                   <input type="checkbox" name="danger_advice" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'danger_advice_notes')"> Payo sa 4 na Panganib (Oo/Hindi)
                 </label>
                 <div id="danger_advice_notes" style="display:none;">
-                  <textarea name="danger_advice_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="danger_advice_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
@@ -9304,7 +9651,7 @@ async function onNext(){
                   <input type="checkbox" name="dental_checkup" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'dental_checkup_notes')"> Nagpasuri ng Ngipin (Oo/Hindi)
                 </label>
                 <div id="dental_checkup_notes" style="display:none;">
-                  <textarea name="dental_checkup_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="dental_checkup_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
@@ -9314,7 +9661,7 @@ async function onNext(){
                   <input type="checkbox" name="emergency_plan" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'emergency_plan_notes')"> Planong Pangbiglaan at Lugar ng Panganganakan (Oo/Hindi)
                 </label>
                 <div id="emergency_plan_notes" style="display:none;">
-                  <textarea name="emergency_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="emergency_plan_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
@@ -9324,13 +9671,14 @@ async function onNext(){
                   <input type="checkbox" name="general_risk" value="1" style="margin:0;" onchange="toggleDescriptionField(this, 'general_risk_notes')"> Panganib (Oo/Hindi)
                 </label>
                 <div id="general_risk_notes" style="display:none;">
-                  <textarea name="general_risk_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye (Oo/Hindi at paliwanag)" style="font-size:.6rem;"></textarea>
+                  <textarea name="general_risk_notes" class="form-control" rows="2" placeholder="Ilagay ang detalye" style="font-size:.6rem;"></textarea>
                 </div>
               </div>
             </div>
             <div class="col-md-6">
-              <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw</label>
-              <input type="date" name="next_visit_date" class="form-control" style="font-size:.7rem;">
+              <label style="font-size:.7rem; font-weight:600; margin-bottom:.2rem;">Petsa ng Susunod na Pagdalaw <span style="color: red;">*</span></label>
+              <input type="date" name="next_visit_date" class="form-control" style="font-size:.7rem;" required>
+              <div class="text-danger small d-none" id="error_next_visit_date">This field is required</div>
             </div>
           </div>
         </div>
@@ -9410,12 +9758,44 @@ async function onNext(){
     e.preventDefault();
     clearMsgs();
 
-    if(!form.first_name.value.trim() || !form.last_name.value.trim()){
-      showError('First name at Last name ay required.');
-      return;
-    }
-    if(!form.consultation_date.value){
-      showError('Consultation date ay required.');
+    // Clear all individual error messages
+    const errorElements = document.querySelectorAll('[id^="error_"]');
+    errorElements.forEach(el => el.classList.add('d-none'));
+
+    // Define Step 2 required fields
+    const step2RequiredFields = [
+      { name: 'consultation_date', message: 'Consultation date is required' },
+      { name: 'age', message: 'Age is required' },
+      { name: 'height_cm', message: 'Height is required' },
+      { name: 'weight_kg', message: 'Weight is required' },
+      { name: 'pregnancy_age_weeks', message: 'Pregnancy age is required' },
+      { name: 'blood_pressure_systolic', message: 'BP Systolic is required' },
+      { name: 'blood_pressure_diastolic', message: 'BP Diastolic is required' },
+      { name: 'last_menstruation_date', message: 'Last Menstrual Period is required' },
+      { name: 'expected_delivery_date', message: 'Expected Delivery Date is required' },
+      { name: 'hgb_result', message: 'HGB result is required' },
+      { name: 'urine_result', message: 'Urine result is required' },
+      { name: 'vdrl_result', message: 'VDRL result is required' },
+      { name: 'next_visit_date', message: 'Next visit date is required' }
+    ];
+    
+    let hasErrors = false;
+    
+    // Check Step 2 required fields
+    step2RequiredFields.forEach(field => {
+      const input = form[field.name];
+      const errorElement = document.getElementById(`error_${field.name}`);
+      
+      if (!input || !input.value.trim()) {
+        hasErrors = true;
+        if (errorElement) {
+          errorElement.classList.remove('d-none');
+        }
+      }
+    });
+    
+    if (hasErrors) {
+      showError('Please fill in all required fields.');
       return;
     }
 

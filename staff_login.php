@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <?php echo $msg; ?>
 
-                <form method="post" action="staff_login.php" novalidate>
+                <form method="post" action="staff_login" novalidate>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Username</label>
                         <div class="input-group">
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="text-center mt-3">
 <!-- In your login page -->
-<a href="forgot_password.php" class="small d-inline-block mt-2">Forgot Password?</a>
+<a href="forgot_password" class="small d-inline-block mt-2">Forgot Password?</a>
                     </div>
                 </form>
             </div>

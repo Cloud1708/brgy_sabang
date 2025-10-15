@@ -223,7 +223,7 @@ function priority_from_date(?string $date): string {
                             <span class="px-3 py-1 rounded-lg text-sm" style="background-color:#10b981; color:white;">Read</span>
                         <?php endif; ?>
                         <?php if (!empty($n['child_id'])): ?>
-                            <a class="px-3 py-1 rounded-lg text-sm" style="background-color:#f59e0b; color:white;" href="parent_portal.php?view=immunization&child_id=<?php echo (int)$n['child_id']; ?>">View card</a>
+                            <a class="px-3 py-1 rounded-lg text-sm" style="background-color:#f59e0b; color:white;" href="parent_portal?view=immunization&child_id=<?php echo (int)$n['child_id']; ?>">View card</a>
                         <?php endif; ?>
                     </div>
                 </div>

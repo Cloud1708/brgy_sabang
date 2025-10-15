@@ -1122,7 +1122,7 @@ h1.page-title{
     </div>
 
     <div class="sidebar-logout" style="padding:1rem 1.1rem;">
-      <a href="logout.php" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+      <a href="logout" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
         <i class="bi bi-box-arrow-right me-1"></i> Logout
       </a>
     </div>

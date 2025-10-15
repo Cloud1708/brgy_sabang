@@ -307,6 +307,32 @@ if ($section === 'control-panel') {
 $msg = '';
 
 /* ------------------------------------------------------------------
+   Handle Success Message from Redirect
+-------------------------------------------------------------------*/
+if (isset($_GET['success']) && $_GET['success'] == '1') {
+    $username = $_GET['username'] ?? '';
+    $password = $_GET['password'] ?? '';
+    $role = $_GET['role'] ?? '';
+    $email = $_GET['email'] ?? '';
+    $emailSent = $_GET['emailSent'] ?? '0';
+    $emailError = $_GET['emailError'] ?? '';
+    
+    $msg = "<div class='alert alert-success alert-dismissible fade show' role='alert'>"
+         . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+         . "A $role account has been created with Username: "
+         . htmlspecialchars($username)
+         . " and Password: " . htmlspecialchars($password);
+    
+    if ($emailSent == '1') {
+        $msg .= "<br><small class='text-success'><i class='bi bi-envelope-check me-1'></i>Credentials sent to " . htmlspecialchars($email) . "</small>";
+    } else {
+        $msg .= "<br><small class='text-warning'><i class='bi bi-envelope-exclamation me-1'></i>Email not sent: " . htmlspecialchars($emailError ?: 'Email service unavailable') . "</small>";
+    }
+    
+    $msg .= "</div>";
+}
+
+/* ------------------------------------------------------------------
    POST Request Handling
 -------------------------------------------------------------------*/
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -316,9 +342,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // CREATE BHW/BNS
         if ($section === 'accounts' && isset($_POST['create_account'])) {
             $first_name = $mysqli->real_escape_string($_POST['first_name']);
+            $middle_name = $mysqli->real_escape_string($_POST['middle_name'] ?? '');
             $last_name  = $mysqli->real_escape_string($_POST['last_name']);
             $email      = $mysqli->real_escape_string($_POST['email']);
             $role       = $mysqli->real_escape_string($_POST['role']);
+            $birthday   = $mysqli->real_escape_string($_POST['birthday']);
             $barangay   = 'Sabang';
 
             // NEW: Check for existing email early to avoid exception
@@ -328,7 +356,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $chkEmail->execute();
                 $chkRes = $chkEmail->get_result();
                 if ($chkRes && $chkRes->num_rows) {
-                    $msg = "<div class='alert alert-danger'>Email already registered. Please use another email.</div>";
+                    $msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                         . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+                         . "Email already registered. Please use another email.</div>";
                     $chkEmail->close();
                     // Abort create block
                     goto create_account_end;
@@ -336,8 +366,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $chkEmail->close();
             }
 
-            $last_name_suffix = substr(strtolower($last_name), -2);
-            $base_username = strtolower($first_name . $last_name_suffix);
+            // Generate username: first letter of first name + surname + year of birthday
+            $first_letter = strtolower(substr($first_name, 0, 1));
+            $surname = strtolower($last_name);
+            $birth_year = date('y', strtotime($birthday)); // Get 2-digit year
+            $base_username = $first_letter . $surname . $birth_year;
             $username = $base_username;
 
             // Ensure unique username (tries up to 10 now)
@@ -354,14 +387,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_stmt->close();
 
             if ($attempt >= 10) {
-                $msg = "<div class='alert alert-danger'>Failed to generate unique username. Please try again.</div>";
+                $msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                     . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+                     . "Failed to generate unique username. Please try again.</div>";
                 goto create_account_end;
             }
 
-            // Generate password
-            $random_digits = '';
-            for ($i = 0; $i < 5; $i++) $random_digits .= rand(1, 9);
-            $password      = strtolower($last_name) . $random_digits;
+            // Generate password: FirstName[2 letters of LastName][BirthdayMMDD]
+            $first_name_capitalized = ucfirst(strtolower($first_name));
+            $last_name_2_letters = substr(strtolower($last_name), 0, 2);
+            $birthday_mmdd = date('md', strtotime($birthday)); // MM and DD
+            $password = $first_name_capitalized . $last_name_2_letters . $birthday_mmdd;
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
             // Resolve role_id
@@ -385,25 +421,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $stmt = $mysqli->prepare("
                 INSERT INTO users
-                    (username,email,password,password_hash,first_name,last_name,role_id,barangay,is_active,created_by_user_id)
+                    (username,email,password,password_hash,first_name,middle_name,last_name,role_id,barangay,birthday,is_active,created_by_user_id)
                 VALUES
-                    (?,?,?,?,?,?,?,?,1,$created_by_sql)
+                    (?,?,?,?,?,?,?,?,?,?,1,$created_by_sql)
             ");
             if (!$stmt) {
-                $msg = "<div class='alert alert-danger'>Database error: Unable to prepare account insert.</div>";
+                $msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                     . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+                     . "Database error: Unable to prepare account insert.</div>";
                 goto create_account_end;
             }
 
             $stmt->bind_param(
-                "ssssssis",
+                "sssssssiss",
                 $username,
                 $email,
                 $password,
                 $password_hash,
                 $first_name,
+                $middle_name,
                 $last_name,
                 $role_id,
-                $barangay
+                $barangay,
+                $birthday
             );
 
             try {
@@ -423,21 +463,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $log_stmt->close();
                 }
 
-                $msg = "<div class='alert alert-success'>A $role account has been created with Username: "
-                     . htmlspecialchars($username)
-                     . " and Password: " . htmlspecialchars($password) . "</div>";
+                // Send email with credentials
+                $emailSent = false;
+                $emailError = '';
+                if (function_exists('bhw_mail_send')) {
+                    $subject = "Your Staff Account Credentials - Barangay Health System";
+                    $staffName = $first_name . ($middle_name ? ' ' . $middle_name : '') . ' ' . $last_name;
+                    $html = "
+                        <div style='font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;'>
+                          <h2 style='margin:0 0 10px;color:#047857;'>Staff Account Created Successfully</h2>
+                          <p>Hello <strong>" . htmlspecialchars($staffName) . "</strong>,</p>
+                          <p>Your {$role} account for the Barangay Health Management System has been created.</p>
+                          <div style='background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:20px;margin:15px 0;'>
+                            <h3 style='margin:0 0 15px;color:#047857;'>Your Login Credentials</h3>
+                            <table cellpadding='8' style='border-collapse:collapse;margin:10px 0;width:100%;'>
+                              <tr>
+                                <td style='background:#e8f5e8;border:1px solid #c3e6cb;font-weight:bold;width:120px;'>Role</td>
+                                <td style='border:1px solid #c3e6cb;'>" . htmlspecialchars($role) . "</td>
+                              </tr>
+                              <tr>
+                                <td style='background:#e8f5e8;border:1px solid #c3e6cb;font-weight:bold;'>Username</td>
+                                <td style='border:1px solid #c3e6cb;font-family:monospace;font-size:16px;color:#047857;font-weight:bold;'>" . htmlspecialchars($username) . "</td>
+                              </tr>
+                              <tr>
+                                <td style='background:#e8f5e8;border:1px solid #c3e6cb;font-weight:bold;'>Password</td>
+                                <td style='border:1px solid #c3e6cb;font-family:monospace;font-size:16px;color:#047857;font-weight:bold;'>" . htmlspecialchars($password) . "</td>
+                              </tr>
+                            </table>
+                          </div>
+                          <div style='background:#fff3cd;border:1px solid #ffeaa7;border-radius:6px;padding:15px;margin:15px 0;'>
+                            <p style='margin:0;color:#856404;'><strong>Important:</strong> Please keep these credentials secure and change your password after first login.</p>
+                          </div>
+                          <p>You can now access the system using these credentials.</p>
+                          <p style='font-size:12px;color:#555;'>If you did not request this account, please contact the system administrator immediately.</p>
+                          <p style='font-size:12px;color:#888;'>-- Barangay Health Management System</p>
+                        </div>
+                    ";
+                    $text = "Staff Account Created Successfully\n\n" .
+                            "Hello {$staffName},\n\n" .
+                            "Your {$role} account has been created.\n\n" .
+                            "Login Credentials:\n" .
+                            "Role: {$role}\n" .
+                            "Username: {$username}\n" .
+                            "Password: {$password}\n\n" .
+                            "Please keep these credentials secure and change your password after first login.\n\n" .
+                            "-- Barangay Health Management System";
+                    
+                    $emailSent = bhw_mail_send($email, $subject, $html, $text);
+                    if (!$emailSent) {
+                        $emailError = bhw_mail_last_error();
+                    }
+                }
+
+                // Redirect to prevent duplicate submission on refresh
+                header("Location: " . $_SERVER['PHP_SELF'] . "?section=accounts&success=1&username=" . urlencode($username) . "&password=" . urlencode($password) . "&role=" . urlencode($role) . "&email=" . urlencode($email) . "&emailSent=" . ($emailSent ? '1' : '0') . "&emailError=" . urlencode($emailError ?: ''));
+                exit;
             } catch (mysqli_sql_exception $e) {
                 $err = $e->getMessage();
                 if (strpos($err, 'Duplicate entry') !== false) {
                     if (strpos($err, 'uq_email') !== false || strpos($err, 'email') !== false) {
-                        $msg = "<div class='alert alert-danger'>Email already exists. Choose another.</div>";
+                        $msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                             . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+                             . "Email already exists. Choose another.</div>";
                     } elseif (strpos($err, 'username') !== false) {
-                        $msg = "<div class='alert alert-danger'>Username collision occurred. Please retry.</div>";
+                        $msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                             . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+                             . "Username collision occurred. Please retry.</div>";
                     } else {
-                        $msg = "<div class='alert alert-danger'>Duplicate value detected.</div>";
+                        $msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                             . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+                             . "Duplicate value detected.</div>";
                     }
                 } else {
-                    $msg = "<div class='alert alert-danger'>Failed to create account: " . htmlspecialchars($err) . "</div>";
+                    $msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                         . "<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>"
+                         . "Failed to create account: " . htmlspecialchars($err) . "</div>";
                 }
             } finally {
                 $stmt->close();
@@ -615,7 +715,7 @@ $descs = [
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --sidebar-width: 220px;
+            --sidebar-width: 250px;
             --green: #047857;
             --green-soft: #e8f9f1;
             --sidebar-border: #e5e9ed;
@@ -658,13 +758,13 @@ $descs = [
             border-bottom: 1px solid var(--sidebar-border);
         }
         .brand h1 {
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             margin: 0;
             font-weight: 600;
             color: var(--green);
         }
         .brand small {
-            font-size: .6rem;
+            font-size: .7rem;
             letter-spacing: .08em;
             text-transform: uppercase;
             color: #6a7680;
@@ -688,8 +788,8 @@ $descs = [
             align-items: center;
             gap: .6rem;
             text-decoration: none;
-            font-size: .85rem;
-            padding: .6rem .7rem;
+            font-size: .95rem;
+            padding: .7rem .8rem;
             border-radius: 12px;
             color: #1b2830;
             font-weight: 500;
@@ -1136,6 +1236,14 @@ $descs = [
         .mini-badge.danger { background:#ffe5e5; color:#a40000; }
         .mini-badge.warn { background:#fff4d6; color:#7d5a00; }
         .mini-badge.ok { background:#e3f9ec; color:#036635; }
+        .space-y-3 > * + * {
+            margin-top: 1rem;
+        }
+        .card-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
         @media (max-width: 900px) {
             .sidebar {
                 position: fixed;
@@ -1178,7 +1286,7 @@ $descs = [
                 <small>Health &amp; Nutrition Management System</small>
             </div>
             <div class="nav-section">
-                <small class="text-muted d-block mb-2" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">Admin Navigation</small>
+                <small class="text-muted d-block mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">Admin Navigation</small>
                 <ul class="nav-list">
                     <li><a class="<?php echo $section === 'control-panel' ? 'active' : ''; ?>" href="?section=control-panel"><i class="bi bi-grid"></i><span>Control Panel</span></a></li>
                     <li><a class="<?php echo $section === 'accounts' ? 'active' : ''; ?>" href="?section=accounts"><i class="bi bi-people"></i><span>Account Management</span></a></li>
@@ -1187,7 +1295,7 @@ $descs = [
                 </ul>
             </div>
             <div class="nav-section">
-                <small class="text-muted d-block mb-2" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BHW Functions</small>
+                <small class="text-muted d-block mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BHW Functions</small>
                 <ul class="nav-list">
                     <li><a class="<?php echo $section === 'health_records' ? 'active' : ''; ?>" href="?section=health_records"><i class="bi bi-heart-pulse"></i><span>Health Records</span></a></li>
                     <li><a class="<?php echo $section === 'immunization' ? 'active' : ''; ?>" href="?section=immunization"><i class="bi bi-shield-check"></i><span>Immunization</span></a></li>
@@ -1196,7 +1304,7 @@ $descs = [
                 </ul>
             </div>
             <div class="nav-section">
-                <small class="text-muted d-block mb-2" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BNS Functions</small>
+                <small class="text-muted d-block mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BNS Functions</small>
                 <ul class="nav-list">
                     <li><a class="<?php echo $section === 'children_management' ? 'active' : ''; ?>" href="?section=children_management"><i class="bi bi-heart-pulse"></i><span>Children Management</span></a></li>
                     <li><a class="<?php echo $section === 'nutrition_data_entry' ? 'active' : ''; ?>" href="?section=nutrition_data_entry"><i class="bi bi-shield-check"></i><span>Nutrition Data Entry</span></a></li>
@@ -1251,22 +1359,68 @@ $descs = [
                 <?php echo $msg; ?>
                 
                 <?php if ($section === 'accounts') : ?>
+                    <!-- Account Management Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <p class="title">Total Users</p>
+                                <div class="value"><?php echo count($accounts); ?></div>
+                                <span class="delta">+<?php echo count($accounts); ?>%</span>
+                                <div class="metric-icon"><i class="bi bi-people"></i></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <p class="title">Active Users</p>
+                                <div class="value"><?php echo count(array_filter($accounts, function($a) { return $a['is_active']; })); ?></div>
+                                <span class="delta">Active</span>
+                                <div class="metric-icon green"><i class="bi bi-person-check"></i></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <p class="title">BHW Staff</p>
+                                <div class="value"><?php echo count(array_filter($accounts, function($a) { return $a['role'] === 'BHW'; })); ?></div>
+                                <span class="delta">Health Workers</span>
+                                <div class="metric-icon up"><i class="bi bi-heart-pulse"></i></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="metric-card">
+                                <p class="title">BNS Staff</p>
+                                <div class="value"><?php echo count(array_filter($accounts, function($a) { return $a['role'] === 'BNS'; })); ?></div>
+                                <span class="delta">Nutrition Scholars</span>
+                                <div class="metric-icon purple"><i class="bi bi-shield-check"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Create Account Button -->
                     <div class="row mb-4">
                         <div class="col-md-6 col-lg-4">
-                            <button type="button" class="card-action green w-100" data-bs-toggle="modal" data-bs-target="#createAccountModal" data-role="BHW">
+                            <button type="button" class="card-action green w-100" data-bs-toggle="modal" data-bs-target="#createAccountModal">
                                 <div class="icon"><i class="bi bi-person-plus"></i></div>
                                 <div>
-                                    <div style="font-weight:600;">Create BHW Account</div>
-                                    <div style="font-size:.97em;color:#5c6872;">Barangay Health Worker</div>
+                                    <div style="font-weight:600;">Create New Account</div>
+                                    <div style="font-size:.97em;color:#5c6872;">Add BHW or BNS staff</div>
                                 </div>
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4">
-                            <button type="button" class="card-action w-100" data-bs-toggle="modal" data-bs-target="#createAccountModal" data-role="BNS">
-                                <div class="icon"><i class="bi bi-person-plus"></i></div>
+                            <button type="button" class="card-action w-100" onclick="exportUsers()">
+                                <div class="icon"><i class="bi bi-download"></i></div>
                                 <div>
-                                    <div style="font-weight:600;">Create BNS Account</div>
-                                    <div style="font-size:.97em;color:#5c6872;">Barangay Nutrition Scholar</div>
+                                    <div style="font-weight:600;">Export Users</div>
+                                    <div style="font-size:.97em;color:#5c6872;">Download user list</div>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <button type="button" class="card-action w-100" onclick="bulkActions()">
+                                <div class="icon"><i class="bi bi-gear"></i></div>
+                                <div>
+                                    <div style="font-weight:600;">Bulk Actions</div>
+                                    <div style="font-size:.97em;color:#5c6872;">Manage multiple users</div>
                                 </div>
                             </button>
                         </div>
@@ -1280,34 +1434,87 @@ $descs = [
                     
                     <?php if (!isset($_GET['tab']) || $_GET['tab'] == 'user') : ?>
                         <div class="panel">
-                            <div class="panel-header mb-2">
+                            <div class="panel-header mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
                                 <h6>All Accounts</h6>
                                 <p>Manage user accounts and access control</p>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <div class="input-group" style="width: 250px;">
+                                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                            <input type="text" class="form-control" placeholder="Search users..." id="userSearch">
+                                        </div>
+                                        <select class="form-select" style="width: 120px;" id="roleFilter">
+                                            <option value="">All Roles</option>
+                                            <option value="Admin">Admin</option>
+                                            <option value="BHW">BHW</option>
+                                            <option value="BNS">BNS</option>
+                                            <option value="Parent">Parent</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-borderless align-middle">
+                                <table class="table table-borderless align-middle" id="usersTable">
                                     <thead>
                                         <tr>
+                                            <th>
+                                                <input type="checkbox" id="selectAll" class="form-check-input">
+                                            </th>
                                             <th>Name</th>
                                             <th>Email</th>
                                             <th>Role</th>
                                             <th>Created</th>
+                                            <th>Last Login</th>
                                             <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($accounts as $ac) : ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($ac['name']); ?></td>
-                                                <td><?php echo htmlspecialchars($ac['email']); ?></td>
+                                            <tr data-role="<?php echo strtolower($ac['role']); ?>" data-name="<?php echo strtolower($ac['name']); ?>" data-email="<?php echo strtolower($ac['email']); ?>">
+                                                <td>
+                                                    <input type="checkbox" class="form-check-input user-checkbox" value="<?php echo $ac['user_id']; ?>">
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <div class="avatar-sm" style="width: 32px; height: 32px; background: #047857; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600;">
+                                                            <?php echo strtoupper(substr($ac['name'], 0, 2)); ?>
+                                                        </div>
+                                                        <div>
+                                                            <div style="font-weight: 600;"><?php echo htmlspecialchars($ac['name']); ?></div>
+                                                            <div style="font-size: 0.75rem; color: #6c757d;">ID: <?php echo $ac['user_id']; ?></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <div><?php echo htmlspecialchars($ac['email']); ?></div>
+                                                        <div style="font-size: 0.75rem; color: #6c757d;">
+                                                            <i class="bi bi-envelope me-1"></i>Email verified
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td>
                                                     <span class="role-tag <?php echo strtolower($ac['role']); ?>">
+                                                        <i class="bi bi-<?php echo $ac['role'] === 'BHW' ? 'heart-pulse' : ($ac['role'] === 'BNS' ? 'shield-check' : ($ac['role'] === 'Admin' ? 'gear' : 'person')); ?> me-1"></i>
                                                         <?php echo htmlspecialchars($ac['role']); ?>
                                                     </span>
                                                 </td>
-                                                <td><?php echo htmlspecialchars($ac['created_at']); ?></td>
                                                 <td>
+                                                    <div>
+                                                        <div style="font-size: 0.85rem;"><?php echo date('M j, Y', strtotime($ac['created_at'])); ?></div>
+                                                        <div style="font-size: 0.75rem; color: #6c757d;"><?php echo date('g:i A', strtotime($ac['created_at'])); ?></div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div style="font-size: 0.85rem; color: #6c757d;">
+                                                        <i class="bi bi-clock me-1"></i>Never
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2">
                                                     <label class="switch">
                                                         <input type="checkbox" <?php echo $ac['is_active'] ? 'checked' : ''; ?> onchange="toggleActive(<?php echo $ac['user_id']; ?>, this.checked); window.location.reload();">
                                                         <span class="slider"></span>
@@ -1315,14 +1522,45 @@ $descs = [
                                                     <span class="status-label <?php echo $ac['is_active'] ? '' : 'inactive'; ?>">
                                                         <?php echo $ac['is_active'] ? 'active' : 'inactive'; ?>
                                                     </span>
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <a class="btn btn-link p-0 fw-semibold border px-3 bg-primary text-white text-decoration-none" href="?section=accounts&edit=<?php echo $ac['user_id']; ?>">Edit</a>
+                                                    <div class="btn-group" role="group">
+                                                        <a class="btn btn-outline-primary btn-sm" href="?section=accounts&edit=<?php echo $ac['user_id']; ?>">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                        <button class="btn btn-outline-info btn-sm" onclick="viewUserDetails(<?php echo $ac['user_id']; ?>)">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning btn-sm" onclick="resetPassword(<?php echo $ac['user_id']; ?>)">
+                                                            <i class="bi bi-key"></i>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
+                            </div>
+                            
+                            <!-- Bulk Actions Bar -->
+                            <div class="d-none" id="bulkActionsBar">
+                                <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                                    <div>
+                                        <span id="selectedCount">0</span> user(s) selected
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-outline-success btn-sm" onclick="bulkActivate()">
+                                            <i class="bi bi-check-circle me-1"></i>Activate
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm" onclick="bulkDeactivate()">
+                                            <i class="bi bi-x-circle me-1"></i>Deactivate
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="bulkDelete()">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -1420,29 +1658,86 @@ $descs = [
                     <?php endif; ?>
                     
                     <div class="modal fade" id="createAccountModal" tabindex="-1">
-                        <div class="modal-dialog">
+                        <div class="modal-dialog modal-lg">
                             <form method="POST" action="?section=accounts">
                                 <input type="hidden" name="create_account" value="1">
-                                <input type="hidden" name="role" id="modalRole" value="BHW">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5>Create Account</h5>
+                                        <h5><i class="bi bi-person-plus me-2"></i>Create New Staff Account</h5>
                                     </div>
                                     <div class="modal-body">
-                                        <div class="text-danger">You are about to create a new account!</div>
-                                        <br>
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <strong>Account Creation:</strong> Username and password will be generated automatically and sent to the provided email address.
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-4">
                                         <label class="required">First Name</label>
-                                        <input type="text" name="first_name" required class="form-control mb-2" placeholder="First Name">
+                                                <input type="text" name="first_name" required class="form-control mb-3" placeholder="Enter first name">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label>Middle Name</label>
+                                                <input type="text" name="middle_name" class="form-control mb-3" placeholder="Enter middle name">
+                                            </div>
+                                            <div class="col-md-4">
                                         <label class="required">Last Name</label>
-                                        <input type="text" name="last_name" required class="form-control mb-2" placeholder="Last Name">
-                                        <label class="required">Email</label>
-                                        <input type="email" name="email" required class="form-control mb-2" placeholder="Email">
-                                        <div class="form-text">Username (First Name + last two letters of Last Name) and password (Last Name + 5 random digits) will be generated automatically.</div>
+                                                <input type="text" name="last_name" required class="form-control mb-3" placeholder="Enter last name">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="required">Email Address</label>
+                                                <input type="email" name="email" required class="form-control mb-3" placeholder="Enter email address">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="required">Staff Role</label>
+                                                <select name="role" required class="form-control mb-3">
+                                                    <option value="">Select staff role</option>
+                                                    <option value="BHW">BHW - Barangay Health Worker</option>
+                                                    <option value="BNS">BNS - Barangay Nutrition Scholar</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="required">Birthday</label>
+                                                <input type="date" name="birthday" required class="form-control mb-3" max="<?php echo date('Y-m-d'); ?>" id="birthdayInput">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label>Generated Username</label>
+                                                <input type="text" id="generatedUsername" class="form-control mb-3" readonly style="background-color: #f8f9fa;">
+                                                <small class="text-muted">Auto-generated based on name and birthday</small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label>Generated Password</label>
+                                                <input type="text" id="generatedPassword" class="form-control mb-3" readonly style="background-color: #f8f9fa;">
+                                                <small class="text-muted">Auto-generated based on name and birthday</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-warning">
+                                            <i class="bi bi-exclamation-triangle me-2"></i>
+                                            <strong>Auto-generated credentials:</strong>
+                                            <ul class="mb-0 mt-2">
+                                                <li><strong>Username:</strong> First letter of first name + surname + birth year (e.g., jdelacruz98)</li>
+                                                <li><strong>Password:</strong> FirstName + 2 letters of LastName + Birthday MMDD (e.g., MariaCr0712)</li>
+                                            </ul>
+                                        </div>
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-success">Create</button>
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                            <i class="bi bi-x-circle me-1"></i>Cancel
+                                        </button>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-person-plus me-1"></i>Create Account
+                                        </button>
                                     </div>
                                 </div>
                             </form>
@@ -1708,6 +2003,93 @@ $descs = [
                         </div>
                     </div>
                     
+                    <!-- Quick Actions Panel -->
+                    <div class="panel mb-4">
+                        <div class="panel-header mb-3">
+                            <h6>Quick Actions</h6>
+                            <p>Frequently used administrative tasks</p>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card-action" onclick="location.href='?section=accounts'">
+                                    <div class="icon"><i class="bi bi-person-plus"></i></div>
+                                    <div>
+                                        <div style="font-weight:600;">Create Account</div>
+                                        <div style="font-size:.85em;color:#5c6872;">Add new BHW/BNS</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card-action" onclick="location.href='?section=events'">
+                                    <div class="icon"><i class="bi bi-calendar-plus"></i></div>
+                                    <div>
+                                        <div style="font-weight:600;">Schedule Event</div>
+                                        <div style="font-size:.85em;color:#5c6872;">Community activities</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card-action" onclick="location.href='?section=reports'">
+                                    <div class="icon"><i class="bi bi-file-earmark-bar-graph"></i></div>
+                                    <div>
+                                        <div style="font-weight:600;">Generate Report</div>
+                                        <div style="font-size:.85em;color:#5c6872;">Health & nutrition data</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="card-action" onclick="location.href='?section=parent_accounts'">
+                                    <div class="icon"><i class="bi bi-people"></i></div>
+                                    <div>
+                                        <div style="font-weight:600;">Parent Portal</div>
+                                        <div style="font-size:.85em;color:#5c6872;">Manage parent accounts</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Recent Notifications Panel -->
+                    <div class="panel mb-4">
+                        <div class="panel-header mb-3">
+                            <h6>Recent Notifications</h6>
+                            <p>Latest system alerts and updates</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="d-flex align-items-start gap-3 p-3 border rounded-3" style="background:#fff3cd;border-color:#ffeaa7;">
+                                <div class="text-warning">
+                                    <i class="bi bi-exclamation-triangle" style="font-size:1.2rem;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div style="font-weight:600;font-size:.9rem;">Vaccination Records Update</div>
+                                    <div style="font-size:.8rem;color:#5c6872;">15 children have overdue vaccinations</div>
+                                    <div style="font-size:.75rem;color:#6c757d;">2 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start gap-3 p-3 border rounded-3" style="background:#d1ecf1;border-color:#bee5eb;">
+                                <div class="text-info">
+                                    <i class="bi bi-info-circle" style="font-size:1.2rem;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div style="font-weight:600;font-size:.9rem;">New Parent Registration</div>
+                                    <div style="font-size:.8rem;color:#5c6872;">3 new parent accounts created today</div>
+                                    <div style="font-size:.75rem;color:#6c757d;">4 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start gap-3 p-3 border rounded-3" style="background:#d4edda;border-color:#c3e6cb;">
+                                <div class="text-success">
+                                    <i class="bi bi-check-circle" style="font-size:1.2rem;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div style="font-weight:600;font-size:.9rem;">System Backup Complete</div>
+                                    <div style="font-size:.8rem;color:#5c6872;">Daily backup completed successfully</div>
+                                    <div style="font-size:.75rem;color:#6c757d;">1 day ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="panel mb-4">
                         <div class="panel-header mb-2">
                             <h6>User Activity Monitoring</h6>
@@ -1782,11 +2164,105 @@ $descs = [
             document.getElementById('sidebar').classList.toggle('show');
         });
         
-        document.querySelectorAll('[data-bs-target="#createAccountModal"]').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.getElementById('modalRole').value = this.getAttribute('data-role');
+        // User search and filtering
+        document.getElementById('userSearch')?.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTable tbody tr');
+            
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const email = row.getAttribute('data-email') || '';
+                
+                if (name.includes(searchTerm) || email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
             });
         });
+        
+        // Role filtering
+        document.getElementById('roleFilter')?.addEventListener('change', function() {
+            const selectedRole = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTable tbody tr');
+            
+            rows.forEach(row => {
+                const role = row.getAttribute('data-role') || '';
+                
+                if (!selectedRole || role === selectedRole) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // Select all functionality
+        document.getElementById('selectAll')?.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkActionsBar();
+        });
+        
+        // Individual checkbox change
+        document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateBulkActionsBar);
+        });
+        
+        function updateBulkActionsBar() {
+            const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+            const bulkBar = document.getElementById('bulkActionsBar');
+            const countSpan = document.getElementById('selectedCount');
+            
+            if (checkedBoxes.length > 0) {
+                bulkBar.classList.remove('d-none');
+                countSpan.textContent = checkedBoxes.length;
+            } else {
+                bulkBar.classList.add('d-none');
+            }
+        }
+        
+        // Bulk action functions
+        window.exportUsers = function() {
+            alert('Export functionality will be implemented');
+        };
+        
+        window.bulkActions = function() {
+            alert('Bulk actions panel will be implemented');
+        };
+        
+        window.viewUserDetails = function(userId) {
+            alert('User details view for ID: ' + userId);
+        };
+        
+        window.resetPassword = function(userId) {
+            if (confirm('Are you sure you want to reset the password for this user?')) {
+                alert('Password reset functionality will be implemented for ID: ' + userId);
+            }
+        };
+        
+        window.bulkActivate = function() {
+            const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+            if (checkedBoxes.length > 0 && confirm(`Activate ${checkedBoxes.length} user(s)?`)) {
+                alert('Bulk activate functionality will be implemented');
+            }
+        };
+        
+        window.bulkDeactivate = function() {
+            const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+            if (checkedBoxes.length > 0 && confirm(`Deactivate ${checkedBoxes.length} user(s)?`)) {
+                alert('Bulk deactivate functionality will be implemented');
+            }
+        };
+        
+        window.bulkDelete = function() {
+            const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+            if (checkedBoxes.length > 0 && confirm(`Delete ${checkedBoxes.length} user(s)? This action cannot be undone.`)) {
+                alert('Bulk delete functionality will be implemented');
+            }
+        };
         
         function toggleActive(userId, isChecked) {
             fetch('?section=accounts', {
@@ -1809,7 +2285,69 @@ $descs = [
                 });
         }
         
+        // Auto-generate username and password
+        function generateCredentials() {
+            const firstName = document.querySelector('input[name="first_name"]')?.value || '';
+            const lastName = document.querySelector('input[name="last_name"]')?.value || '';
+            const birthday = document.querySelector('input[name="birthday"]')?.value || '';
+            
+            if (firstName && lastName && birthday) {
+                // Generate username: first letter of first name + surname + year of birthday
+                const firstLetter = firstName.charAt(0).toLowerCase();
+                const surname = lastName.toLowerCase();
+                const birthYear = birthday.substring(2, 4); // Get 2-digit year
+                const username = firstLetter + surname + birthYear;
+                
+                // Generate password: FirstName[2 letters of LastName][Birthday MMDD]
+                const firstNameCapitalized = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+                const lastName2Letters = lastName.substring(0, 2).toLowerCase();
+                const birthdayMMDD = birthday.substring(5, 7) + birthday.substring(8, 10); // MM + DD
+                const password = firstNameCapitalized + lastName2Letters + birthdayMMDD;
+                
+                // Update the display fields
+                const usernameField = document.getElementById('generatedUsername');
+                const passwordField = document.getElementById('generatedPassword');
+                
+                if (usernameField) usernameField.value = username;
+                if (passwordField) passwordField.value = password;
+            } else {
+                // Clear fields if not all required fields are filled
+                const usernameField = document.getElementById('generatedUsername');
+                const passwordField = document.getElementById('generatedPassword');
+                
+                if (usernameField) usernameField.value = '';
+                if (passwordField) passwordField.value = '';
+            }
+        }
+        
+        // Add event listeners to form fields
         document.addEventListener('DOMContentLoaded', function() {
+            // Clean up URL parameters after showing success message
+            if (window.location.search.includes('success=1')) {
+                // Remove success parameters from URL after a short delay
+                setTimeout(function() {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('success');
+                    url.searchParams.delete('username');
+                    url.searchParams.delete('password');
+                    url.searchParams.delete('role');
+                    url.searchParams.delete('email');
+                    url.searchParams.delete('emailSent');
+                    url.searchParams.delete('emailError');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                }, 2000);
+            }
+            
+            // Add event listeners for auto-generation
+            const firstNameField = document.querySelector('input[name="first_name"]');
+            const lastNameField = document.querySelector('input[name="last_name"]');
+            const birthdayField = document.querySelector('input[name="birthday"]');
+            
+            if (firstNameField) firstNameField.addEventListener('input', generateCredentials);
+            if (lastNameField) lastNameField.addEventListener('input', generateCredentials);
+            if (birthdayField) birthdayField.addEventListener('input', generateCredentials);
+            
+            // Nutrition chart
             const ctx = document.getElementById('nutritionChart')?.getContext('2d');
             if (ctx) {
                 new Chart(ctx, {
