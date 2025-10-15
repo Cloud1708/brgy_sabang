@@ -39,6 +39,110 @@ if ($uid>0) {
     if ($s=$mysqli->prepare($sql)) { $s->bind_param('i',$uid); $s->execute(); $r=$s->get_result(); while($x=$r->fetch_assoc()) $vaccine_reminders[]=$x; $s->close(); }
 }
 
+// Also compute overdue vaccines based on the immunization schedule (not just recorded next_dose_due_date)
+// Mirrors the logic used in Immunization view for Pending/Overdue
+if ($uid>0 && !empty($children)) {
+    $OVERDUE_GRACE_DAYS = 0; // overdue immediately after due date
+    $now = new DateTime('now');
+
+    // Prepare re-usable statements
+    $stmt_pairs = $mysqli->prepare("SELECT vaccine_id, dose_number FROM child_immunizations WHERE child_id = ?");
+    $stmt_sched = $mysqli->prepare("SELECT s.vaccine_id, s.dose_number, s.recommended_age_months, vt.vaccine_name, vt.vaccine_code
+                                     FROM immunization_schedule s
+                                     LEFT JOIN vaccine_types vt ON s.vaccine_id = vt.vaccine_id
+                                     WHERE s.recommended_age_months IS NOT NULL AND s.recommended_age_months <= ?
+                                     ORDER BY s.recommended_age_months, s.vaccine_id, s.dose_number");
+    // optional table; ignore if missing
+    $stmt_od   = $mysqli->prepare("SELECT vaccine_id, dose_number FROM overdue_notifications WHERE child_id = ? AND status = 'active'");
+
+    // Build a set of existing reminders to avoid duplicates
+    // Prefer vaccine_code when vaccine_id is not present in the record
+    $existing_keys = [];
+    foreach ($vaccine_reminders as $vr) {
+        $cid  = (int)($vr['child_id'] ?? 0);
+        $vid  = (int)($vr['vaccine_id'] ?? 0);
+        $code = strtoupper(trim((string)($vr['vaccine_code'] ?? '')));
+        $dose = (int)($vr['dose_number'] ?? 0);
+        if ($cid && $dose) {
+            if ($code !== '') {
+                $existing_keys[$cid . ':code:' . $code . ':' . $dose] = true;
+            }
+            if ($vid > 0) {
+                $existing_keys[$cid . ':id:' . $vid . ':' . $dose] = true;
+            }
+        }
+    }
+
+    foreach ($children as $c) {
+        $cid = (int)$c['child_id'];
+        if ($cid <= 0 || empty($c['birth_date'])) continue;
+        $birth = new DateTime($c['birth_date']);
+        $age_months = (int)$c['age_months'];
+
+        // Administered doses for this child
+        $administered = [];
+        if ($stmt_pairs) {
+            $stmt_pairs->bind_param('i', $cid);
+            if ($stmt_pairs->execute()) {
+                $res = $stmt_pairs->get_result();
+                while ($p = $res->fetch_assoc()) {
+                    $administered[$p['vaccine_id'] . ':' . $p['dose_number']] = true;
+                }
+            }
+        }
+
+        // Overdue overrides (manual flags)
+        $overdue_set = [];
+        if ($stmt_od) {
+            $stmt_od->bind_param('i', $cid);
+            if ($stmt_od->execute()) {
+                $res = $stmt_od->get_result();
+                while ($o = $res->fetch_assoc()) {
+                    $overdue_set[$o['vaccine_id'] . ':' . $o['dose_number']] = true;
+                }
+            }
+        }
+
+        // Walk schedule entries up to current age; anything not administered is pending/overdue
+        if ($stmt_sched) {
+            $stmt_sched->bind_param('i', $age_months);
+            if ($stmt_sched->execute()) {
+                $res = $stmt_sched->get_result();
+                while ($srow = $res->fetch_assoc()) {
+                    $sk = $srow['vaccine_id'] . ':' . $srow['dose_number'];
+                    if (isset($administered[$sk])) continue;
+
+                    $due_dt = (clone $birth)->modify('+' . (int)$srow['recommended_age_months'] . ' months');
+                    $overdue_threshold = (clone $now)->modify('-' . (int)$OVERDUE_GRACE_DAYS . ' days');
+                    $is_overdue = ($due_dt < $overdue_threshold) || isset($overdue_set[$sk]);
+                    if (!$is_overdue) continue; // only bring in overdue here; upcoming handled by next_dose_due_date list
+
+                    $key_id   = $cid . ':id:' . (int)$srow['vaccine_id'] . ':' . (int)$srow['dose_number'];
+                    $key_code = $cid . ':code:' . strtoupper(trim((string)($srow['vaccine_code'] ?? ''))) . ':' . (int)$srow['dose_number'];
+                    if (isset($existing_keys[$key_id]) || isset($existing_keys[$key_code])) continue; // already present
+                    if (!empty($srow['vaccine_code'])) $existing_keys[$key_code] = true; else $existing_keys[$key_id] = true;
+
+                    $vaccine_reminders[] = [
+                        'child_id' => $cid,
+                        'vaccine_id' => (int)$srow['vaccine_id'],
+                        'vaccine_name' => $srow['vaccine_name'] ?? null,
+                        'vaccine_code' => $srow['vaccine_code'] ?? null,
+                        'dose_number' => (int)$srow['dose_number'],
+                        'next_dose_due_date' => $due_dt->format('Y-m-d')
+                    ];
+                }
+            }
+        }
+    }
+
+    // Final sort ascending by due date
+    usort($vaccine_reminders, function($a,$b){
+        $da = strtotime($a['next_dose_due_date'] ?? '9999-12-31');
+        $db = strtotime($b['next_dose_due_date'] ?? '9999-12-31');
+        return $da <=> $db;
+    });
+}
+
 // Parent (maternal) checkup reminders based on next_visit_date in health_records
 $parent_checkups = [];
 if ($uid>0) {

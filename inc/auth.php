@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
  * Kung ang URL mo ay http://localhost/index.php
  * ibig sabihin base path = /
  */
-define('APP_BASE_PATH', '/');  // IMPORTANT
+define('APP_BASE_PATH', '/brgy_sabang/');  // IMPORTANT
 
 function require_role(array $allowed) {
     if (!isset($_SESSION['user_id'], $_SESSION['role'])) {

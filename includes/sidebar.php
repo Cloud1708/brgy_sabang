@@ -1,10 +1,16 @@
 <?php
+// Derive dynamic notifications badge count from $user context (unread count)
+$notifBadgeCount = isset($user['notification_count']) ? (int)$user['notification_count'] : 0;
+
+// Build navigation; attach badge only when > 0 so it doesn't display "0"
 $navigation = [
     ['name' => 'Parent Profile', 'icon' => 'home', 'view' => 'dashboard'],
     ['name' => 'Child Immunizations', 'icon' => 'syringe', 'view' => 'immunization'],
     ['name' => 'Growth & Nutrition', 'icon' => 'trending-up', 'view' => 'growth'],
-    ['name' => 'Notifications', 'icon' => 'bell', 'view' => 'notifications', 'badge' => 5],
 ];
+$notifItem = ['name' => 'Notifications', 'icon' => 'bell', 'view' => 'notifications'];
+if ($notifBadgeCount > 0) { $notifItem['badge'] = $notifBadgeCount; }
+$navigation[] = $notifItem;
 ?>
 
 <!-- Sidebar -->
@@ -23,7 +29,7 @@ $navigation = [
                 <span><?php echo $item['name']; ?></span>
             </div>
             <div class="flex items-center gap-2">
-                <?php if (isset($item['badge'])): ?>
+                                <?php if (isset($item['badge'])): ?>
                 <span class="px-2 py-0.5 rounded-full text-xs font-medium" 
                       style="<?php echo $isActive ? 'background-color: white; color: #3b82f6;' : 'background-color: #ef4444; color: white;'; ?>">
                     <?php echo $item['badge']; ?>

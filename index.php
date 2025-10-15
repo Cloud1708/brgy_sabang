@@ -33,7 +33,7 @@ if ($stmt && $stmt->execute()) {
     }
 }
 ?>
-<script></script>
+<script>
 document.addEventListener("DOMContentLoaded", function() {
   const filterBtns = document.querySelectorAll(".filter-controls button");
   const announcementCards = document.querySelectorAll(".announcement-card");
@@ -59,44 +59,58 @@ document.addEventListener("DOMContentLoaded", function() {
   document.querySelectorAll(".view-announcement").forEach(btn => {
     btn.addEventListener("click", function() {
       const modal = document.getElementById("announcementModal");
-      modal.querySelector(".announcement-modal-title").textContent = this.getAttribute("data-title");
-      modal.querySelector(".announcement-modal-date").textContent = this.getAttribute("data-date");
-      modal.querySelector(".announcement-modal-time").textContent = this.getAttribute("data-time");
-      const location = modal.querySelector(".announcement-modal-location");
-      const locText = this.getAttribute("data-location");
-      if (locText) {
-        location.textContent = locText;
-        location.classList.remove("d-none");
-      } else {
-        location.classList.add("d-none");
+      if (!modal) return;
+      const titleEl = modal.querySelector(".announcement-modal-title");
+      const dateEl = modal.querySelector(".announcement-modal-date");
+      const timeEl = modal.querySelector(".announcement-modal-time");
+      const locationEl = modal.querySelector(".announcement-modal-location");
+      const bodyEl = modal.querySelector(".announcement-modal-body");
+
+      if (titleEl) titleEl.textContent = this.getAttribute("data-title") || "";
+      if (dateEl) dateEl.textContent = this.getAttribute("data-date") || "";
+      if (timeEl) timeEl.textContent = this.getAttribute("data-time") || "";
+      if (locationEl) {
+        const locText = this.getAttribute("data-location") || "";
+        if (locText) {
+          locationEl.textContent = locText;
+          locationEl.classList.remove("d-none");
+        } else {
+          locationEl.classList.add("d-none");
+        }
       }
-      modal.querySelector(".announcement-modal-body").textContent = this.getAttribute("data-body");
+      if (bodyEl) bodyEl.textContent = this.getAttribute("data-body") || "";
     });
   });
 
-  // Feedback form handling
-  document.getElementById("feedbackForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-    const inputs = this.querySelectorAll("input, textarea");
-    let valid = true;
-    inputs.forEach(input => {
-      if (!input.value) {
-        input.classList.add("is-invalid");
-        valid = false;
-      } else {
-        input.classList.remove("is-invalid");
-        input.classList.add("is-valid");
+  // Feedback form handling (guard if form not present on page)
+  const feedbackForm = document.getElementById("feedbackForm");
+  if (feedbackForm) {
+    feedbackForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const inputs = this.querySelectorAll("input, textarea");
+      let valid = true;
+      inputs.forEach(input => {
+        if (!input.value) {
+          input.classList.add("is-invalid");
+          valid = false;
+        } else {
+          input.classList.remove("is-invalid");
+          input.classList.add("is-valid");
+        }
+      });
+      if (valid) {
+        const submitBtn = this.querySelector("button[type='submit']");
+        if (submitBtn) {
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending...';
+        }
+        setTimeout(() => {
+          if (submitBtn) submitBtn.innerHTML = 'Send Message';
+          const successEl = document.getElementById("feedbackSuccess");
+          if (successEl) successEl.classList.remove("d-none");
+        }, 1000);
       }
     });
-    if (valid) {
-      const submitBtn = this.querySelector("button[type='submit']");
-      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending...';
-      setTimeout(() => {
-        submitBtn.innerHTML = 'Send Message';
-        document.getElementById("feedbackSuccess").classList.remove("d-none");
-      }, 1000);
-    }
-  });
+  }
 });
 </script>
 
