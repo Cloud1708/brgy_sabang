@@ -20,6 +20,12 @@ $caregiver = null;
 $address = 'N/A';
 $contact_number = '';
 $emergency_contact = '';
+// Extra parent detail fields
+$blood_type = '';
+$dob = null; // YYYY-MM-DD
+$age_display = '';
+$gravida = null;
+$para = null;
 
 // Load parent basic info
 if ($parent_user_id) {
@@ -89,6 +95,17 @@ if ($parent_user_id) {
     }
 }
 
+// Build display initials for avatar
+$initials = 'PP';
+if (!empty($parent['name'])) {
+    $parts = preg_split('/\s+/', trim($parent['name']));
+    $first = $parts[0] ?? '';
+    $last  = $parts[count($parts)-1] ?? '';
+    $fi = $first !== '' ? mb_substr($first, 0, 1) : '';
+    $li = $last !== '' ? mb_substr($last, 0, 1) : '';
+    $initials = strtoupper(($fi.$li) ?: 'PP');
+}
+
 // Build address, contact, emergency
 if ($maternal) {
     $parts = [];
@@ -99,6 +116,11 @@ if ($maternal) {
     if (!empty($parts)) $address = implode(', ', $parts);
     $contact_number = $maternal['contact_number'] ?? '';
     $emergency_contact = trim(($maternal['emergency_contact_name'] ?? '') . ' ' . ($maternal['emergency_contact_number'] ? '(' . $maternal['emergency_contact_number'] . ')' : ''));
+    // Enrich extra fields from maternal profile
+    if (!empty($maternal['blood_type'])) $blood_type = strtoupper(trim($maternal['blood_type']));
+    if (!empty($maternal['date_of_birth'])) $dob = $maternal['date_of_birth'];
+    if (isset($maternal['gravida'])) $gravida = $maternal['gravida'];
+    if (isset($maternal['para'])) $para = $maternal['para'];
 } elseif ($caregiver) {
     $parts = [];
     if (!empty($caregiver['house_number'])) $parts[] = '#' . trim($caregiver['house_number']);
@@ -117,6 +139,18 @@ if ($maternal) {
     if (!empty($parts)) $address = implode(', ', $parts);
     $contact_number = $caregiver['contact_number'] ?? '';
     $emergency_contact = trim(($caregiver['emergency_contact_name'] ?? '') . ' ' . ($caregiver['emergency_contact_number'] ? '(' . $caregiver['emergency_contact_number'] . ')' : ''));
+    // Some caregivers table may include date_of_birth
+    if (!empty($caregiver['date_of_birth'])) $dob = $caregiver['date_of_birth'];
+}
+
+// Compute age display if DOB known
+if (!empty($dob)) {
+    $dob_dt = date_create($dob);
+    if ($dob_dt) {
+        $now = new DateTime('now');
+        $diff = $dob_dt->diff($now);
+        $age_display = $diff->y . ' yrs';
+    }
 }
 
 // Fetch prenatal health records and upcoming next visit
@@ -183,7 +217,9 @@ if ($mother_id !== null) {
     <div class="bg-white rounded-xl shadow-sm overflow-hidden" style="border: 1px solid #e5e7eb;">
         <div class="p-6" style="background: linear-gradient(to right, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08));">
             <div class="flex items-center gap-4">
-                <div class="text-4xl">👩‍🍼</div>
+                <div class="h-12 w-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-semibold shadow-sm">
+                    <?php echo htmlspecialchars($initials); ?>
+                </div>
                 <div>
                     <h3 class="font-medium"><?php echo htmlspecialchars($parent['name'] ?: 'Parent'); ?></h3>
                     <p class="text-sm" style="color:#6b7280;">Barangay: <?php echo htmlspecialchars($parent['barangay'] ?: 'N/A'); ?></p>
@@ -206,6 +242,28 @@ if ($mother_id !== null) {
                 <div>
                     <p class="text-sm" style="color:#6b7280;">Address</p>
                     <p class="font-medium"><?php echo htmlspecialchars($address); ?></p>
+                </div>
+                <div>
+                    <p class="text-sm" style="color:#6b7280;">Blood Type</p>
+                    <p class="font-medium"><?php echo htmlspecialchars($blood_type ?: 'N/A'); ?></p>
+                </div>
+                <div>
+                    <p class="text-sm" style="color:#6b7280;">Date of Birth</p>
+                    <p class="font-medium">
+                        <?php echo htmlspecialchars(!empty($dob) ? date('M d, Y', strtotime($dob)) : 'N/A'); ?>
+                        <?php if (!empty($age_display)): ?>
+                            <span class="text-sm" style="color:#6b7280;">(<?php echo htmlspecialchars($age_display); ?>)</span>
+                        <?php endif; ?>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm" style="color:#6b7280;">Gravida / Para</p>
+                    <p class="font-medium"><?php
+                        $gp = [];
+                        if (!is_null($gravida)) { $gp[] = 'G' . (string)$gravida; }
+                        if (!is_null($para)) { $gp[] = 'P' . (string)$para; }
+                        echo htmlspecialchars(!empty($gp) ? implode(' / ', $gp) : 'N/A');
+                    ?></p>
                 </div>
             </div>
             <?php if (!empty($emergency_contact)): ?>

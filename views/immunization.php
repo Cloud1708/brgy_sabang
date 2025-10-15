@@ -481,9 +481,7 @@ if ($parent_user_id) {
         <?php else: ?>
         <div class="grid gap-6 md:grid-cols-1">
             <?php foreach ($children_to_render as $child): ?>
-        <!-- Dropdown content: Vaccines vs Supplementation -->
-        <?php if ($active_tab === 'vaccines'): ?>
-        <!-- Digital Immunization Card per child -->
+        <!-- Child details card: shown in both Vaccines and Supplementation tabs -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden" style="border: 2px solid rgba(59, 130, 246, 0.2);">
             <div class="p-6" style="background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1));">
                 <div class="flex items-start justify-between">
@@ -537,8 +535,6 @@ if ($parent_user_id) {
                 </div>
             </div>
         </div>
-
-        <?php endif; ?>
 
         <!-- Pending and Overdue (only in Vaccines tab) -->
         <?php if ($active_tab === 'vaccines'): ?>

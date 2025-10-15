@@ -28,6 +28,29 @@ $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), arra
      - Removed zoom controls / modes
      - Removed sidebar scrollbar (hidden) -->
 <style>
+/* ===== Scrollbar Adjustments for Profile Management & Child Registry =====
+   - Remove page scroll when viewing Profile Management (adds .no-scroll to #mainRegion)
+   - Provide own scrollbars for children lists / tables only
+*/
+#mainRegion.no-scroll{
+  overflow:hidden !important;
+}
+
+/* Profile Management list (left pane) */
+#pmListContainer{
+  max-height:calc(100vh - 230px);
+  overflow-y:auto;
+  scrollbar-width:thin;
+}
+#pmListContainer::-webkit-scrollbar{width:10px;}
+#pmListContainer::-webkit-scrollbar-thumb{background:#c4d0c8;border-radius:8px;}
+#pmListContainer::-webkit-scrollbar-thumb:hover{background:#b0c0b6;}
+
+/* Child Database registry table wrapper (remove inner scrollbar; page handles scrolling) */
+#children-tab-content .tile .table-responsive{
+  max-height:none;
+  overflow:visible;
+}
 /* Nutrition Data Entry Form Styles */
 .form-section {
   background: var(--surface);
@@ -45,6 +68,26 @@ $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), arra
 .gm-legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
 .gm-legend .swatch{width:12px;height:12px;border-radius:3px;display:inline-block;}
 .gm-legend span{font-size:.62rem;color:#5f7464;font-weight:700;display:inline-flex;align-items:center;gap:.4rem;}
+
+/* ADD: Consistent tile header alignment + compact top padding */
+.tile-head-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start; /* top-align both sides */
+  gap:.5rem;
+}
+.tile-head-actions{
+  display:flex;
+  align-items:flex-start; /* keep action buttons at the top */
+  gap:.5rem;
+}
+
+/* Only for tiles na kailangan bawasan ang top space */
+.tile.compact-top{
+  padding-top:.75rem;           /* was ~1.05rem */
+}
+.tile.compact-top .tile-header { margin-top:0; }
+.tile.compact-top .tile-sub    { margin-top:.15rem; } /* tighter stack */
 
 .form-section-header {
   display: flex;
@@ -123,6 +166,30 @@ $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), arra
 .form-control::placeholder {
   color: var(--muted);
   font-style: italic;
+}
+
+/* Required field indicators - removed because asterisks are already in HTML labels */
+
+/* Required field validation styling - only show red when form is submitted */
+.was-validated input[required]:invalid,
+.was-validated select[required]:invalid,
+.was-validated textarea[required]:invalid {
+  border-color: #dc3545;
+}
+
+/* Keep normal border for all fields by default */
+input[required],
+select[required],
+textarea[required] {
+  border-color: var(--border-soft);
+}
+
+/* Override any browser default invalid styling */
+input:invalid,
+select:invalid,
+textarea:invalid {
+  border-color: var(--border-soft);
+  box-shadow: none;
 }
 
 .date-input {
@@ -1007,7 +1074,7 @@ h1.page-title{
     <div class="brand">
       <div class="brand-icon">🌿</div>
       <div class="brand-text">
-        BNS Portal
+          Barangay Nutrition Scholars Portal
         <small>Nutrition System</small>
       </div>
     </div>
@@ -1026,7 +1093,7 @@ h1.page-title{
         <ul class="nav-submenu" id="childrenSubmenu">
           <li>
             <a href="#" class="submenu-link nav-link-bns"
-               data-module="child_profiles" data-label="Children Management" data-child-tab="profiles">
+               data-module="child_profiles" data-label="Profile Management" data-child-tab="profiles">
               <i class="bi bi-person-vcard"></i> Profile Management
             </a>
           </li>
@@ -1043,13 +1110,13 @@ h1.page-title{
         <ul class="nav-submenu" id="gmSubmenu">
           <li>
             <a href="#" class="submenu-link nav-link-bns"
-               data-module="nutrition_classification" data-label="Growth Monitoring" data-gm-tab="population">
+               data-module="nutrition_classification" data-label="Population Trends" data-gm-tab="population">
               <i class="bi bi-graph-up-arrow"></i> Population Trends
             </a>
           </li>
           <li>
             <a href="#" class="submenu-link nav-link-bns"
-               data-module="nutrition_classification" data-label="Growth Monitoring" data-gm-tab="wfl">
+               data-module="nutrition_classification" data-label="WFL/H Assessment" data-gm-tab="wfl">
               <i class="bi bi-scales"></i> WFL/H Assessment
             </a>
           </li>
@@ -1065,10 +1132,10 @@ h1.page-title{
         </a>
         <ul class="nav-submenu" id="suppSubmenu">
           <li>
-            <a href="#" class="submenu-link nav-link-bns"
-               data-module="feeding_programs" data-label="Supplementation" data-supp-tab="schedule">
-              <i class="bi bi-calendar3"></i> Schedule
-            </a>
+          <a href="#" class="submenu-link nav-link-bns"
+            data-module="feeding_programs" data-label="Schedule" data-supp-tab="schedule">
+            <i class="bi bi-calendar3"></i> Schedule
+          </a>
           </li>
         </ul>
       </li>
@@ -1122,7 +1189,7 @@ h1.page-title{
     </div>
 
     <div class="sidebar-logout" style="padding:1rem 1.1rem;">
-      <a href="logout" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+      <a href="logout.php" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
         <i class="bi bi-box-arrow-right me-1"></i> Logout
       </a>
     </div>
@@ -1456,6 +1523,102 @@ const api = {
 
 function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch','X-CSRF-Token':window.__BNS_CSRF, 'Accept':'application/json'},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
 
+// Reusable Toast Notification Function
+function showToast(message, type = 'success', duration = 4000) {
+  // Ensure toast styles are loaded
+  if (!document.querySelector('#toast-styles')) {
+    const style = document.createElement('style');
+    style.id = 'toast-styles';
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast-notification ${type}`;
+  
+  // Different styles for different types
+  let bgColor, borderColor, textColor, icon;
+  switch(type) {
+    case 'success':
+      bgColor = '#d1eddd';
+      borderColor = '#badbcc';
+      textColor = '#0f5132';
+      icon = 'bi-check-circle-fill';
+      break;
+    case 'error':
+      bgColor = '#f8d7da';
+      borderColor = '#f5c2c7';
+      textColor = '#842029';
+      icon = 'bi-exclamation-circle-fill';
+      break;
+    case 'warning':
+      bgColor = '#fff3cd';
+      borderColor = '#ffecb5';
+      textColor = '#664d03';
+      icon = 'bi-exclamation-triangle-fill';
+      break;
+    case 'info':
+      bgColor = '#d1ecf1';
+      borderColor = '#b8daff';
+      textColor = '#055160';
+      icon = 'bi-info-circle-fill';
+      break;
+    default:
+      bgColor = '#d1eddd';
+      borderColor = '#badbcc';
+      textColor = '#0f5132';
+      icon = 'bi-check-circle-fill';
+  }
+  
+  toast.innerHTML = `
+    <div class="d-flex align-items-center">
+      <i class="bi ${icon} me-2" style="color: ${textColor};"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${bgColor};
+    border: 1px solid ${borderColor};
+    border-left: 4px solid ${textColor};
+    color: ${textColor};
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    font-size: 0.875rem;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+    margin-bottom: 10px;
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // Auto remove after duration
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, duration);
+  
+  return toast;
+}
+
 // --- Supplementation Child combobox (typeahead) ---
 let __suppChildrenCache = [];     // full list from API
 let __suppCbActiveIndex = -1;     // keyboard highlight index
@@ -1680,32 +1843,42 @@ function showLoading(label){moduleContent.innerHTML=`<div class="loading-state">
 
 function renderDashboardHome(label){
     // 6‑month trend (dedup by child per month; latest record wins)
+    // 6‑month trend (dedup per child per month; latest record wins)
+    // Now counts: NOR, MAM, SAM, UW, ST, OVR(=OW+OB)
+    // 6‑month trend (dedup per child per month; latest record wins)
+    // Now counts: NOR, MAM, SAM, UW, ST, OW, OB — to match the donut
     function aggregateMonthlyTrend(recent, lastN = 6){
       const byMonth = new Map(); // ym -> Map(child->status)
+
       const sorted = (recent||[]).slice().sort((a,b)=>String(a.weighing_date||'').localeCompare(String(b.weighing_date||'')));
       for (const r of sorted){
         const d = r.weighing_date; if (!d) continue;
         const ym = String(d).slice(0,7);
         if (!byMonth.has(ym)) byMonth.set(ym, new Map());
         const childKey = r.child_name || `#${r.child_id||0}`;
-        byMonth.get(ym).set(childKey, r.status_code || 'UNSET');
+        byMonth.get(ym).set(childKey, (r.status_code || 'UNSET').toUpperCase());
       }
+
       const allYms = Array.from(byMonth.keys()).sort();
       const yms = allYms.slice(-lastN);
 
       const labels = [];
-      const NOR=[], MAM=[], SAM=[];
+      const NOR=[], MAM=[], SAM=[], UW=[], ST=[], OW=[], OB=[];
       for (const ym of yms){
         labels.push(formatYm(ym));
-        let n=0, m=0, s=0;
+        let n=0,m=0,s=0,uw=0,st=0,ow=0,ob=0;
         byMonth.get(ym).forEach(code=>{
           if (code==='NOR') n++;
           else if (code==='MAM') m++;
           else if (code==='SAM') s++;
+          else if (code==='UW')  uw++;
+          else if (code==='ST')  st++;
+          else if (code==='OW')  ow++;
+          else if (code==='OB')  ob++;
         });
-        NOR.push(n); MAM.push(m); SAM.push(s);
+        NOR.push(n); MAM.push(m); SAM.push(s); UW.push(uw); ST.push(st); OW.push(ow); OB.push(ob);
       }
-      return { labels, NOR, MAM, SAM };
+      return { labels, NOR, MAM, SAM, UW, ST, OW, OB };
 
       function formatYm(ym){
         const [Y,M] = ym.split('-').map(Number);
@@ -1713,22 +1886,29 @@ function renderDashboardHome(label){
       }
     }
 
-    // Multi-series line chart (Normal, MAM, SAM)
-    function buildTrendMulti(recent){
-      const data = aggregateMonthlyTrend(recent, 6);
+    // Multi-series line chart now shows: NOR, MAM, SAM, UW, ST, OW, OB (same as donut)
+    function buildTrendMulti(recent, lastN){
+      const data = aggregateMonthlyTrend(recent, Number(lastN) || 6);
       if (!data.labels.length){
         return `<div class="chart-placeholder">No trend data available</div>`;
       }
+
       const VB = { w: 120, h: 70 };
       const pad = { l: 10, r: 6, t: 8, b: 16 };
       const CW = VB.w - pad.l - pad.r;
       const CH = VB.h - pad.t - pad.b;
 
+      // Colors aligned with donut
       const series = [
-        { key:'MAM',  values:data.MAM,  color:'#f4a400', width:1.6 },
-        { key:'NOR',  values:data.NOR,  color:'#0b7a43', width:1.8 },
-        { key:'SAM',  values:data.SAM,  color:'#d23d3d', width:1.6 }
+        { key:'MAM', label:'MAM',         values:data.MAM, color:'#f4a400', width:1.4 },
+        { key:'NOR', label:'Normal',      values:data.NOR, color:'#0b7a43', width:1.6 },
+        { key:'SAM', label:'SAM',         values:data.SAM, color:'#d23d3d', width:1.4 },
+        { key:'UW',  label:'Underweight', values:data.UW,  color:'#ffb84d', width:1.2 },
+        { key:'ST',  label:'Stunted',     values:data.ST,  color:'#ff6b6b', width:1.2 },
+        { key:'OW',  label:'Overweight',  values:data.OW,  color:'#8e44ad', width:1.2 },
+        { key:'OB',  label:'Obese',       values:data.OB,  color:'#6c3483', width:1.2 }
       ];
+
       const allVals = series.flatMap(s=>s.values);
       const yMax = Math.max(1, ...allVals);
       const xStep = data.labels.length>1 ? CW/(data.labels.length-1) : 0;
@@ -1744,7 +1924,7 @@ function renderDashboardHome(label){
 
       const paths = series.map(s=>{
         const pts = s.values.map((v,i)=>`${xFor(i).toFixed(2)},${yFor(v).toFixed(2)}`).join(' ');
-        const dots = s.values.map((v,i)=>`<circle cx="${xFor(i).toFixed(2)}" cy="${yFor(v).toFixed(2)}" r="1.2" fill="${s.color}"></circle>`).join('');
+        const dots = s.values.map((v,i)=>`<circle cx="${xFor(i).toFixed(2)}" cy="${yFor(v).toFixed(2)}" r="1.0" fill="${s.color}"></circle>`).join('');
         return `<polyline fill="none" stroke="${s.color}" stroke-width="${s.width}" points="${pts}"></polyline>${dots}`;
       }).join('');
 
@@ -1753,16 +1933,29 @@ function renderDashboardHome(label){
         return `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="2.6" fill="#637668" text-anchor="middle">${lab}</text>`;
       }).join('');
 
+      // Legend aligned with donut categories
       const legend = `
         <div class="d-flex align-items-center gap-3 mt-1" style="flex-wrap:wrap;">
           <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
-            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#f4a400;display:inline-block;"></span> MAM
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#f4a400;"></span> MAM
           </span>
           <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
-            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#0b7a43;display:inline-block;"></span> Normal
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#0b7a43;"></span> Normal
           </span>
           <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
-            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#d23d3d;display:inline-block;"></span> SAM
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#d23d3d;"></span> SAM
+          </span>
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#ffb84d;"></span> Underweight
+          </span>
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#ff6b6b;"></span> Stunted
+          </span>
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#8e44ad;"></span> Overweight
+          </span>
+          <span class="d-inline-flex align-items-center gap-2" style="font-size:.62rem;font-weight:700;color:#18432b;">
+            <span class="swatch" style="width:12px;height:12px;border-radius:3px;background:#6c3483;"></span> Obese
           </span>
         </div>`;
 
@@ -1778,7 +1971,7 @@ function renderDashboardHome(label){
         </div>
       `;
     }
-
+          
     // Donut chart for distribution (Normal, MAM, SAM, Underweight, Stunted, Overweight[OW+OB])
     function buildStatusDonut(classification){
       const get = code => (classification.find(x => x.status_code===code)?.child_count) || 0;
@@ -1805,8 +1998,11 @@ function renderDashboardHome(label){
         return `<div class="chart-placeholder">No data available</div>`;
       }
 
+      // Center the donut within the SVG
       const VB = { w: 120, h: 80 };
-      const cx = 40, cy = 40, R = 26, r = 15;
+      const cx = VB.w / 2, cy = VB.h / 2; // centered (60, 40)
+      const R = 26, r = 15;
+
       let a = -Math.PI/2;
       const arcs = [], labels = [];
       items.forEach(i=>{
@@ -1964,7 +2160,11 @@ function renderDashboardHome(label){
       }
     });
 
-  const trendSvg = buildTrendMulti(recent);
+  // months preference (persisted)
+  const monthsPref = Number(localStorage.getItem('gmTrendMonths') || 6);
+
+  // build chart with preferred range
+  const trendSvg = buildTrendMulti(recent, monthsPref);
   const statusDonutHtml = buildStatusDonut(classification);
 
     moduleContent.innerHTML = `
@@ -2006,8 +2206,19 @@ function renderDashboardHome(label){
             <div class="tile-header">
               <h5><i class="bi bi-graph-up-arrow text-success"></i> Growth Monitoring Trends</h5>
             </div>
-            <p class="tile-sub">6-month nutrition status comparison</p>
-            ${trendSvg}
+            <p class="tile-sub" id="gmTrendSub">${monthsPref}-month nutrition status comparison</p>
+            <div class="d-flex justify-content-end mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <span style="font-size:.6rem;color:#6a7a6d;">Range</span>
+                <select id="gmTrendMonthsSelect" class="form-select form-select-sm"
+                        style="width:auto;font-size:.62rem;border-radius:8px;">
+                  <option value="3">3 months</option>
+                  <option value="6">6 months</option>
+                  <option value="12">12 months</option>
+                </select>
+              </div>
+            </div>
+            <div id="gmTrendChartHost">${trendSvg}</div>
             <p class="small-note mt-2 mb-0" style="font-size:.55rem;">Relative pattern (NOR counts, sample)</p>
           </div>
 
@@ -2050,7 +2261,6 @@ function renderDashboardHome(label){
         </div>
         <div class="case-controls">
           ${badge(r.status_code)}
-          <button class="btn-view">View</button>
         </div>
       </div>`;
     }
@@ -2198,10 +2408,113 @@ function renderChildrenModule(label) {
           </div>
 
           <!-- Content -->
-          <div id="children-tab-content">
-            ${renderChildrenTable(children)}
-          </div>
+          <div id="children-tab-content"></div>
         `;
+        // Initialize pagination state and first render
+        window.__CHILDREN_ALL = children.slice();
+        window.__CHILDREN_FILTERED = children.slice();
+        window.__CHILDREN_PAGE = 1;
+        window.__CHILDREN_PER_PAGE = 10;
+
+        // Ensure renderChildrenListPage is defined before usage
+        if (typeof renderChildrenListPage !== 'function') {
+          // Helper: slice current page
+          window.paginate = function(items, page, perPage){
+            const total = items.length;
+            const pages = Math.max(1, Math.ceil(total / perPage));
+            const p = Math.min(Math.max(1, page), pages);
+            const start = (p - 1) * perPage;
+            const end = Math.min(start + perPage, total);
+            return { slice: items.slice(start, end), total, page: p, pages, start: start + 1, end };
+          };
+
+          window.pageWindow = function(current, total, span = 5){
+            if (total <= span) return Array.from({length: total}, (_,i)=>i+1);
+            const half = Math.floor(span/2);
+            let start = Math.max(1, current - half);
+            let end = start + span - 1;
+            if (end > total) { end = total; start = total - span + 1; }
+            return Array.from({length: end - start + 1}, (_,i)=>start + i);
+          };
+
+          window.renderChildrenPager = function(meta){
+            if (meta.total === 0) return '';
+            const pages = meta.pages;
+            const windowPages = pageWindow(meta.page, pages, 5);
+            const prevDisabled = meta.page <= 1 ? 'disabled' : '';
+            const nextDisabled = meta.page >= pages ? 'disabled' : '';
+            return `
+              <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-2" id="childrenPaginationBar">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="text-muted" style="font-size:.62rem;font-weight:700;">
+                    Showing ${meta.start}-${meta.end} of ${meta.total}
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted" style="font-size:.62rem;font-weight:700;">Rows per page</span>
+                    <select id="childrenPerPage" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
+                      <option value="10" ${window.__CHILDREN_PER_PAGE===10?'selected':''}>10</option>
+                      <option value="25" ${window.__CHILDREN_PER_PAGE===25?'selected':''}>25</option>
+                      <option value="50" ${window.__CHILDREN_PER_PAGE===50?'selected':''}>50</option>
+                    </select>
+                  </div>
+                </div>
+                <nav aria-label="Children pagination">
+                  <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item ${prevDisabled}">
+                      <a class="page-link" href="#" data-page="${meta.page-1}" tabindex="-1" aria-label="Previous">&laquo;</a>
+                    </li>
+                    ${windowPages.map(n => `
+                      <li class="page-item ${n===meta.page?'active':''}">
+                        <a class="page-link" href="#" data-page="${n}">${n}</a>
+                      </li>`).join('')}
+                    <li class="page-item ${nextDisabled}">
+                      <a class="page-link" href="#" data-page="${meta.page+1}" aria-label="Next">&raquo;</a>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            `;
+          };
+
+          window.renderChildrenListPage = function(){
+            const list = Array.isArray(window.__CHILDREN_FILTERED) ? window.__CHILDREN_FILTERED : [];
+            const meta = paginate(list, window.__CHILDREN_PAGE, window.__CHILDREN_PER_PAGE);
+            const bak = window.__childrenFiltered;
+            window.__childrenFiltered = list;
+            const contentArea = document.getElementById('children-tab-content');
+            if (!contentArea) return;
+            const tableHtml = renderChildrenTable(meta.slice);
+            const pagerHtml = renderChildrenPager(meta);
+            contentArea.innerHTML = tableHtml + pagerHtml;
+            window.__childrenFiltered = bak;
+            const bar = document.getElementById('childrenPaginationBar');
+            if (bar && !bar.__wired) {
+              bar.addEventListener('click', (e) => {
+                const a = e.target.closest('[data-page]');
+                if (!a) return;
+                e.preventDefault();
+                const next = parseInt(a.getAttribute('data-page'), 10);
+                if (!Number.isFinite(next)) return;
+                window.__CHILDREN_PAGE = next;
+                renderChildrenListPage();
+              });
+              bar.addEventListener('change', (e) => {
+                if (e.target && e.target.id === 'childrenPerPage') {
+                  window.__CHILDREN_PER_PAGE = parseInt(e.target.value, 10) || 10;
+                  window.__CHILDREN_PAGE = 1;
+                  renderChildrenListPage();
+                }
+              });
+              bar.__wired = true;
+            }
+          };
+        }
+
+        const contentArea = document.getElementById('children-tab-content');
+        contentArea.innerHTML = '';
+        renderChildrenListPage();
+
+        // Filters (now feed pagination-aware renderer)
         setupChildrenFilters(children);
       }
 
@@ -2259,11 +2572,126 @@ function setupChildrenTabsUpdated() {
       if (tabType === 'database') {
         // Re-render the child database from cache, no full module reload
         const list = window.__childrenCache || [];
-        contentArea.innerHTML = renderChildrenTable(list);
-        // Ensure the Search & Filter (above the tabs) still works with the same list
+        window.__CHILDREN_ALL = list.slice();
+        window.__CHILDREN_FILTERED = list.slice();
+        window.__CHILDREN_PAGE = 1;
+        window.__CHILDREN_PER_PAGE = 10;
+        contentArea.innerHTML = '';
+        renderChildrenListPage();
         setupChildrenFilters(list);
         return;
       }
+// ---------- Children Registry Pagination (Database view) ----------
+window.__CHILDREN_ALL = [];
+window.__CHILDREN_FILTERED = [];
+window.__CHILDREN_PAGE = 1;
+window.__CHILDREN_PER_PAGE = 10;
+
+// Helper: slice current page
+function paginate(items, page, perPage){
+  const total = items.length;
+  const pages = Math.max(1, Math.ceil(total / perPage));
+  const p = Math.min(Math.max(1, page), pages);
+  const start = (p - 1) * perPage;
+  const end = Math.min(start + perPage, total);
+  return { slice: items.slice(start, end), total, page: p, pages, start: start + 1, end };
+}
+
+// Helper: compact page list (max 5 visible)
+function pageWindow(current, total, span = 5){
+  if (total <= span) return Array.from({length: total}, (_,i)=>i+1);
+  const half = Math.floor(span/2);
+  let start = Math.max(1, current - half);
+  let end = start + span - 1;
+  if (end > total) { end = total; start = total - span + 1; }
+  return Array.from({length: end - start + 1}, (_,i)=>start + i);
+}
+
+// Render pagination controls (consistent with small UI)
+function renderChildrenPager(meta){
+  if (meta.total === 0) return '';
+  const pages = meta.pages;
+  const windowPages = pageWindow(meta.page, pages, 5);
+
+  const prevDisabled = meta.page <= 1 ? 'disabled' : '';
+  const nextDisabled = meta.page >= pages ? 'disabled' : '';
+
+  return `
+    <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-2" id="childrenPaginationBar">
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-muted" style="font-size:.62rem;font-weight:700;">
+          Showing ${meta.start}-${meta.end} of ${meta.total}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-muted" style="font-size:.62rem;font-weight:700;">Rows per page</span>
+          <select id="childrenPerPage" class="form-select form-select-sm" style="width:auto;font-size:.65rem;">
+            <option value="10" ${window.__CHILDREN_PER_PAGE===10?'selected':''}>10</option>
+            <option value="25" ${window.__CHILDREN_PER_PAGE===25?'selected':''}>25</option>
+            <option value="50" ${window.__CHILDREN_PER_PAGE===50?'selected':''}>50</option>
+          </select>
+        </div>
+      </div>
+      <nav aria-label="Children pagination">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item ${prevDisabled}">
+            <a class="page-link" href="#" data-page="${meta.page-1}" tabindex="-1" aria-label="Previous">&laquo;</a>
+          </li>
+          ${windowPages.map(n => `
+            <li class="page-item ${n===meta.page?'active':''}">
+              <a class="page-link" href="#" data-page="${n}">${n}</a>
+            </li>`).join('')}
+          <li class="page-item ${nextDisabled}">
+            <a class="page-link" href="#" data-page="${meta.page+1}" aria-label="Next">&raquo;</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  `;
+}
+
+// Renders the current page (uses existing renderChildrenTable to keep UI)
+function renderChildrenListPage(){
+  const list = Array.isArray(window.__CHILDREN_FILTERED) ? window.__CHILDREN_FILTERED : [];
+  const meta = paginate(list, window.__CHILDREN_PAGE, window.__CHILDREN_PER_PAGE);
+
+  // Temporarily expose filtered count so the header shows the correct "X children found"
+  const bak = window.__childrenFiltered;
+  window.__childrenFiltered = list;
+
+  const contentArea = document.getElementById('children-tab-content');
+  if (!contentArea) return;
+
+  // Reuse your table renderer with only the current slice
+  const tableHtml = renderChildrenTable(meta.slice);
+  const pagerHtml = renderChildrenPager(meta);
+
+  contentArea.innerHTML = tableHtml + pagerHtml;
+
+  // Restore
+  window.__childrenFiltered = bak;
+
+  // Wire events
+  const bar = document.getElementById('childrenPaginationBar');
+  if (bar && !bar.__wired) {
+    bar.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-page]');
+      if (!a) return;
+      e.preventDefault();
+      const next = parseInt(a.getAttribute('data-page'), 10);
+      if (!Number.isFinite(next)) return;
+      window.__CHILDREN_PAGE = next;
+      renderChildrenListPage();
+    });
+    bar.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'childrenPerPage') {
+        window.__CHILDREN_PER_PAGE = parseInt(e.target.value, 10) || 10;
+        window.__CHILDREN_PAGE = 1;
+        renderChildrenListPage();
+      }
+    });
+    bar.__wired = true;
+  }
+}
 
       // Fallback (shouldn't be needed, pero safe)
       renderChildrenModule('Children Management');
@@ -2462,31 +2890,50 @@ function setupChildrenFilters(allChildren) {
   const searchInput = document.getElementById('childSearchInput');
   const statusFilter = document.getElementById('nutritionStatusFilter');
   const purokFilter = document.getElementById('purokFilter');
-  
-  function filterChildren() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const statusValue = statusFilter.value;
-    const purokValue = purokFilter.value;
-    
-    const filteredChildren = allChildren.filter(child => {
-      const matchesSearch = !searchTerm || 
-        child.full_name.toLowerCase().includes(searchTerm) ||
-        child.mother_name.toLowerCase().includes(searchTerm);
-      
-      const matchesStatus = !statusValue || child.nutrition_status === statusValue;
-      const matchesPurok = !purokValue || child.purok_name === purokValue;
-      
-      return matchesSearch && matchesStatus && matchesPurok;
+
+  // Ensure global sources are set
+  window.__CHILDREN_ALL = Array.isArray(allChildren) ? allChildren.slice() : [];
+  window.__CHILDREN_FILTERED = window.__CHILDREN_ALL.slice();
+  window.__CHILDREN_PAGE = 1;
+
+  function applyFilters() {
+    const q = (searchInput?.value || '').trim().toLowerCase();
+    const st = statusFilter?.value || '';
+    const pk = purokFilter?.value || '';
+
+    const filtered = window.__CHILDREN_ALL.filter(child => {
+      const hay = `${child.full_name||''} ${child.mother_name||''} ${child.purok_name||''}`.toLowerCase();
+      const matchesQ  = !q || hay.includes(q);
+      const matchesSt = !st || child.nutrition_status === st;
+      const matchesPk = !pk || (child.purok_name === pk);
+      return matchesQ && matchesSt && matchesPk;
     });
-    
-    const contentArea = document.getElementById('children-tab-content');
-    contentArea.innerHTML = renderChildrenTable(filteredChildren);
+
+    window.__CHILDREN_FILTERED = filtered;
+    window.__CHILDREN_PAGE = 1; // reset to first page on filter change
+    renderChildrenListPage();
   }
-  
-  searchInput.addEventListener('input', filterChildren);
-  statusFilter.addEventListener('change', filterChildren);
-  purokFilter.addEventListener('change', filterChildren);
+
+  searchInput?.addEventListener('input', applyFilters);
+  statusFilter?.addEventListener('change', applyFilters);
+  purokFilter?.addEventListener('change', applyFilters);
+
+  // initial paint (shows first page)
+  renderChildrenListPage();
 }
+// OPTIONAL: keep UI micro-tweaks for pagination text/buttons subtle
+(function addPaginationTinyStyles(){
+  const id = 'childrenPaginationStyles';
+  if (document.getElementById(id)) return;
+  const css = `
+    #childrenPaginationBar .page-link{ font-size:.68rem; padding:.25rem .5rem; }
+    #childrenPaginationBar .pagination{ --bs-pagination-border-color: var(--border-soft); }
+    #childrenPaginationBar .page-item.active .page-link{
+      background:#065f33;border-color:#065f33;
+    }
+  `;
+  const s = document.createElement('style'); s.id = id; s.textContent = css; document.head.appendChild(s);
+})();
 
 function setupChildrenTabs() {
   document.querySelectorAll('.children-tab').forEach(tab => {
@@ -2612,6 +3059,15 @@ async function editChild(childId) {
     }
 
     const onSave = async () => {
+      // Add validation class to trigger visual feedback
+      form.classList.add('was-validated');
+      
+      // Check HTML5 form validity first
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
       const payload = {
         child_id: Number(form.querySelector('[name="child_id"]').value),
         full_name: form.querySelector('[name="full_name"]').value.trim(),
@@ -2623,13 +3079,18 @@ async function editChild(childId) {
         purok_name: form.querySelector('[name="purok_name"]').value.trim()
       };
 
-      // Simple validation
+      // Enhanced validation with more detailed messages
       const missing = [];
       if (!payload.full_name) missing.push('Child: Full Name');
       if (!payload.sex) missing.push('Child: Sex');
       if (!payload.birth_date) missing.push('Child: Birth Date');
+      if (!payload.mother_name) missing.push('Mother/Caregiver: Full Name');
+      if (!payload.mother_contact) missing.push('Mother/Caregiver: Contact');
+      if (!payload.address_details) missing.push('Mother/Caregiver: Address');
+      if (!payload.purok_name) missing.push('Mother/Caregiver: Purok');
+      
       if (missing.length) {
-        alert('Please fill in: \n• ' + missing.join('\n• '));
+        alert('❌ Please fill in all required fields: \n\n• ' + missing.join('\n• '));
         return;
       }
 
@@ -2646,7 +3107,7 @@ async function editChild(childId) {
         if (!up.success) throw new Error(up.error || 'Update failed');
 
         // Success UX
-        alert('✅ Profile updated successfully.');
+        showToast('<strong>Success!</strong> Profile updated successfully.');
 
         // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('childProfileEditModal'));
@@ -2678,6 +3139,9 @@ async function editChild(childId) {
     saveBtn.addEventListener('click', onSave);
     saveBtn.__handlerRef = onSave;
 
+    // Reset validation state before showing modal
+    form.classList.remove('was-validated');
+    
     const modal = new bootstrap.Modal(document.getElementById('childProfileEditModal'));
     modal.show();
   } catch (e) {
@@ -2974,10 +3438,94 @@ async function loadWeighRightPane(childId){
       document.querySelectorAll('#weighingForm input, #weighingForm select, #weighingForm textarea')
         .forEach(el => el.setAttribute('disabled', 'disabled'));
     } else {
-      // Enable form controls
-      document.getElementById('saveNutritionRecord')?.removeAttribute('disabled');
-      document.querySelectorAll('#weighingForm input, #weighingForm select, #weighingForm textarea')
-        .forEach(el => el.removeAttribute('disabled'));
+      // Check if record already exists for today before enabling form
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      
+      try {
+        const existingRecords = await fetchJSON(`${api.nutrition}?child_id=${childId}`);
+        const hasRecordToday = existingRecords.records?.some(record => record.weighing_date === today);
+        
+        if (hasRecordToday) {
+          // Disable form if record exists for today
+          document.getElementById('saveNutritionRecord')?.setAttribute('disabled', 'disabled');
+          document.querySelectorAll('#weighingForm input, #weighingForm select, #weighingForm textarea')
+            .forEach(el => {
+              el.setAttribute('disabled', 'disabled');
+              el.style.cssText = `
+                background-color: #f8f9fa !important;
+                border-color: #e9ecef !important;
+                color: #6c757d !important;
+                cursor: not-allowed !important;
+                opacity: 0.65 !important;
+              `;
+            });
+          
+          // Show styled message that record already exists
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'alert alert-warning d-flex align-items-center';
+          messageDiv.style.cssText = `
+            margin-bottom: 1rem;
+            border-left: 4px solid #ffc107;
+            background-color: #fff3cd;
+            border-color: #ffecb5;
+            font-size: 0.875rem;
+          `;
+          messageDiv.innerHTML = `
+            <i class="bi bi-info-circle-fill text-warning me-3" style="font-size: 1.2rem;"></i>
+            <div>
+              <strong>Record Already Exists:</strong> This child already has a weighing record for today (${today}). 
+              Only one record per day is allowed.
+            </div>
+          `;
+          
+          const saveBtn = document.getElementById('saveNutritionRecord');
+          if (saveBtn) {
+            saveBtn.parentNode.insertBefore(messageDiv, saveBtn);
+            saveBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Record Already Saved Today';
+            saveBtn.className = 'btn btn-outline-secondary';
+            saveBtn.style.cssText = `
+              cursor: not-allowed;
+              opacity: 0.65;
+              background-color: #e9ecef;
+              border-color: #dee2e6;
+              color: #6c757d;
+            `;
+          }
+        } else {
+          // Enable form controls if no record exists for today
+          document.getElementById('saveNutritionRecord')?.removeAttribute('disabled');
+          document.querySelectorAll('#weighingForm input, #weighingForm select, #weighingForm textarea')
+            .forEach(el => {
+              el.removeAttribute('disabled');
+              el.style.cssText = ''; // Reset any inline styles
+            });
+          
+          // Reset save button styling
+          const saveBtn = document.getElementById('saveNutritionRecord');
+          if (saveBtn) {
+            saveBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Weighing Record';
+            saveBtn.className = 'btn btn-success';
+            saveBtn.style.cssText = '';
+          }
+        }
+      } catch (err) {
+        console.warn('Could not check existing records, enabling form anyway:', err);
+        // Enable form controls as fallback
+        document.getElementById('saveNutritionRecord')?.removeAttribute('disabled');
+        document.querySelectorAll('#weighingForm input, #weighingForm select, #weighingForm textarea')
+          .forEach(el => {
+            el.removeAttribute('disabled');
+            el.style.cssText = ''; // Reset any inline styles
+          });
+        
+        // Reset save button styling
+        const saveBtn = document.getElementById('saveNutritionRecord');
+        if (saveBtn) {
+          saveBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Weighing Record';
+          saveBtn.className = 'btn btn-success';
+          saveBtn.style.cssText = '';
+        }
+      }
     }
 setupAutoCalculation();
 wireWeighingSave(childId);
@@ -3044,10 +3592,11 @@ function wireWeighingSave(childId){
       if (statusId) fd.append('wfl_ht_status_id', statusId);
 
       // Safe optional call: only if Supplementation’s duplicate-check helper exists
-      if (typeof updateDupUI === 'function' && updateDupUI()) {
-        // Warning is already shown by updateDupUI()
-        return;
-      }
+      // FIXED: Commented out updateDupUI call as it's for supplementation, not nutrition
+      // if (typeof updateDupUI === 'function' && updateDupUI()) {
+      //   // Warning is already shown by updateDupUI()
+      //   return;
+      // }
 
       fd.append('remarks', remarks);
 
@@ -3059,8 +3608,9 @@ function wireWeighingSave(childId){
 
       if (!res.success) throw new Error(res.error || 'Save failed');
 
-      // Success
-      alert('✅ Weighing record saved.');
+      // Success - show toast notification
+      showToast('<strong>Success!</strong> Weighing record saved successfully.');
+      
       // Clear weight/height/remarks; keep date
       document.getElementById('childWeight').value = '';
       document.getElementById('childHeight').value = '';
@@ -3088,7 +3638,7 @@ function wireWeighingSave(childId){
 
     }catch(err){
       console.error(err);
-      alert('❌ Error saving record: ' + (err.message || err));
+      showToast('<strong>Error!</strong> Error saving record: ' + (err.message || err), 'error');
     }finally{
       btn.disabled = false;
       btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> Add Weighing Record';
@@ -3994,7 +4544,7 @@ function setupSaveRecordHandler() {
     .then(data => {
       if (!data.success) throw new Error(data.error || 'Unknown error');
 
-      alert('✅ Nutrition record saved successfully!');
+      showToast('<strong>Success!</strong> Nutrition record saved successfully!');
 
       // Clear form fields
       const weightEl = document.getElementById('childWeight');
@@ -4035,7 +4585,7 @@ function setupSaveRecordHandler() {
     })
     .catch(error => {
       console.error('Error saving nutrition record:', error);
-      alert('❌ Error saving record: ' + (error.message || error));
+      showToast('<strong>Error!</strong> Error saving record: ' + (error.message || error), 'error');
     })
     .finally(() => {
       // Re-query in case the DOM was re-rendered during save
@@ -5255,6 +5805,49 @@ function renderFeedingProgramsModule(label) {
     return t || '';
   }
 
+  // Supplementation Modal Validation Helpers
+  function clearSuppValidation() {
+    [
+      'suppChildInput','suppType','suppDate','suppDosage','suppNextDue'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('is-invalid');
+    });
+    [
+      'suppChildError','suppTypeError','suppDateError','suppDosageError','suppNextDueError'
+    ].forEach(id => {
+      const err = document.getElementById(id);
+      if (err) err.textContent = '';
+    });
+  }
+  function setSuppInvalid(inputId, errorId, msg) {
+    const el = document.getElementById(inputId);
+    const err = document.getElementById(errorId);
+    if (el) el.classList.add('is-invalid');
+    if (err) err.textContent = msg || 'This field is required.';
+  }
+  function wireSuppValidationClearOnInput() {
+    const map = [
+      { id:'suppChildInput', evt:'input', err:'suppChildError' },
+      { id:'suppType',       evt:'change',err:'suppTypeError' },
+      { id:'suppDate',       evt:'change',err:'suppDateError' },
+      { id:'suppDosage',     evt:'input', err:'suppDosageError' },
+      { id:'suppNextDue',    evt:'change',err:'suppNextDueError' }
+    ];
+    map.forEach(({id,evt,err})=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.removeEventListener(evt, el.__clearInvalidHandler || (()=>{}));
+      const h = () => {
+        el.classList.remove('is-invalid');
+        const e = document.getElementById(err);
+        if (e) e.textContent = '';
+      };
+      el.addEventListener(evt, h);
+      el.__clearInvalidHandler = h;
+    });
+  }
+
   function hasDuplicateSupp(childId, type){
     if (!childId || !type) return false;
     const normType = normalizeSuppType(type);
@@ -5569,9 +6162,15 @@ function renderFeedingProgramsModule(label) {
         if (!warnEl) {
           warnEl = document.createElement('div');
           warnEl.id = 'suppDuplicateWarn';
-          warnEl.style = 'color:#dc3545;font-size:.7rem;margin-bottom:.5rem;display:none;';
+          warnEl.className = 'alert alert-warning d-none align-items-center gap-2';
+          warnEl.style = 'font-size:.65rem;border-radius:10px;border:1px solid #ffe8a1;background:#fff8e1;color:#845900;';
+          warnEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i><span id="suppDuplicateText">This child already has a record for this supplement.</span>';
           document.querySelector('#supplementationRecordModal .modal-body')?.prepend(warnEl);
         }
+
+        // NEW: reset validation and wire clear handlers
+        clearSuppValidation();
+        wireSuppValidationClearOnInput();
 
         function checkDuplicateSupp() {
           const childId  = parseInt(document.getElementById('suppChildId')?.value || '0', 10);
@@ -5625,65 +6224,105 @@ function renderFeedingProgramsModule(label) {
         const mode = modal?.dataset.mode || 'create';
         if (saveBtnEl.dataset.busy === '1') return;
 
-        const dosage   = document.getElementById('suppDosage').value || null;
-        const nextDue  = document.getElementById('suppNextDue').value || null;
-        const notes    = document.getElementById('suppNotes').value || null;
+        // Clear previous validation state
+        clearSuppValidation();
+
+        // Gather values
+        const childId = parseInt(document.getElementById('suppChildId')?.value || '0', 10);
+        const type    = document.getElementById('suppType')?.value || '';
+        const date    = document.getElementById('suppDate')?.value || '';
+        const dosage  = document.getElementById('suppDosage')?.value || '';
+        const nextDue = document.getElementById('suppNextDue')?.value || '';
+        const notes   = document.getElementById('suppNotes')?.value || null;
+
+        // Required checks (Notes is optional)
+        let invalid = false;
+        // For Edit mode: child/type/date are disabled, but we can still validate dosage/nextDue
+        if (mode === 'create') {
+          if (!childId)   { setSuppInvalid('suppChildInput', 'suppChildError', 'Child is required.'); invalid = true; }
+          if (!type)      { setSuppInvalid('suppType',       'suppTypeError',  'Supplement type is required.'); invalid = true; }
+          if (!date)      { setSuppInvalid('suppDate',       'suppDateError',  'Date given is required.'); invalid = true; }
+        }
+        if (!dosage)    { setSuppInvalid('suppDosage',     'suppDosageError', 'Dosage is required.'); invalid = true; }
+        if (!nextDue)   { setSuppInvalid('suppNextDue',    'suppNextDueError','Next due date is required.'); invalid = true; }
+
+        if (invalid) {
+          // Focus first invalid field
+          const first = document.querySelector('#supplementationRecordModal .is-invalid');
+          if (first && typeof first.focus === 'function') first.focus();
+          return;
+        }
 
         if (mode === 'edit') {
           const id = parseInt(modal.dataset.suppId || '0', 10);
           if (!id) { alert('Invalid record'); return; }
           saveBtnEl.dataset.busy = '1'; saveBtnEl.disabled = true;
           saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
-          const payload = { dosage, next_due_date: nextDue, notes };
+
+          // include supplement_id so backend variants can find the record
+          const payload = { supplement_id: id, dosage, next_due_date: nextDue, notes };
+
           fetchJSON(api.supplementation + '?id=' + id, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-          }).then(res => {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+          .then(res => {
             if (!res.success) throw new Error(res.error || 'Failed to update');
+            
+            // Show success message using reusable function
+            showToast('<strong>Success!</strong> Supplementation record updated successfully.');
+            
             bootstrap.Modal.getInstance(modal)?.hide();
             return loadSuppRecords();
-          }).catch(err => {
-            console.error(err); alert('❌ Error updating record: ' + (err.message || err));
-          }).finally(() => {
+          })
+          .catch(err => {
+            console.error(err);
+            showToast('<strong>Error!</strong> Error updating record: ' + (err.message || err), 'error');
+          })
+          .finally(() => {
             saveBtnEl.dataset.busy = '0'; saveBtnEl.disabled = false;
             saveBtnEl.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
           });
           return;
         }
 
-        const payload = {
-          child_id: parseInt(document.getElementById('suppChildId')?.value || '0', 10),
-          supplement_type: document.getElementById('suppType').value,
-          supplement_date: document.getElementById('suppDate').value,
-          dosage,
-          next_due_date: nextDue,
-          notes
-        };
-        const missing = [];
-        if (!payload.child_id) missing.push('Child');
-        if (!payload.supplement_type) missing.push('Supplement Type');
-        if (!payload.supplement_date) missing.push('Date Given');
-        if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
-
-        // Prevent duplicate supplementation record for this child and type
+        // Duplicate safeguard (existing)
         const duplicate = (window.suppRecordsRaw || []).some(r =>
-          String(r.child_id) === String(payload.child_id) &&
-          String(r.supplement_type).toLowerCase() === String(payload.supplement_type).toLowerCase()
+          String(r.child_id) === String(childId) &&
+          String(r.supplement_type).toLowerCase() === String(type).toLowerCase()
         );
         if (duplicate) {
-          alert('This child already has a record for this supplement type.');
+          setSuppInvalid('suppType','suppTypeError','Duplicate: this child already has this supplement.');
+          const first = document.querySelector('#supplementationRecordModal .is-invalid');
+          if (first && typeof first.focus === 'function') first.focus();
           return;
         }
 
         saveBtnEl.dataset.busy = '1'; saveBtnEl.disabled = true;
         saveBtnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        const payload = {
+          child_id: childId,
+          supplement_type: type,
+          supplement_date: date,
+          dosage,
+          next_due_date: nextDue,
+          notes
+        };
+
         fetchJSON(api.supplementation, {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         }).then(res => {
           if (!res.success) throw new Error(res.error || 'Failed to save');
+          
+          // Show success message using reusable function
+          showToast('<strong>Success!</strong> Supplementation record saved successfully.');
+          
           bootstrap.Modal.getInstance(document.getElementById('supplementationRecordModal'))?.hide();
           return loadSuppRecords();
         }).catch(err => {
-          console.error(err); alert('❌ Error saving record: ' + (err.message || err));
+          console.error(err); showToast('<strong>Error!</strong> Error saving record: ' + (err.message || err), 'error');
         }).finally(() => {
           saveBtnEl.dataset.busy = '0'; saveBtnEl.disabled = false;
           saveBtnEl.innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
@@ -5693,18 +6332,20 @@ function renderFeedingProgramsModule(label) {
       saveBtnEl.__handlerRef = onSaveClick;
     }
 
-    // Reset modal after close
+    // Reset modal after close (also clear validation)
     const supModal = document.getElementById('supplementationRecordModal');
     supModal?.addEventListener('hidden.bs.modal', ()=>{
       supModal.dataset.mode = 'create';
       supModal.dataset.suppId = '';
-      ['suppChildSelect','suppType','suppDate'].forEach(id=>{ const el = document.getElementById(id); if (el) el.disabled = false; });
+      ['suppChildInput','suppType','suppDate'].forEach(id=>{ const el = document.getElementById(id); if (el) el.disabled = false; });
       document.getElementById('supplementationRecordModalLabel').textContent = 'Add Supplementation Record';
       document.getElementById('saveSuppRecordBtn').innerHTML = '<i class="bi bi-save me-1"></i> Save Record';
       const warn = document.getElementById('suppDuplicateWarn');
       const btn  = document.getElementById('saveSuppRecordBtn');
       if (warn) { warn.classList.add('d-none'); warn.classList.remove('d-flex'); }
       if (btn){ btn.disabled = false; btn.classList.remove('disabled'); }
+      // NEW: clear validation states on close
+      clearSuppValidation();
     });
 
     // Global delegated click for Notify buttons
@@ -5733,7 +6374,7 @@ function renderFeedingProgramsModule(label) {
               btn.classList.add('btn-success');
               
               // Show success message
-              alert(`✅ Notification sent successfully to parent for ${childName}`);
+              showToast(`<strong>Success!</strong> Notification sent successfully to parent for ${childName}`);
               
               // Reset button after 3 seconds
               setTimeout(() => {
@@ -5750,7 +6391,7 @@ function renderFeedingProgramsModule(label) {
             // Reset button on error
             btn.disabled = false;
             btn.innerHTML = originalText;
-            alert(`❌ Failed to send notification: ${err.message}`);
+            showToast(`<strong>Error!</strong> Failed to send notification: ${err.message}`, 'error');
           });
       });
       document.__suppNotifyHandlerBound = true;
@@ -6075,7 +6716,7 @@ function renderNutritionCalendarModule(label) {
                       <option value="nutrition">Nutrition Education</option>
                     </select>
                   </div>
-                  <div class="form-group"><label class="form-label">Event Description</label><textarea class="form-control" name="event_description" placeholder="Brief description of the event" rows="3" maxlength="500"></textarea></div>
+                  <div class="form-group"><label class="form-label">Event Description *</label><textarea class="form-control" name="event_description" placeholder="Brief description of the event" rows="3" maxlength="500" required></textarea></div>
                 </div>
               </div>
 
@@ -6100,7 +6741,7 @@ function renderNutritionCalendarModule(label) {
                   <h3 class="form-section-title">Additional Information</h3>
                 </div>
                 <div class="form-grid">
-                  <div class="form-group"><label class="form-label">Target Audience</label><input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255"></div>
+                  <div class="form-group"><label class="form-label">Target Audience *</label><input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255" required></div>
                   <div class="form-group">
                     <label class="form-label">Publication Status</label>
                     <select class="form-select" name="is_published">
@@ -6363,7 +7004,7 @@ function renderNutritionCalendarModule(label) {
         .then(res => {
           if (!res.success) throw new Error(res.error || 'Failed to reschedule');
           bootstrap.Modal.getInstance(modalEl)?.hide();
-          alert('✅ Event rescheduled successfully.');
+          showToast('<strong>Success!</strong> Event rescheduled successfully.');
           loadModule('nutrition_calendar', 'Event Scheduling');
         })
         .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
@@ -6413,6 +7054,9 @@ function renderNutritionCalendarModule(label) {
 
     // When opening
     modalEl.addEventListener('show.bs.modal', () => {
+      // Remove validation class to reset visual state
+      form.classList.remove('was-validated');
+      
       const mode = modalEl.dataset.mode || 'create';
       const dateInput = form.querySelector('input[name="event_date"]');
       const timeInput = form.querySelector('input[name="event_time"]');
@@ -6443,6 +7087,9 @@ function renderNutritionCalendarModule(label) {
 
     // Reset state after close
     modalEl.addEventListener('hidden.bs.modal', () => {
+      // Remove validation class to reset visual state
+      form.classList.remove('was-validated');
+      
       modalEl.dataset.mode = 'create';
       modalEl.dataset.eventId = '';
 
@@ -6463,6 +7110,15 @@ function renderNutritionCalendarModule(label) {
     if (saveBtn.__handlerRef) saveBtn.removeEventListener('click', saveBtn.__handlerRef);
 
     const onSave = () => {
+      // Add validation class to trigger visual feedback
+      form.classList.add('was-validated');
+      
+      // Check HTML5 form validity first
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
       const mode = modalEl.dataset.mode || 'create';
       const eventId = parseInt(modalEl.dataset.eventId || '0', 10);
 
@@ -6478,10 +7134,15 @@ function renderNutritionCalendarModule(label) {
       const missing = [];
       if (!title) missing.push('Event Title');
       if (!type)  missing.push('Event Type');
+      if (!desc)  missing.push('Event Description');
       if (!date)  missing.push('Event Date');
       if (!time)  missing.push('Event Time');
       if (!loc)   missing.push('Location');
-      if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
+      if (!aud)   missing.push('Target Audience');
+      if (missing.length) { 
+        alert('❌ Please fill in all required fields: \n\n• ' + missing.join('\n• ')); 
+        return; 
+      }
 
       const payload = {
         event_title: title,
@@ -6518,7 +7179,7 @@ function renderNutritionCalendarModule(label) {
       .then(res => {
         if (!res.success) throw new Error(res.error || 'Failed');
         bootstrap.Modal.getInstance(modalEl)?.hide();
-        alert(mode === 'edit' ? '✅ Event updated successfully.' : '✅ Event scheduled successfully.');
+        showToast(mode === 'edit' ? '<strong>Success!</strong> Event updated successfully.' : '<strong>Success!</strong> Event scheduled successfully.');
         loadModule('nutrition_calendar', 'Event Scheduling');
       })
       .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
@@ -6656,13 +7317,27 @@ function renderNutritionCalendarModule(label) {
     // Save inline
     if (saveBtn.__handlerRef) saveBtn.removeEventListener('click', saveBtn.__handlerRef);
     const onSave = () => {
+      // Add validation class to trigger visual feedback
+      form.classList.add('was-validated');
+      
+      // Check HTML5 form validity first
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
       const missing = [];
       if (!dateInput.value) missing.push('Event Date');
       if (!timeInput.value) missing.push('Event Time');
       if (!titleInput.value.trim()) missing.push('Event Title');
       if (!typeSelect.value) missing.push('Event Type');
+      if (!descInput.value.trim()) missing.push('Event Description');
       if (!locInput.value.trim()) missing.push('Location');
-      if (missing.length) { alert('Please fill in: ' + missing.join(', ')); return; }
+      if (!audInput.value.trim()) missing.push('Target Audience');
+      if (missing.length) { 
+        alert('❌ Please fill in all required fields: \n\n• ' + missing.join('\n• ')); 
+        return; 
+      }
 
       const payload = {
         event_title: titleInput.value.trim(),
@@ -6690,7 +7365,7 @@ function renderNutritionCalendarModule(label) {
       })
       .then(res => {
         if (!res.success) throw new Error(res.error || 'Failed');
-        alert('✅ Event scheduled successfully.');
+        showToast('<strong>Success!</strong> Event scheduled successfully.');
         loadModule('nutrition_calendar', 'Event Scheduling');
       })
       .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
@@ -6886,23 +7561,23 @@ function renderReportModule(label) {
     const tableHtml = buildPurokTable(purokAgg);
 
     return `
-      <div class="tile" id="growthResultsTile">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="tile compact-top" id="growthResultsTile">
+        <div class="tile-head-row mb-2">
           <div>
             <div class="tile-header">
               <h5><i class="bi bi-bar-chart-line text-success"></i> Growth Monitoring Results</h5>
             </div>
             <p class="tile-sub">Aggregated child development data by purok</p>
           </div>
-          <button id="nrExportChartBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
-            <i class="bi bi-file-earmark-arrow-down me-1"></i> Export PDF
-          </button>
+          <div class="tile-head-actions">
+            <button id="nrExportChartBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+              <i class="bi bi-file-earmark-arrow-down me-1"></i> Export PDF
+            </button>
+          </div>
         </div>
 
         ${chartHtml}
-
         <div class="mt-3">${legendRow()}</div>
-
         <div class="mt-3">${tableHtml}</div>
       </div>
     `;
@@ -6935,9 +7610,9 @@ function renderReportModule(label) {
     // Per-item progress rows
     const rowsHtml = items.map(it => progressRow(it)).join('');
 
-    // Optional insights (lowest performer + best)
+    // Optional insights (lowest performer + best) -> Show all on tie; otherwise low/mid/high
     const sorted = items.slice().sort((a,b)=>a.percent-b.percent);
-    const low = sorted[0], high = sorted[sorted.length-1];
+    const pctSet = new Set(sorted.map(i => i.percent.toFixed(4)));
 
     const insight = (title, text, ok=true) => `
       <div class="col-12 col-lg-6">
@@ -6954,38 +7629,51 @@ function renderReportModule(label) {
         </div>
       </div>`;
 
-    const insights = `
-      <div class="row g-2">
-        ${insight(`${low.key} Coverage`, `${Math.round(low.percent*100)}% achieved. Gap: ${low.gap}.`, false)}
-        ${insight(`${high.key} Supplementation`, `Excellent coverage at ${Math.round(high.percent*100)}%.`, true)}
-      </div>
-    `;
+    let insights = '';
+    if (pctSet.size === 1) {
+      // All equal -> show all three so Iron is included
+      insights = `
+        <div class="row g-2">
+          ${sorted.map(it => insight(
+            `${it.key} Coverage`,
+            `${Math.round(it.percent*100)}% achieved. Gap: ${it.gap}.`,
+            true
+          )).join('')}
+        </div>
+      `;
+    } else {
+      // Show low, mid (if exists), and high
+      const low = sorted[0];
+      const mid = sorted.length === 3 ? sorted[1] : null;
+      const high = sorted[sorted.length-1];
+      insights = `
+        <div class="row g-2">
+          ${insight(`${low.key} Coverage`, `${Math.round(low.percent*100)}% achieved. Gap: ${low.gap}.`, false)}
+          ${mid ? insight(`${mid.key} Coverage`, `${Math.round(mid.percent*100)}% achieved. Gap: ${mid.gap}.`, true) : ''}
+          ${insight(`${high.key} Coverage`, `${Math.round(high.percent*100)}% achieved.`, true)}
+        </div>
+      `;
+    }
 
     return `
-      <div class="tile mt-3" id="suppComplianceTile">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="tile compact-top" id="suppComplianceTile">
+        <div class="tile-head-row mb-2">
           <div>
             <div class="tile-header">
               <h5><i class="bi bi-bar-chart-steps text-success"></i> Supplementation Compliance Report</h5>
             </div>
             <p class="tile-sub">Coverage of Vitamin A, Iron, and Deworming programs (${monthsList.find(m=>m.value===selectedYM)?.label || ''})</p>
           </div>
-          <button id="nrSuppCompliancePrintBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
-            <i class="bi bi-file-earmark-arrow-down me-1"></i> Export Report
-          </button>
+          <div class="tile-head-actions">
+            <button id="nrSuppCompliancePrintBtn" class="btn btn-outline-success btn-sm" style="font-size:.65rem;font-weight:700;border-radius:10px;">
+              <i class="bi bi-file-earmark-arrow-down me-1"></i> Export Report
+            </button>
+          </div>
         </div>
 
         ${chartHtml}
-
-        <!-- Per-item progress -->
-        <div class="mt-3">
-          ${rowsHtml}
-        </div>
-
-        <!-- Quick insights -->
-        <div class="mt-2">
-          ${insights}
-        </div>
+        <div class="mt-3">${rowsHtml}</div>
+        <div class="mt-2">${insights}</div>
       </div>
     `;
 
@@ -7391,140 +8079,177 @@ function renderReportModule(label) {
     `;
   }
 
-  function legendRow() {
-    // Order: MAM (orange), Normal (green), SAM (red)
-    return `
+function legendRow() {
+  return `
     <div class="d-flex align-items-center gap-3" style="flex-wrap:wrap;font-size:.62rem;font-weight:700;color:#18432b;">
-      <span class="d-inline-flex align-items-center gap-2">
-        <span style="width:12px;height:12px;background:#f4a400;border-radius:3px;display:inline-block;"></span> MAM
-      </span>
       <span class="d-inline-flex align-items-center gap-2">
         <span style="width:12px;height:12px;background:#0b7a43;border-radius:3px;display:inline-block;"></span> Normal
       </span>
       <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#f4a400;border-radius:3px;display:inline-block;"></span> MAM
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
         <span style="width:12px;height:12px;background:#d23d3d;border-radius:3px;display:inline-block;"></span> SAM
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#ffb84d;border-radius:3px;display:inline-block;"></span> Underweight
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#ff6b6b;border-radius:3px;display:inline-block;"></span> Stunted
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#8e44ad;border-radius:3px;display:inline-block;"></span> Overweight
+      </span>
+      <span class="d-inline-flex align-items-center gap-2">
+        <span style="width:12px;height:12px;background:#6c3483;border-radius:3px;display:inline-block;"></span> Obese
       </span>
     </div>
   `;
+}
+
+function buildPurokTable(rows) {
+  if (!rows.length) {
+    return `<div class="text-center py-4 text-muted" style="font-size:.65rem;">
+      <i class="bi bi-inbox" style="font-size:2rem;opacity:.35;"></i>
+      <p class="mt-2 mb-0">No data to display for the selected month</p>
+    </div>`;
   }
 
-  function buildPurokTable(rows) {
-    if (!rows.length) {
-      return `<div class="text-center py-4 text-muted" style="font-size:.65rem;">
-        <i class="bi bi-inbox" style="font-size:2rem;opacity:.35;"></i>
-        <p class="mt-2 mb-0">No data to display for the selected month</p>
-      </div>`;
-    }
-    // colored pills for counts
-    const pill = (val, color) => `
-      <span style="
-        display:inline-block;min-width:28px;text-align:center;
-        padding:.2rem .5rem;border-radius:999px;font-size:.62rem;font-weight:800;
-        color:#fff;background:${color};
-      ">
-        ${val}
-      </span>`;
-    return `
-      <div class="table-responsive">
-        <table class="table table-hover mb-0" style="font-size:.7rem;">
-          <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
-            <tr>
-              <th style="padding:.6rem .8rem;border:none;">Purok</th>
-              <th style="padding:.6rem .8rem;border:none;">Total Children</th>
-              <th style="padding:.6rem .8rem;border:none;">Normal</th>
-              <th style="padding:.6rem .8rem;border:none;">MAM</th>
-              <th style="padding:.6rem .8rem;border:none;">SAM</th>
-              <th style="padding:.6rem .8rem;border:none;">Normal Rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(r => `
-              <tr style="border-bottom:1px solid #f0f4f1;">
-                <td style="padding:.65rem .8rem;border:none;">${escapeHtml(r.purok)}</td>
-                <td style="padding:.65rem .8rem;border:none;">${r.total}</td>
-                <td style="padding:.65rem .8rem;border:none;">${pill(r.normal, '#0b7a43')}</td>
-                <td style="padding:.65rem .8rem;border:none;">${pill(r.mam,    '#f4a400')}</td>
-                <td style="padding:.65rem .8rem;border:none;">${pill(r.sam,    '#d23d3d')}</td>
-                <td style="padding:.65rem .8rem;border:none;">
-                  <div class="d-flex align-items-center gap-2">
-                    <div style="flex:1;height:6px;background:#eef4ef;border-radius:6px;overflow:hidden;">
-                      <span style="display:block;height:100%;background:#0b7a43;width:${r.ratePct}%;"></span>
-                    </div>
-                    <span style="font-size:.66rem;font-weight:700;color:#1e3e27;">${r.ratePctText}</span>
+  // Colored, compact count pill (same palette as legend)
+  const pill = (val, color) => `
+    <span style="
+      display:inline-block;min-width:28px;text-align:center;
+      padding:.2rem .5rem;border-radius:999px;font-size:.62rem;font-weight:800;
+      color:#fff;background:${color};
+    ">
+      ${val}
+    </span>`;
+
+  return `
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" style="font-size:.7rem; min-width: 980px;">
+        <thead style="background:#f8faf9;border-bottom:1px solid var(--border-soft);">
+          <tr>
+            <th style="padding:.6rem .8rem;border:none;">Purok</th>
+            <th style="padding:.6rem .8rem;border:none;">Total Children</th>
+            <th style="padding:.6rem .8rem;border:none;">Normal</th>
+            <th style="padding:.6rem .8rem;border:none;">MAM</th>
+            <th style="padding:.6rem .8rem;border:none;">SAM</th>
+            <th style="padding:.6rem .8rem;border:none;">Underweight</th>
+            <th style="padding:.6rem .8rem;border:none;">Stunted</th>
+            <th style="padding:.6rem .8rem;border:none;">Overweight</th>
+            <th style="padding:.6rem .8rem;border:none;">Obese</th>
+            <th style="padding:.6rem .8rem;border:none;">Normal Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr style="border-bottom:1px solid #f0f4f1;">
+              <td style="padding:.65rem .8rem;border:none;">${escapeHtml(r.purok)}</td>
+              <td style="padding:.65rem .8rem;border:none;">${r.total}</td>
+              <td style="padding:.65rem .8rem;border:none;">${pill(r.normal, '#0b7a43')}</td>
+              <td style="padding:.65rem .8rem;border:none;">${pill(r.mam,    '#f4a400')}</td>
+              <td style="padding:.65rem .8rem;border:none;">${pill(r.sam,    '#d23d3d')}</td>
+              <td style="padding:.65rem .8rem;border:none;">${pill(r.uw||0,  '#ffb84d')}</td>
+              <td style="padding:.65rem .8rem;border:none;">${pill(r.st||0,  '#ff6b6b')}</td>
+              <td style="padding:.65rem .8rem;border:none;">${pill(r.ow||0,  '#8e44ad')}</td>
+              <td style="padding:.65rem .8rem;border:none;">${pill(r.ob||0,  '#6c3483')}</td>
+              <td style="padding:.65rem .8rem;border:none;">
+                <div class="d-flex align-items-center gap-2">
+                  <div style="flex:1;height:6px;background:#eef4ef;border-radius:6px;overflow:hidden;">
+                    <span style="display:block;height:100%;background:#0b7a43;width:${r.ratePct}%;"></span>
                   </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+                  <span style="font-size:.66rem;font-weight:700;color:#1e3e27;">${r.ratePctText}</span>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function buildGroupedBarChart(rows) {
+  if (!rows.length) {
+    return `<div class="chart-placeholder">No trend data available</div>`;
   }
 
-  function buildGroupedBarChart(rows) {
-    if (!rows.length) {
-      return `<div class="chart-placeholder">No trend data available</div>`;
-    }
+  // Logical canvas
+  const VB = { w: 140, h: 80 };
+  const pad = { l: 10, r: 4, t: 8, b: 18 };
+  const cw = VB.w - pad.l - pad.r;
+  const ch = VB.h - pad.t - pad.b;
 
-    // Chart dimensions (logical units)
-    const VB = { w: 140, h: 80 };
-    const pad = { l: 10, r: 4, t: 8, b: 18 };
-    const cw = VB.w - pad.l - pad.r;
-    const ch = VB.h - pad.t - pad.b;
+  const labels = rows.map(r => r.purok);
+  // Same colors as the donut/status badges
+  const series = [
+    { key: 'normal', color: '#0b7a43', label: 'Normal' },
+    { key: 'mam',    color: '#f4a400', label: 'MAM' },
+    { key: 'sam',    color: '#d23d3d', label: 'SAM' },
+    { key: 'uw',     color: '#ffb84d', label: 'Underweight' },
+    { key: 'st',     color: '#ff6b6b', label: 'Stunted' },
+    { key: 'ow',     color: '#8e44ad', label: 'Overweight' },
+    { key: 'ob',     color: '#6c3483', label: 'Obese' }
+  ];
 
-    const labels = rows.map(r => r.purok);
-    const series = [
-      { key: 'normal', color: '#0b7a43' },
-      { key: 'mam',    color: '#f4a400' },
-      { key: 'sam',    color: '#d23d3d' }
-    ];
+  const maxVal = Math.max(
+    1,
+    ...rows.map(r => Math.max(
+      r.normal, r.mam, r.sam, r.uw || 0, r.st || 0, r.ow || 0, r.ob || 0
+    ))
+  );
 
-    const maxVal = Math.max(1, ...rows.map(r => Math.max(r.normal, r.mam, r.sam)));
-    const groupWidth = cw / labels.length;
-    const barWidth = groupWidth * 0.18; // each series bar
-    const gapBetweenBars = barWidth * 0.25;
+  const groupWidth = cw / labels.length;
+  const totalBars = series.length;
+  const barWidth = groupWidth * Math.min(0.1, 0.7 / totalBars); // keep thin bars for 7 series
+  const gap = barWidth * 0.25;
 
-    // Gridlines (y=0..max 4 ticks)
-    let grid = '';
-    const ticks = 4;
-    for (let i = 0; i <= ticks; i++) {
-      const y = pad.t + ch - (i / ticks) * ch;
-      grid += `<line x1="${pad.l}" y1="${y.toFixed(2)}" x2="${(VB.w - pad.r).toFixed(2)}" y2="${y.toFixed(2)}" stroke="#e6ede9" stroke-width="0.4" vector-effect="non-scaling-stroke"></line>`;
-    }
+  // Gridlines
+  let grid = '';
+  const ticks = 4;
+  for (let i = 0; i <= ticks; i++) {
+    const y = pad.t + ch - (i / ticks) * ch;
+    grid += `<line x1="${pad.l}" y1="${y.toFixed(2)}" x2="${(VB.w - pad.r).toFixed(2)}" y2="${y.toFixed(2)}"
+              stroke="#e6ede9" stroke-width="0.4" vector-effect="non-scaling-stroke"></line>`;
+  }
 
-    // Bars
-    let bars = '';
-    labels.forEach((lab, i) => {
-      const xBase = pad.l + i * groupWidth + groupWidth * 0.15;
-      const vals = rows[i];
-      series.forEach((s, k) => {
-        const val = vals[s.key] || 0;
-        const h = (val / maxVal) * ch;
-        const x = xBase + k * (barWidth + gapBetweenBars);
-        const y = pad.t + ch - h;
-        const title = `${s.key.toUpperCase()} ${val} (${lab})`;
-        bars += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}" fill="${s.color}" rx="1" ry="1"><title>${title}</title></rect>`;
-      });
+  // Bars
+  let bars = '';
+  labels.forEach((lab, i) => {
+    // left padding inside group so bars look centered
+    const totalWidth = totalBars * barWidth + (totalBars - 1) * gap;
+    const xStart = pad.l + i * groupWidth + (groupWidth - totalWidth) / 2;
+
+    series.forEach((s, k) => {
+      const val = rows[i][s.key] || 0;
+      const h = (val / maxVal) * ch;
+      const x = xStart + k * (barWidth + gap);
+      const y = pad.t + ch - h;
+      const title = `${s.label}: ${val} (${lab})`;
+      bars += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${h.toFixed(2)}"
+                 fill="${s.color}" rx="1" ry="1"><title>${title}</title></rect>`;
     });
+  });
 
-    // X labels
-    const xlabels = labels.map((lab, i) => {
-      const x = pad.l + i * groupWidth + groupWidth * 0.3;
-      const y = VB.h - 4;
-      return `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="2.6" fill="#637668">${escapeHtml(lab)}</text>`;
-    }).join('');
+  // X labels
+  const xlabels = labels.map((lab, i) => {
+    const x = pad.l + i * groupWidth + groupWidth / 2;
+    const y = VB.h - 4;
+    return `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="2.6" fill="#637668" text-anchor="middle">${escapeHtml(lab)}</text>`;
+  }).join('');
 
-    return `
-      <div style="width:100%;position:relative;">
-        <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
-             style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
-          ${grid}
-          ${bars}
-          ${xlabels}
-        </svg>
-      </div>
-    `;
-  }
+  return `
+    <div style="width:100%;position:relative;">
+      <svg class="svg-chart" viewBox="0 0 ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet"
+           style="border:1px solid var(--border-soft);border-radius:12px;background:#fff;">
+        ${grid}
+        ${bars}
+        ${xlabels}
+      </svg>
+    </div>
+  `;
+}
 
   function renderPlaceholder(which) {
     const titles = {
@@ -7577,31 +8302,42 @@ function renderReportModule(label) {
     try { return String(d).slice(0, 7) === ym; } catch { return false; }
   }
 
-  function aggregateByPurok(children, ym) {
-    // filter to records weighed in selected month; if none match, fall back to latest status
-    const filtered = children.filter(c => isInSelectedMonth(c, ym));
-    const arr = (filtered.length ? filtered : children).slice();
+function aggregateByPurok(children, ym) {
+  const isInSelectedMonth = (c, ym) => {
+    const d = c.last_weighing_date;
+    return d && d !== 'Never' && String(d).slice(0, 7) === ym;
+  };
 
-    const byPurok = new Map();
-    arr.forEach(c => {
-      const purok = c.purok_name || 'Not Set';
-      const bucket = byPurok.get(purok) || { purok, total: 0, normal: 0, mam: 0, sam: 0 };
-      bucket.total += 1;
-      const s = c.nutrition_status || '';
-      if (s === 'NOR') bucket.normal += 1;
-      else if (s === 'MAM') bucket.mam += 1;
-      else if (s === 'SAM') bucket.sam += 1;
-      byPurok.set(purok, bucket);
-    });
+  const filtered = children.filter(c => isInSelectedMonth(c, ym));
+  const base = (filtered.length ? filtered : children).slice();
 
-    const out = Array.from(byPurok.values()).sort((a, b) => a.purok.localeCompare(b.purok));
-    out.forEach(r => {
-      const rate = r.total ? (r.normal / r.total) * 100 : 0;
-      r.ratePct = Math.round(rate);
-      r.ratePctText = `${r.ratePct.toFixed(0)}%`;
-    });
-    return out;
-  }
+  const byPurok = new Map();
+  base.forEach(c => {
+    const purok = c.purok_name || 'Not Set';
+    const bucket = byPurok.get(purok) || {
+      purok, total: 0, normal: 0, mam: 0, sam: 0, uw: 0, st: 0, ow: 0, ob: 0
+    };
+    bucket.total += 1;
+    switch (c.nutrition_status) {
+      case 'NOR': bucket.normal++; break;
+      case 'MAM': bucket.mam++;    break;
+      case 'SAM': bucket.sam++;    break;
+      case 'UW':  bucket.uw++;     break;
+      case 'ST':  bucket.st++;     break;
+      case 'OW':  bucket.ow++;     break;
+      case 'OB':  bucket.ob++;     break;
+    }
+    byPurok.set(purok, bucket);
+  });
+
+  const out = Array.from(byPurok.values()).sort((a, b) => a.purok.localeCompare(b.purok));
+  out.forEach(r => {
+    const rate = r.total ? (r.normal / r.total) * 100 : 0;
+    r.ratePct = Math.round(rate);
+    r.ratePctText = `${r.ratePct.toFixed(0)}%`;
+  });
+  return out;
+}
 
   function computeSummary(children, recent, ym) {
     const totalChildren = children.length;
@@ -8821,7 +9557,8 @@ const handlers={
   report_status_distribution:renderReportModule
 };
 function loadModule(mod,label){
-  if (titleEl) titleEl.textContent = label;
+  const mainEl=document.getElementById('mainRegion');
+  if(mainEl) mainEl.classList.remove('no-scroll'); // always reset first
   if (navTitleEl) navTitleEl.textContent = label;
   (handlers[mod]||(()=>moduleContent.innerHTML='<div class="alert alert-secondary">Module not implemented.</div>'))(label);
   moduleContent.scrollTop=0;
@@ -8836,18 +9573,17 @@ document.querySelectorAll('.nav-link-bns[data-module]').forEach(a => {
   a.addEventListener('click', e => {
     e.preventDefault();
 
-    // REPLACE: Supplementation tab selection from sidebar submenu
+    // Supplementation submenu default
     if (a.dataset.module === 'feeding_programs') {
-  // If coming from submenu it carries data-supp-tab="schedule", else default to 'all'
-  window.__suppDefaultTab = a.dataset.suppTab || 'all';
+      window.__suppDefaultTab = a.dataset.suppTab || 'all';
     }
 
-        // Children Management submenu: pass requested tab (database or profiles)
-        if (a.dataset.module === 'child_profiles') {
-          window.__childDefaultTab = a.dataset.childTab || '';
-        }
+    // Children Management submenu: pass requested tab (database | profiles)
+    if (a.dataset.module === 'child_profiles') {
+      window.__childDefaultTab = a.dataset.childTab || '';
+    }
 
-    // Existing: calendar submenu logic (keep as-is)
+    // Calendar submenu intent
     if (a.dataset.module === 'nutrition_calendar') {
       window.__calendarDefaultType = a.dataset.calTab || '';
       window.__calendarOpenForm = !!a.dataset.calTab;
@@ -8856,13 +9592,31 @@ document.querySelectorAll('.nav-link-bns[data-module]').forEach(a => {
       window.__calendarOpenForm = false;
     }
 
-    // Growth Monitoring submenu: pass requested tab (population or wfl)
+    // Growth Monitoring submenu intent
     if (a.dataset.module === 'nutrition_classification') {
       window.__gmDefaultTab = a.dataset.gmTab || '';
     }
 
+    // COMPUTED LABEL for navbar title
+    let label = a.dataset.label || a.textContent.trim();
+
+    // Children Management label normalization
+    if (a.dataset.module === 'child_profiles') {
+      const tab = (a.dataset.childTab || '').trim();
+      if (tab === 'profiles') label = 'Profile Management';
+      else if (tab === 'database' || !tab) label = 'Children Management';
+    }
+
+    // Growth Monitoring label normalization
+    if (a.dataset.module === 'nutrition_classification') {
+      const gmTab = (a.dataset.gmTab || '').trim();
+      if (gmTab === 'population') label = 'Population Trends';
+      else if (gmTab === 'wfl') label = 'WFL/H Assessment';
+      else label = 'Growth Monitoring';
+    }
+
     setActive(a);
-    loadModule(a.dataset.module, a.dataset.label || a.textContent.trim());
+    loadModule(a.dataset.module, label);
     if (window.innerWidth < 992) document.getElementById('sidebar')?.classList.remove('show');
   });
 });
@@ -9100,8 +9854,8 @@ function loadPreviousRecords(childId, childProfile = null) {
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Event Description</label>
-                <textarea class="form-control" name="event_description" placeholder="Brief description of the event" rows="3" maxlength="500"></textarea>
+                <label class="form-label">Event Description *</label>
+                <textarea class="form-control" name="event_description" placeholder="Brief description of the event" rows="3" maxlength="500" required></textarea>
               </div>
             </div>
           </div>
@@ -9142,8 +9896,8 @@ function loadPreviousRecords(childId, childProfile = null) {
             </div>
             <div class="form-grid">
               <div class="form-group">
-                <label class="form-label">Target Audience</label>
-                <input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255">
+                <label class="form-label">Target Audience *</label>
+                <input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255" required>
               </div>
               <div class="form-group">
                 <label class="form-label">Publication Status</label>
@@ -9180,7 +9934,7 @@ function loadPreviousRecords(childId, childProfile = null) {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size:.8rem;"></button>
       </div>
       <div class="modal-body" style="padding:1.5rem;">
-        <form id="suppRecordForm">
+        <form id="suppRecordForm" novalidate>
           <div class="form-section">
             <div class="form-section-header">
               <div class="form-section-icon" style="background:#e8f5ea;color:#0b7a43;">
@@ -9211,43 +9965,52 @@ function loadPreviousRecords(childId, childProfile = null) {
                       aria-controls="suppChildListbox"
                       aria-autocomplete="list"
                       autocomplete="off"
+                      required
+                      aria-required="true"
                     />
                     <button type="button" id="suppChildClear" class="combobox-clear" aria-label="Clear selection">
                       <i class="bi bi-x-lg"></i>
                     </button>
                     <input type="hidden" id="suppChildId" />
+                    <!-- Inline error -->
+                    <div class="invalid-feedback" id="suppChildError">Child is required.</div>
                   </div>
                   <div id="suppChildListbox" role="listbox" class="combobox-list" hidden></div>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Supplement Type</label>
-                <select class="form-select" id="suppType" required>
+                <select class="form-select" id="suppType" required aria-required="true">
                   <option value="">Select type</option>
                   <option value="Vitamin A">Vitamin A</option>
                   <option value="Iron">Iron</option>
                   <option value="Deworming">Deworming</option>
                 </select>
+                <div class="invalid-feedback" id="suppTypeError">Supplement type is required.</div>
               </div>
               <div class="form-group">
                 <label class="form-label">Date Given</label>
                 <div class="date-input">
-                  <input type="date" class="form-control" id="suppDate" required>
+                  <input type="date" class="form-control" id="suppDate" required aria-required="true">
+                  <div class="invalid-feedback" id="suppDateError">Date given is required.</div>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Dosage</label>
-                <input type="text" class="form-control" id="suppDosage" placeholder="e.g., 200,000 IU">
+                <input type="text" class="form-control" id="suppDosage" placeholder="e.g., 200,000 IU" required aria-required="true">
+                <div class="invalid-feedback" id="suppDosageError">Dosage is required.</div>
               </div>
               <div class="form-group">
                 <label class="form-label">Next Due Date</label>
                 <div class="date-input">
-                  <input type="date" class="form-control" id="suppNextDue" placeholder="Auto-suggested based on type">
+                  <input type="date" class="form-control" id="suppNextDue" placeholder="Auto-suggested based on type" required aria-required="true">
+                  <div class="invalid-feedback" id="suppNextDueError">Next due date is required.</div>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Notes</label>
                 <textarea class="form-control" id="suppNotes" rows="3" placeholder="Additional notes..."></textarea>
+                <!-- no invalid feedback needed (optional) -->
               </div>
             </div>
           </div>
@@ -9300,11 +10063,11 @@ function loadPreviousRecords(childId, childProfile = null) {
               <div class="tile-sub">Child</div>
               <div class="mb-2">
                 <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="full_name" />
+                <input type="text" class="form-control" name="full_name" required />
               </div>
               <div class="mb-2">
                 <label class="form-label">Sex</label>
-                <select class="form-select" name="sex">
+                <select class="form-select" name="sex" required>
                   <option value="">Select sex</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -9312,7 +10075,7 @@ function loadPreviousRecords(childId, childProfile = null) {
               </div>
               <div class="mb-2">
                 <label class="form-label">Birth Date</label>
-                <input type="date" class="form-control" name="birth_date" />
+                <input type="date" class="form-control" name="birth_date" required />
               </div>
             </div>
 
@@ -9320,19 +10083,19 @@ function loadPreviousRecords(childId, childProfile = null) {
               <div class="tile-sub">Mother/Caregiver</div>
               <div class="mb-2">
                 <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="mother_name" />
+                <input type="text" class="form-control" name="mother_name" required />
               </div>
               <div class="mb-2">
                 <label class="form-label">Contact</label>
-                <input type="text" class="form-control" name="mother_contact" />
+                <input type="text" class="form-control" name="mother_contact" required />
               </div>
               <div class="mb-2">
                 <label class="form-label">Address</label>
-                <input type="text" class="form-control" name="address_details" />
+                <input type="text" class="form-control" name="address_details" required />
               </div>
               <div class="mb-2">
                 <label class="form-label">Purok</label>
-                <input type="text" class="form-control" name="purok_name" placeholder="e.g., Purok 1" />
+                <input type="text" class="form-control" name="purok_name" placeholder="e.g., Purok 1" required />
               </div>
             </div>
           </div>

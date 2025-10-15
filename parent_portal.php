@@ -6,7 +6,7 @@ require_once __DIR__ . '/inc/db.php';
 $current_view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
  
 // Validate view
-$valid_views = ['dashboard', 'immunization', 'growth', 'notifications', 'appointments', 'account'];
+$valid_views = ['dashboard', 'immunization', 'growth', 'notifications'];
 if (!in_array($current_view, $valid_views)) {
     $current_view = 'dashboard';
 }
@@ -104,7 +104,7 @@ if ($uid > 0) {
         <div id="sidebar-overlay" class="hidden fixed inset-0 z-30 bg-black/50 lg:hidden"></div>
        
         <!-- Main Content -->
-        <main class="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full">
+    <main class="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full" style="min-height: calc(100vh - 64px); background-color: #ffffff;">
             <?php
             // Include the appropriate view file under views/
             $view_file = __DIR__ . "/views/{$current_view}.php";

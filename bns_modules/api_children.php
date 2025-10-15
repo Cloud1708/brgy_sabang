@@ -519,10 +519,10 @@ function updateChildAndMother(array $data): bool {
     }
 
     // Optional mother fields (edit)
-    $mother_name    = isset($data['mother_name'])    ? trim((string)$data['mother_name'])    : null;
-    $mother_contact = isset($data['mother_contact']) ? trim((string)$data['mother_contact']) : null;
-    $address        = isset($data['address_details'])? trim((string)$data['address_details']): null;
-    $purok_name     = isset($data['purok_name'])     ? trim((string)$data['purok_name'])     : null;
+    $mother_name    = array_key_exists('mother_name', $data)    ? trim((string)$data['mother_name'])    : null;
+    $mother_contact = array_key_exists('mother_contact', $data) ? trim((string)$data['mother_contact']) : null;
+    $address        = array_key_exists('address_details', $data)? trim((string)$data['address_details']): null;
+    $purok_name     = array_key_exists('purok_name', $data)     ? trim((string)$data['purok_name'])     : null;
 
     // Get mother_id via child
     $stmt = $mysqli->prepare("SELECT mother_id FROM children WHERE child_id=? LIMIT 1");
@@ -546,35 +546,74 @@ function updateChildAndMother(array $data): bool {
         if (!$stmt->execute()) throw new Exception('Child update failed: '.$stmt->error);
         $stmt->close();
 
-        // Update mother (mothers_caregivers) for UI consistency
-        $sets = [];
-        $vals = [];
-        $types = '';
+        // Build updates for mothers_caregivers (UI fallback chain uses this)
+        $mc_sets = [];
+        $mc_vals = [];
+        $mc_types = '';
 
-        if ($mother_name !== null)    { $sets[] = 'full_name = ?';       $vals[] = $mother_name;    $types.='s'; }
-        if ($mother_contact !== null) { $sets[] = 'contact_number = ?';  $vals[] = $mother_contact; $types.='s'; }
-        if ($address !== null)        { $sets[] = 'address_details = ?'; $vals[] = $address;        $types.='s'; }
+        if ($mother_name !== null)    { $mc_sets[] = 'full_name = ?';       $mc_vals[] = $mother_name;    $mc_types.='s'; }
+        if ($mother_contact !== null) { $mc_sets[] = 'contact_number = ?';  $mc_vals[] = $mother_contact; $mc_types.='s'; }
+        if ($address !== null)        { $mc_sets[] = 'address_details = ?'; $mc_vals[] = $address;        $mc_types.='s'; }
 
-        // Resolve or create purok if name provided
+        $purok_id = null;
         if ($purok_name !== null && $purok_name !== '') {
             $current_user_id = (int)($_SESSION['user_id'] ?? 0);
             $purok_id = resolveOrCreatePurokId($purok_name, $current_user_id);
-            if ($purok_id) {
-                $sets[] = 'purok_id = ?';
-                $vals[] = $purok_id;
-                $types .= 'i';
-            }
+            if ($purok_id) { $mc_sets[] = 'purok_id = ?'; $mc_vals[] = $purok_id; $mc_types .= 'i'; }
         }
 
-        if ($sets) {
-            $sql = "UPDATE mothers_caregivers SET ".implode(',', $sets)." WHERE mother_id=? LIMIT 1";
+        if ($mc_sets) {
+            $sql = "UPDATE mothers_caregivers SET ".implode(',', $mc_sets)." WHERE mother_id=? LIMIT 1";
             $stmt = $mysqli->prepare($sql);
-            if (!$stmt) throw new Exception('DB prepare failed (mother)');
-            $types .= 'i';
-            $vals[] = $mother_id;
-            $stmt->bind_param($types, ...$vals);
-            if (!$stmt->execute()) throw new Exception('Mother update failed: '.$stmt->error);
+            if (!$stmt) throw new Exception('DB prepare failed (mother: mc)');
+            $mc_types .= 'i';
+            $mc_vals[] = $mother_id;
+            $stmt->bind_param($mc_types, ...$mc_vals);
+            if (!$stmt->execute()) throw new Exception('Mother(mc) update failed: '.$stmt->error);
             $stmt->close();
+        }
+
+        // Also update maternal_patients so COALESCE(...) won’t show stale values
+        // - mother_name -> split to first/middle/last (best-effort)
+        // - mother_contact -> contact_number
+        // - purok_name -> purok_name, and set purok_id if resolved
+        $mp_sets = [];
+        $mp_vals = [];
+        $mp_types = '';
+
+        if ($mother_name !== null && $mother_name !== '') {
+            $parts = preg_split('/\s+/', $mother_name, -1, PREG_SPLIT_NO_EMPTY);
+            $first = $mother_name; $middle = null; $last = null;
+            if (count($parts) >= 2) {
+                $first  = array_shift($parts);
+                $last   = array_pop($parts);
+                $middle = $parts ? implode(' ', $parts) : null;
+            }
+            $mp_sets[] = 'first_name = ?';  $mp_vals[] = $first;  $mp_types.='s';
+            $mp_sets[] = 'middle_name = ?'; $mp_vals[] = $middle; $mp_types.='s';
+            $mp_sets[] = 'last_name = ?';   $mp_vals[] = $last;   $mp_types.='s';
+        }
+
+        if ($mother_contact !== null) {
+            $mp_sets[] = 'contact_number = ?'; $mp_vals[] = $mother_contact; $mp_types.='s';
+        }
+
+        if ($purok_name !== null) {
+            $mp_sets[] = 'purok_name = ?'; $mp_vals[] = $purok_name; $mp_types.='s';
+            if ($purok_id) { $mp_sets[] = 'purok_id = ?'; $mp_vals[] = $purok_id; $mp_types.='i'; }
+        }
+
+        if ($mp_sets) {
+            $sql = "UPDATE maternal_patients SET ".implode(',', $mp_sets)." WHERE mother_id=? LIMIT 1";
+            $stmt = $mysqli->prepare($sql);
+            if ($stmt) {
+                $mp_types .= 'i';
+                $mp_vals[] = $mother_id;
+                $stmt->bind_param($mp_types, ...$mp_vals);
+                // If maternal_patients row doesn’t exist, this will affect 0 rows (harmless)
+                $stmt->execute();
+                $stmt->close();
+            }
         }
 
         $mysqli->commit();
@@ -584,7 +623,7 @@ function updateChildAndMother(array $data): bool {
         try { $mysqli->rollback(); } catch (Throwable $ignored) {}
         throw $e;
     }
-}
+    }
 
 function resolveOrCreatePurokId(string $purok_name, int $user_id): ?int {
     global $mysqli;

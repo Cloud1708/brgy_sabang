@@ -1,11 +1,9 @@
 <?php
 $navigation = [
-    ['name' => 'My Children', 'icon' => 'home', 'view' => 'dashboard'],
-    ['name' => 'Immunization', 'icon' => 'syringe', 'view' => 'immunization'],
+    ['name' => 'Parent Profile', 'icon' => 'home', 'view' => 'dashboard'],
+    ['name' => 'Child Immunizations', 'icon' => 'syringe', 'view' => 'immunization'],
     ['name' => 'Growth & Nutrition', 'icon' => 'trending-up', 'view' => 'growth'],
     ['name' => 'Notifications', 'icon' => 'bell', 'view' => 'notifications', 'badge' => 5],
-    ['name' => 'Appointments', 'icon' => 'calendar', 'view' => 'appointments'],
-    ['name' => 'Account Settings', 'icon' => 'settings', 'view' => 'account'],
 ];
 ?>
 

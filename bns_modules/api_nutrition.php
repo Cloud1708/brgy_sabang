@@ -1,8 +1,16 @@
 <?php
+// Suppress any HTML error output to ensure clean JSON
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ob_start();
+
 date_default_timezone_set('Asia/Manila');
 require_once __DIR__.'/../inc/db.php';
 require_once __DIR__.'/../inc/auth.php';
 require_role(['BNS']);
+
+// Clean any previous output and set JSON header
+ob_clean();
 header('Content-Type: application/json; charset=utf-8');
 if (session_status()===PHP_SESSION_NONE) session_start();
 
@@ -259,6 +267,28 @@ if (isset($_GET['child_records'])) {
         exit;
     }
 
+    // 6) Check if record exists for child on specific date
+    if (isset($_GET['check_date']) && isset($_GET['child_id'])) {
+        $child_id = (int)$_GET['child_id'];
+        $check_date = $_GET['check_date'];
+        
+        if ($child_id <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $check_date)) {
+            fail('Invalid parameters');
+        }
+        
+        $stmt = $mysqli->prepare("SELECT COUNT(*) as record_count FROM nutrition_records WHERE child_id = ? AND weighing_date = ?");
+        if (!$stmt) fail('Database prepare failed', 500);
+        
+        $stmt->bind_param('is', $child_id, $check_date);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $stmt->close();
+        
+        echo json_encode(['success' => true, 'exists' => $count > 0, 'count' => $count]);
+        exit;
+    }
+
     fail('No action',400);
 }
 
@@ -346,9 +376,9 @@ if ($method==='POST') {
     }
     $child_id = (int)($_POST['child_id'] ?? 0);
     $weighing_date = $_POST['weighing_date'] ?? '';
-    $weight = $_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null;
-    $length = $_POST['length_height_cm'] !== '' ? (float)$_POST['length_height_cm'] : null;
-    $status_id = ($_POST['wfl_ht_status_id'] ?? '') !== '' ? (int)$_POST['wfl_ht_status_id'] : null;
+    $weight = isset($_POST['weight_kg']) && $_POST['weight_kg'] !== '' ? (float)$_POST['weight_kg'] : null;
+    $length = isset($_POST['length_height_cm']) && $_POST['length_height_cm'] !== '' ? (float)$_POST['length_height_cm'] : null;
+    $status_id = isset($_POST['wfl_ht_status_id']) && $_POST['wfl_ht_status_id'] !== '' ? (int)$_POST['wfl_ht_status_id'] : null;
     $remarks = trim($_POST['remarks'] ?? '');
     $rec_by = (int)($_SESSION['user_id'] ?? 0);
 
@@ -403,7 +433,9 @@ if ($method==='POST') {
         $rec_by
     );
     if(!$stmt->execute()) {
-        if (strpos($stmt->error,'Duplicate')!==false) fail('Record already exists for that child & date',409);
+        if (strpos($stmt->error,'Duplicate')!==false || strpos($stmt->error,'uq_child_weighing_date')!==false) {
+            fail('A weighing record already exists for this child on ' . $weighing_date . '. Only one record per day is allowed.', 409);
+        }
         fail('Insert failed: '.$stmt->error,500);
     }
     $id = $stmt->insert_id;

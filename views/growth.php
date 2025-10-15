@@ -85,12 +85,20 @@ if ($selected_child_id > 0) {
     }
 }
 
-// Supplementation records for selected child
-$supplement_records = [];
-if ($selected_child_id > 0) {
-    $ss = $mysqli->prepare("SELECT s.supplement_type, s.supplement_date, s.dosage, s.next_due_date, COALESCE(CONCAT(u.first_name,' ',u.last_name),'') AS provider FROM supplementation_records s LEFT JOIN users u ON u.user_id=s.administered_by WHERE s.child_id=? ORDER BY s.supplement_date DESC, s.supplement_id DESC LIMIT 50");
-    if ($ss) { $ss->bind_param('i',$selected_child_id); $ss->execute(); $rs=$ss->get_result(); while($x=$rs->fetch_assoc()) $supplement_records[]=$x; $ss->close(); }
+// Derive selected child's status color to theme the classification box
+$selected_status_color = '#10b981'; // default to Normal green
+if (!empty($nutrition_cards)) {
+    foreach ($nutrition_cards as $nc) {
+        if ((int)$nc['child_id'] === (int)$selected_child_id && !empty($nc['color'])) {
+            $selected_status_color = $nc['color'];
+            break;
+        }
+    }
 }
+// Compose semi-transparent variants using 8-digit hex (#RRGGBBAA)
+$class_border_color = $selected_status_color.'66'; // ~40% opacity
+$class_bg_color     = $selected_status_color.'1A'; // ~10% opacity
+
 ?>
 
 <div class="space-y-6">
@@ -160,116 +168,94 @@ if ($selected_child_id > 0) {
     <?php endif; ?>
 
     <!-- Growth Charts -->
-    <div class="bg-white rounded-xl shadow-sm p-6" style="border: 1px solid #e5e7eb;">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="font-medium">Weight Progress</h3>
-                <p class="text-sm" style="color: #6b7280;">
-                    <?php echo $selected_child_id>0 ? h($selected_child_name) : 'Select a child'; ?>
-                </p>
-            </div>
-            <i data-lucide="trending-up" class="w-8 h-8" style="color: #10b981;"></i>
-        </div>
-        <?php if (!empty($labels) && array_filter($weights, fn($v)=>$v!==null)): ?>
-            <canvas id="weightChart" height="80"></canvas>
-        <?php else: ?>
-            <div class="p-4 rounded-lg" style="background-color:#f9fafb; border:1px dashed #e5e7eb;">
-                <p class="text-sm" style="color:#6b7280;">No weight records yet for this child.</p>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm p-6" style="border: 1px solid #e5e7eb;">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="font-medium">Height Development</h3>
-                <p class="text-sm" style="color: #6b7280;">
-                    <?php echo $selected_child_id>0 ? h($selected_child_name) : 'Select a child'; ?>
-                </p>
-            </div>
-            <i data-lucide="ruler" class="w-8 h-8" style="color: #3b82f6;"></i>
-        </div>
-        <?php if (!empty($labels) && array_filter($heights, fn($v)=>$v!==null)): ?>
-            <canvas id="heightChart" height="80"></canvas>
-        <?php else: ?>
-            <div class="p-4 rounded-lg" style="background-color:#f9fafb; border:1px dashed #e5e7eb;">
-                <p class="text-sm" style="color:#6b7280;">No height/length records yet for this child.</p>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- Supplementation Records -->
-    <div class="bg-white rounded-xl shadow-sm p-6" style="border: 1px solid #e5e7eb;">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="font-medium">Supplementation Records</h3>
-                <p class="text-sm" style="color: #6b7280;">Vitamin A, Iron, Deworming, and other supplements</p>
-            </div>
-            <div class="text-3xl">🍎</div>
-        </div>
-        <?php if (!empty($supplement_records)): ?>
-        <div class="space-y-3">
-            <?php foreach ($supplement_records as $record): ?>
-            <div class="flex items-center justify-between p-4 rounded-lg" style="background-color: rgba(229, 231, 235, 0.5);">
-                <div class="flex items-center gap-4">
-                    <div class="p-2 rounded-full" style="background-color: rgba(245, 158, 11, 0.2);">
-                        <i data-lucide="apple" class="w-5 h-5" style="color: #f59e0b;"></i>
-                    </div>
-                    <div>
-                        <p class="font-medium"><?php echo h($record['supplement_type']); ?></p>
-                        <p class="text-sm" style="color: #6b7280;">
-                            <?php echo h(date('M d, Y', strtotime($record['supplement_date']))); ?>
-                            <?php if (!empty($record['dosage'])): ?> • <?php echo h($record['dosage']); ?><?php endif; ?>
-                        </p>
-                    </div>
+    <div class="grid gap-6 md:grid-cols-2">
+        <div class="bg-white rounded-xl shadow-sm p-6" style="border: 1px solid #e5e7eb;">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="font-medium">Weight Progress</h3>
+                    <p class="text-sm" style="color: #6b7280;">
+                        <?php echo $selected_child_id>0 ? h($selected_child_name) : 'Select a child'; ?>
+                    </p>
                 </div>
-                <div class="text-right">
-                    <?php
-                        $status = '';
-                        if (empty($record['next_due_date'])) $status = 'Completed';
-                        else {
-                            $days = (int)floor((strtotime($record['next_due_date']) - strtotime(date('Y-m-d'))) / 86400);
-                            $status = $days < 0 ? 'Overdue' : 'Completed'; // simple label
-                        }
-                    ?>
-                    <span class="px-3 py-1 rounded-full text-sm font-medium" style="background-color: <?php echo ($status==='Overdue')?'#ef4444':'#10b981'; ?>; color: white;">
-                        <?php echo h($status); ?>
-                    </span>
-                    <p class="text-sm mt-1" style="color: #6b7280;"><?php echo h(trim($record['provider']) ?: 'Health Worker'); ?></p>
+                <i data-lucide="trending-up" class="w-8 h-8" style="color: #10b981;"></i>
+            </div>
+            <?php if (!empty($labels) && array_filter($weights, fn($v)=>$v!==null)): ?>
+                <canvas id="weightChart" height="80"></canvas>
+            <?php else: ?>
+                <div class="p-4 rounded-lg" style="background-color:#f9fafb; border:1px dashed #e5e7eb;">
+                    <p class="text-sm" style="color:#6b7280;">No weight records yet for this child.</p>
                 </div>
-            </div>
-            <?php endforeach; ?>
+            <?php endif; ?>
         </div>
-        <?php else: ?>
-            <div class="p-4 rounded-lg" style="background-color:#f9fafb; border:1px dashed #e5e7eb;">
-                <p class="text-sm" style="color:#6b7280;">No supplementation records found for this child.</p>
+
+        <div class="bg-white rounded-xl shadow-sm p-6" style="border: 1px solid #e5e7eb;">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="font-medium">Height Development</h3>
+                    <p class="text-sm" style="color: #6b7280;">
+                        <?php echo $selected_child_id>0 ? h($selected_child_name) : 'Select a child'; ?>
+                    </p>
+                </div>
+                <i data-lucide="ruler" class="w-8 h-8" style="color: #3b82f6;"></i>
             </div>
-        <?php endif; ?>
+            <?php if (!empty($labels) && array_filter($heights, fn($v)=>$v!==null)): ?>
+                <canvas id="heightChart" height="80"></canvas>
+            <?php else: ?>
+                <div class="p-4 rounded-lg" style="background-color:#f9fafb; border:1px dashed #e5e7eb;">
+                    <p class="text-sm" style="color:#6b7280;">No height/length records yet for this child.</p>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Nutrition Classification -->
-    <div class="bg-white rounded-xl shadow-sm" style="border: 1px solid rgba(16, 185, 129, 0.5);">
-        <div class="p-6" style="background-color: rgba(16, 185, 129, 0.1);">
+    <div class="bg-white rounded-xl shadow-sm" style="border: 1px solid <?php echo h($class_border_color); ?>;">
+        <div class="p-6" style="background-color: <?php echo h($class_bg_color); ?>;">
             <h3 class="font-medium mb-2">Nutrition Status Classification</h3>
             <p class="text-sm" style="color: #6b7280;">Understanding your child's nutritional health</p>
         </div>
         <div class="p-6">
             <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <div class="p-3 rounded-lg" style="background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                <!-- NOR: Normal -->
+                <div class="p-3 rounded-lg" style="background-color: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);">
                     <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #10b981;">Normal</span>
-                    <p class="text-sm" style="color: #6b7280;">Healthy weight and height for age</p>
+                    <p class="text-sm" style="color: #6b7280;">Healthy weight-for-length/height</p>
                 </div>
-                <div class="p-3 rounded-lg" style="background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);">
+
+                <!-- MAM: Moderate Acute Malnutrition -->
+                <div class="p-3 rounded-lg" style="background-color: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.3);">
+                    <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #f97316;">Moderate Acute Malnutrition</span>
+                    <p class="text-sm" style="color: #6b7280;">Moderate wasting; requires nutrition support</p>
+                </div>
+
+                <!-- SAM: Severe Acute Malnutrition -->
+                <div class="p-3 rounded-lg" style="background-color: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.3);">
+                    <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #dc2626;">Severe Acute Malnutrition</span>
+                    <p class="text-sm" style="color: #6b7280;">Severe wasting; needs urgent care</p>
+                </div>
+
+                <!-- UW: Underweight -->
+                <div class="p-3 rounded-lg" style="background-color: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3);">
                     <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #f59e0b;">Underweight</span>
                     <p class="text-sm" style="color: #6b7280;">Below healthy weight range</p>
                 </div>
-                <div class="p-3 rounded-lg" style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
-                    <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #ef4444;">Stunted</span>
-                    <p class="text-sm" style="color: #6b7280;">Low height for age</p>
-                </div>
-                <div class="p-3 rounded-lg" style="background-color: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+
+                <!-- OW: Overweight -->
+                <div class="p-3 rounded-lg" style="background-color: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3);">
                     <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #3b82f6;">Overweight</span>
                     <p class="text-sm" style="color: #6b7280;">Above healthy weight range</p>
+                </div>
+
+                <!-- OB: Obese -->
+                <div class="p-3 rounded-lg" style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);">
+                    <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #ef4444;">Obese</span>
+                    <p class="text-sm" style="color: #6b7280;">Excessive weight for length/height</p>
+                </div>
+
+                <!-- ST: Stunted -->
+                <div class="p-3 rounded-lg" style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);">
+                    <span class="px-2 py-1 rounded-full text-white text-xs font-medium mb-2 inline-block" style="background-color: #ef4444;">Stunted</span>
+                    <p class="text-sm" style="color: #6b7280;">Low height-for-age (chronic)</p>
                 </div>
             </div>
         </div>
