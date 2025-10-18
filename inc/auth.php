@@ -14,6 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
  * Kung ang URL mo ay http://localhost/index.php
  * ibig sabihin base path = /
  */
+
 define('APP_BASE_PATH', '/');  // IMPORTANT
 
 // Canonical role names
