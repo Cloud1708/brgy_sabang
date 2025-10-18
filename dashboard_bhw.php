@@ -13,6 +13,9 @@ if (empty($_SESSION['csrf_token'])) {
 $csrf = $_SESSION['csrf_token'];
 $username = $_SESSION['username'] ?? 'Health Worker';
 $firstName = explode(' ', trim($username))[0];
+// Role normalization and admin view flag
+$roleCanon   = normalize_role($_SESSION['role'] ?? null);
+$isAdminView = ($roleCanon === 'Admin');
 ?>
 <!doctype html>
 <html lang="en">
@@ -1108,7 +1111,15 @@ datalist option {
       </div>
     </div>
     <div class="sidebar-logout">
-      <a href="logout" class="btn btn-outline-danger w-100"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+      <?php if (!empty($isAdminView)): ?>
+        <a href="<?php echo APP_BASE_PATH; ?>dashboard_admin" class="btn btn-outline-secondary w-100">
+          <i class="bi bi-arrow-left me-1"></i> Back to Admin
+        </a>
+      <?php else: ?>
+        <a href="logout" class="btn btn-outline-danger w-100">
+          <i class="bi bi-box-arrow-right me-1"></i> Logout
+        </a>
+      <?php endif; ?>
     </div>
   </aside>
 

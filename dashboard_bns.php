@@ -13,6 +13,16 @@ if (empty($_SESSION['csrf_token'])) {
 $csrf = $_SESSION['csrf_token'];
 $userFull = $_SESSION['full_name'] ?? 'Nutrition Scholar';
 $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), array_slice(preg_split('/\s+/', trim($userFull)),0,2)));
+// Admin-view flag and back URL logic
+$roleCanon = strtolower(trim($_SESSION['role'] ?? ''));
+$isAdminView = ($roleCanon === 'admin') || !empty($_SESSION['admin_view']); // allow “admin_view” toggles too
+
+// Back URL: prefer internal referer, else fall back to admin dashboard
+$host = $_SERVER['HTTP_HOST'] ?? '';
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
+$backUrl =
+  ($referer && strpos($referer, $host) !== false) ? $referer
+  : (is_file(__DIR__.'/dashboard_admin.php') ? 'dashboard_admin.php' : 'dashboard_admin');
 ?>
 <!doctype html>
 <html lang="en">
@@ -22,12 +32,12 @@ $initials = implode('', array_map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)), arra
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-<!-- CLEANED VERSION:
-     - Font size scaled to match reference screenshot (medium – readable)
-     - Removed zoom controls / modes
-     - Removed sidebar scrollbar (hidden) -->
 <style>
+#quickStatsBox { display: none !important; }
+</style>
+
+<style>
+
 /* ===== Scrollbar Adjustments for Profile Management & Child Registry =====
    - Remove page scroll when viewing Profile Management (adds .no-scroll to #mainRegion)
    - Provide own scrollbars for children lists / tables only
@@ -1064,7 +1074,87 @@ h1.page-title{
 }
 .combobox-item .sub{ font-size:.6rem; color:#6a7a6d; }
 
+/* ——— BNS KPI sizing to match BHW ——— */
+
+/* Base font sizing (BHW uses 17px) */
+html { font-size: 17px; }
+
+/* Uniform grid for the top KPI row */
+.kpi-row, .metrics-row, .summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* Card box sizing (catch-all for common class names) */
+.kpi-card, .metric-card, .summary-card, .stat-card {
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  min-height: 122px; /* close to BHW card height */
+}
+
+/* Title/label sizing */
+.kpi-card .title,
+.metric-card .title,
+.summary-card .title,
+.stat-card .title,
+.kpi-title, .summary-title, .stat-title {
+  font-size: 0.72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0;
+  color: #5e6a73;
+}
+
+/* Value/number sizing */
+.kpi-card .value,
+.metric-card .value,
+.summary-card .value,
+.stat-card .value,
+.kpi-value, .summary-value, .stat-value {
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #16242e;
+}
+
+/* Subtext (delta/status) */
+.kpi-card .sub,
+.metric-card .delta,
+.summary-card .sub,
+.stat-card .sub,
+.kpi-sub, .summary-sub, .stat-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+/* Icon sizing/position (if present) */
+.kpi-icon, .metric-icon {
+  position: absolute;
+  top: .8rem;
+  right: .8rem;
+  width: 42px;
+  height: 42px;
+  font-size: 1.15rem;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Responsive breakpoints like BHW */
+@media (max-width: 1100px) {
+  .kpi-row, .metrics-row, .summary-row {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .kpi-row, .metrics-row, .summary-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 </style>
+
 </head>
 <body class="font-lg">
 <div class="layout-wrapper">
@@ -1189,9 +1279,15 @@ h1.page-title{
     </div>
 
     <div class="sidebar-logout" style="padding:1rem 1.1rem;">
-      <a href="logout.php" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
-        <i class="bi bi-box-arrow-right me-1"></i> Logout
-      </a>
+      <?php if (!empty($isAdminView)): ?>
+        <a href="<?php echo htmlspecialchars($backUrl); ?>" class="btn btn-outline-secondary w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+          <i class="bi bi-arrow-left me-1"></i> Back to Admin
+        </a>
+      <?php else: ?>
+        <a href="logout.php" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+          <i class="bi bi-box-arrow-right me-1"></i> Logout
+        </a>
+      <?php endif; ?>
     </div>
     <div class="sidebar-footer">
       Powered by Barangay Health System<br>&copy; <?php echo date('Y'); ?>

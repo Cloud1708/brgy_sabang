@@ -23,10 +23,9 @@ $csrf = $_SESSION['csrf_token'];
 /* ------------------------------------------------------------------
    Section routing
 -------------------------------------------------------------------*/
+// Only core admin sections remain (BNS functions removed)
 $validSections = [
-    'control-panel', 'accounts', 'reports', 'events',
-    'health_records', 'immunization', 'maternal_patients', 'parent_accounts',
-    'children_management', 'nutrition_data_entry', 'supplementation'
+    'control-panel', 'accounts', 'reports', 'events'
 ];
 $section = $_GET['section'] ?? ($_SESSION['active_section'] ?? 'control-panel');
 if (!in_array($section, $validSections)) $section = 'control-panel';
@@ -703,6 +702,13 @@ $descs = [
     'nutrition_data_entry' => 'Enter and review nutrition measurements',
     'supplementation' => 'Track vitamin & supplementation records'
 ];
+
+// External interface links (update these to your actual paths)
+// Examples:
+//   bhw/index.php or dashboard_bhw.php
+//   bns/index.php or dashboard_bns.php
+$bhwInterfaceUrl = $_ENV['BHW_URL'] ?? 'dashboard_bhw';
+$bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1294,21 +1300,20 @@ $descs = [
                     <li><a class="<?php echo $section === 'events' ? 'active' : ''; ?>" href="?section=events"><i class="bi bi-calendar-event"></i><span>Event Management</span></a></li>
                 </ul>
             </div>
+            <!-- Shortcuts to external role interfaces -->
             <div class="nav-section">
-                <small class="text-muted d-block mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BHW Functions</small>
+                <small class="text-muted d-block mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">Interfaces</small>
                 <ul class="nav-list">
-                    <li><a class="<?php echo $section === 'health_records' ? 'active' : ''; ?>" href="?section=health_records"><i class="bi bi-heart-pulse"></i><span>Health Records</span></a></li>
-                    <li><a class="<?php echo $section === 'immunization' ? 'active' : ''; ?>" href="?section=immunization"><i class="bi bi-shield-check"></i><span>Immunization</span></a></li>
-                    <li><a class="<?php echo $section === 'maternal_patients' ? 'active' : ''; ?>" href="?section=maternal_patients"><i class="bi bi-person-heart"></i><span>Maternal Patients</span></a></li>
-                    <li><a class="<?php echo $section === 'parent_accounts' ? 'active' : ''; ?>" href="?section=parent_accounts"><i class="bi bi-person-badge"></i><span>Parent Accounts</span></a></li>
-                </ul>
-            </div>
-            <div class="nav-section">
-                <small class="text-muted d-block mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">BNS Functions</small>
-                <ul class="nav-list">
-                    <li><a class="<?php echo $section === 'children_management' ? 'active' : ''; ?>" href="?section=children_management"><i class="bi bi-heart-pulse"></i><span>Children Management</span></a></li>
-                    <li><a class="<?php echo $section === 'nutrition_data_entry' ? 'active' : ''; ?>" href="?section=nutrition_data_entry"><i class="bi bi-shield-check"></i><span>Nutrition Data Entry</span></a></li>
-                    <li><a class="<?php echo $section === 'supplementation' ? 'active' : ''; ?>" href="?section=supplementation"><i class="bi bi-person-heart"></i><span>Supplementation</span></a></li>
+                    <li>
+                        <a href="<?php echo htmlspecialchars($bhwInterfaceUrl); ?>" title="Open Barangay Health Worker tools">
+                            <i class="bi bi-heart-pulse"></i><span>BHW Workspace</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo htmlspecialchars($bnsInterfaceUrl); ?>" title="Open Barangay Nutrition Scholar tools">
+                            <i class="bi bi-shield-check"></i><span>BNS Workspace</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
             <div class="sidebar-footer">
@@ -1960,18 +1965,6 @@ $descs = [
                         </script>
                     <?php endif; ?>
                     
-                <?php elseif ($section === 'health_records' || $section === 'immunization' || 
-                              $section === 'maternal_patients' || $section === 'parent_accounts' ||
-                              $section === 'children_management' || $section === 'nutrition_data_entry' ||
-                              $section === 'supplementation') : ?>
-
-                    <div class="panel" id="dynamicSectionPanel">
-                        <div class="panel-header mb-3">
-                            <h6><?php echo htmlspecialchars($titles[$section]); ?></h6>
-                            <p>Dynamic management interface (loaded via JavaScript)</p>
-                        </div>
-                    </div>
-                    
                 <?php else : ?>
                     <div class="mb-4">
                         <h6 class="mb-3" style="font-size:.75rem; font-weight:600; color:#162630;">System Overview</h6>
@@ -2129,28 +2122,7 @@ $descs = [
     </div>
 
     <script src="admin_access/admin_utils.js"></script>
-
-        <?php if ($section === 'health_records'): ?>
-            <script src="admin_access/health_records.js"></script>
-        <?php endif; ?>
-        <?php if ($section === 'immunization'): ?>
-            <script src="admin_access/immunization.js"></script>
-        <?php endif; ?>
-        <?php if ($section === 'maternal_patients'): ?>
-            <script src="admin_access/maternal_patients.js"></script>
-        <?php endif; ?>
-        <?php if ($section === 'parent_accounts'): ?>
-            <script src="admin_access/parent_accounts.js"></script>
-        <?php endif; ?>
-        <?php if ($section === 'children_management'): ?>
-            <script src="admin_access/children_management.js"></script>
-        <?php endif; ?>
-        <?php if ($section === 'nutrition_data_entry'): ?>
-            <script src="admin_access/nutrition_data_entry.js"></script>
-        <?php endif; ?>
-        <?php if ($section === 'supplementation'): ?>
-            <script src="admin_access/supplementation.js"></script>
-        <?php endif; ?>
+    <!-- BNS scripts removed -->
             
     <script>
 
@@ -2408,36 +2380,7 @@ $descs = [
         const el = document.getElementById(id);
         if(el) el.addEventListener('click', handler);
     }
-    if(section==='health_records'){
-        onClick('hrQuickAdd', ()=>{ if(window.HealthRecordsApp) HealthRecordsApp.showAddRecordModal(); });
-        onClick('hrQuickAll', ()=>{ if(window.HealthRecordsApp) HealthRecordsApp.loadAllRecords(); });
-        onClick('hrQuickRisk', ()=>{ if(window.HealthRecordsApp) HealthRecordsApp.loadRiskSummary(); });
-    }
-    if(section==='immunization'){
-        onClick('immuQuickAddDose', ()=>{ if(window.ImmunizationApp) ImmunizationApp.openAddImmunizationModal(); });
-        onClick('immuQuickChildren', ()=>{ if(window.ImmunizationApp){ ImmunizationApp.state.tab='children'; ImmunizationApp.refreshCurrentTab(); }});
-        onClick('immuQuickOverdue', ()=>{ if(window.ImmunizationApp){ ImmunizationApp.state.tab='overdue'; ImmunizationApp.refreshCurrentTab(); }});
-        onClick('immuQuickVaccines', ()=>{ if(window.ImmunizationApp){ ImmunizationApp.state.tab='vaccines'; ImmunizationApp.refreshCurrentTab(); }});
-    }
-    if(section==='maternal_patients'){
-        onClick('mpQuickAdd', ()=>{ if(window.MaternalPatientsApp) MaternalPatientsApp.showAddModal(); });
-        onClick('mpQuickList', ()=>{ if(window.MaternalPatientsApp) MaternalPatientsApp.loadList(); });
-        onClick('mpQuickSearch', ()=>{ 
-            const s=prompt('Enter search term (name/purok):','');
-            if(s!==null && window.MaternalPatientsApp){
-                const f=document.getElementById('mpSearch');
-                if(f) f.value=s;
-                MaternalPatientsApp.state.search=s;
-                MaternalPatientsApp.loadList();
-            }
-        });
-    }
-    if(section==='parent_accounts'){
-        onClick('paQuickCreate', ()=>{ if(window.ParentAccountsApp) ParentAccountsApp.showCreateModal(); });
-        onClick('paQuickList', ()=>{ if(window.ParentAccountsApp){ ParentAccountsApp.state.tab='parents'; ParentAccountsApp.loadTab(); } });
-        onClick('paQuickActivity', ()=>{ if(window.ParentAccountsApp){ ParentAccountsApp.state.tab='activity'; ParentAccountsApp.loadTab(); } });
-        onClick('paQuickLink', ()=>{ if(window.ParentAccountsApp){ alert('Use Link Child inside a parent row.'); } });
-    }
+    // BHW module hooks removed
 })();
 </script>
 </body>
