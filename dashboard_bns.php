@@ -109,7 +109,19 @@ body, .layout-wrapper, .content-area, .topbar {
 }
 
 /* Modals: prevent content from overflowing the viewport on mobile */
-.modal-dialog{ margin:.75rem; }
+.modal-dialog {
+  margin: 1.75rem auto;
+  display: block;
+  max-width: 700px;
+  min-height: unset;
+}
+@media (min-width: 576px) {
+  .modal-dialog {
+    margin: 2.5rem auto;
+    max-width: 700px;
+  }
+}
+
 .modal-body{ max-height:calc(100dvh - 180px); overflow:auto; }
 
 /* Keep status chips from breaking oddly */

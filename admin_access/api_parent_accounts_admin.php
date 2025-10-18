@@ -150,11 +150,13 @@ if ($method === 'GET') {
                  u.is_active,u.created_at,u.updated_at,
                  GROUP_CONCAT(DISTINCT CONCAT(c.full_name,' (',pca.relationship_type,')') ORDER BY c.full_name SEPARATOR '; ') AS children_list,
                  COUNT(DISTINCT c.child_id) AS children_count,
-                 MAX(pn.created_at) AS last_login_at
+                 MAX(pn.created_at) AS last_login_at,
+                 mc.contact_number
           FROM users u
           JOIN roles r ON r.role_id=u.role_id
           LEFT JOIN parent_child_access pca ON pca.parent_user_id=u.user_id AND pca.is_active=1
           LEFT JOIN children c ON c.child_id=pca.child_id
+          LEFT JOIN mothers_caregivers mc ON mc.mother_id=c.mother_id
           LEFT JOIN parent_notifications pn ON pn.parent_user_id=u.user_id
           WHERE r.role_name='Parent'
           GROUP BY u.user_id
