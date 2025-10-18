@@ -25,7 +25,7 @@ $csrf = $_SESSION['csrf_token'];
 -------------------------------------------------------------------*/
 // Only core admin sections remain (BNS functions removed)
 $validSections = [
-    'control-panel', 'accounts', 'reports', 'events'
+    'control-panel', 'accounts', 'reports'
 ];
 $section = $_GET['section'] ?? ($_SESSION['active_section'] ?? 'control-panel');
 if (!in_array($section, $validSections)) $section = 'control-panel';
@@ -152,27 +152,12 @@ if ($section === 'accounts') {
         $stmt->close();
     }
 
-    $roles = [];
-    $stmt = $mysqli->prepare("
-        SELECT role_name, role_description, created_at 
-        FROM roles
-    ");
-    if ($stmt === false) {
-        $msg = "<div class='alert alert-danger'>Database error: Unable to fetch roles.</div>";
-    } else {
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) {
-            $roles[] = $row;
-        }
-        $stmt->close();
-    }
 
     $edit_account = null;
     if (isset($_GET['edit'])) {
         $uid = intval($_GET['edit']);
         $stmt = $mysqli->prepare("
-            SELECT user_id, first_name, last_name, email, password 
+            SELECT user_id, first_name, middle_name, last_name, email, password 
             FROM users 
             WHERE user_id = ?
         ");
@@ -188,63 +173,6 @@ if ($section === 'accounts') {
     }
 }
 
-/* ------------------------------------------------------------------
-   Data fetching for Events section
--------------------------------------------------------------------*/
-if ($section === 'events') {
-    $events = [];
-    $stmt = $mysqli->prepare("
-        SELECT event_id, event_title AS title, event_description AS `desc`, event_type AS type, event_date AS `date`, event_time AS `time`, location, event_type AS color 
-        FROM events 
-        ORDER BY event_date ASC
-    ");
-    if ($stmt === false) {
-        $msg = "<div class='alert alert-danger'>Database error: Unable to fetch events.</div>";
-    } else {
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) {
-            $events[] = $row;
-        }
-        $stmt->close();
-    }
-
-    $timeline = [];
-    $stmt = $mysqli->prepare("
-        SELECT event_title AS title, event_date AS `date`, 50 AS participants 
-        FROM events 
-        ORDER BY event_date ASC
-    ");
-    if ($stmt === false) {
-        $msg = "<div class='alert alert-danger'>Database error: Unable to fetch timeline.</div>";
-    } else {
-        $stmt->execute();
-        $result = $stmt->get_result();
-        while ($row = $result->fetch_assoc()) {
-            $timeline[] = $row;
-        }
-        $stmt->close();
-    }
-
-    $edit_event = null;
-    if (isset($_GET['edit'])) {
-        $eid = intval($_GET['edit']);
-        $stmt = $mysqli->prepare("
-            SELECT event_id, event_title, event_description, event_type, event_date, event_time, location 
-            FROM events 
-            WHERE event_id = ?
-        ");
-        if ($stmt === false) {
-            $msg = "<div class='alert alert-danger'>Database error: Unable to fetch event details.</div>";
-        } else {
-            $stmt->bind_param("i", $eid);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $edit_event = $result->fetch_assoc();
-            $stmt->close();
-        }
-    }
-}
 
 /* ------------------------------------------------------------------
    Data fetching for Reports section
@@ -549,19 +477,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($section === 'accounts' && isset($_POST['edit_account'])) {
             $uid = intval($_POST['user_id']);
             $first_name = $mysqli->real_escape_string($_POST['first_name']);
+            $middle_name = $mysqli->real_escape_string($_POST['middle_name'] ?? '');
             $last_name = $mysqli->real_escape_string($_POST['last_name']);
             $email = $mysqli->real_escape_string($_POST['email']);
             $stmt = $mysqli->prepare("
                 UPDATE users 
-                SET first_name = ?, last_name = ?, email = ? 
+                SET first_name = ?, middle_name = ?, last_name = ?, email = ? 
                 WHERE user_id = ?
             ");
             if ($stmt === false) {
                 $msg = "<div class='alert alert-danger'>Database error: Unable to update account.</div>";
             } else {
-                $stmt->bind_param("sssi", $first_name, $last_name, $email, $uid);
+                $stmt->bind_param("ssssi", $first_name, $middle_name, $last_name, $email, $uid);
                 if ($stmt->execute()) {
-                    $msg = "<div class='alert alert-success'>Account updated!</div>";
+                    $msg = "<div class='alert alert-success'>Account updated successfully!</div>";
                 } else {
                     $msg = "<div class='alert alert-danger'>Failed to update account: " . $mysqli->error . "</div>";
                 }
@@ -588,59 +517,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // ADD EVENT
-        if ($section === 'events' && isset($_POST['add_event'])) {
-            $title = $mysqli->real_escape_string($_POST['event_title']);
-            $desc = $mysqli->real_escape_string($_POST['event_description']);
-            $type = $mysqli->real_escape_string($_POST['event_type']);
-            $date = $mysqli->real_escape_string($_POST['event_date']);
-            $time = $mysqli->real_escape_string($_POST['event_time']);
-            $loc = $mysqli->real_escape_string($_POST['location']);
-            $created_by_user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
-            $created_by_sql = $created_by_user_id ? $created_by_user_id : 'NULL';
-            $stmt = $mysqli->prepare("
-                INSERT INTO events (event_title, event_description, event_type, event_date, event_time, location, created_by) 
-                VALUES (?, ?, ?, ?, ?, ?, $created_by_sql)
-            ");
-            if ($stmt === false) {
-                $msg = "<div class='alert alert-danger'>Database error: Unable to add event.</div>";
-            } else {
-                $stmt->bind_param("ssssss", $title, $desc, $type, $date, $time, $loc);
-                if ($stmt->execute()) {
-                    $msg = "<div class='alert alert-success'>Event added!</div>";
-                } else {
-                    $msg = "<div class='alert alert-danger'>Failed to add event: " . $mysqli->error . "</div>";
-                }
+        // RESET PASSWORD
+        if ($section === 'accounts' && isset($_POST['reset_password'])) {
+            $uid = intval($_POST['user_id']);
+            
+            // Get user details
+            $stmt = $mysqli->prepare("SELECT first_name, last_name, email FROM users WHERE user_id = ?");
+            if ($stmt) {
+                $stmt->bind_param("i", $uid);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $user = $result->fetch_assoc();
                 $stmt->close();
+                
+                if ($user) {
+                    // Generate new password
+                    $new_password = rand_password(12);
+                    $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+                    
+                    // Update password
+                    $update_stmt = $mysqli->prepare("UPDATE users SET password = ?, password_hash = ? WHERE user_id = ?");
+                    if ($update_stmt) {
+                        $update_stmt->bind_param("ssi", $new_password, $password_hash, $uid);
+                        if ($update_stmt->execute()) {
+                            // Send email notification
+                            if (function_exists('bhw_mail_send')) {
+                                $subject = "Password Reset - Barangay Health System";
+                                $html = "
+                                    <div style='font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;'>
+                                      <h2 style='margin:0 0 10px;color:#047857;'>Password Reset Notification</h2>
+                                      <p>Hello <strong>" . htmlspecialchars($user['first_name'] . ' ' . $user['last_name']) . "</strong>,</p>
+                                      <p>Your password has been reset by the system administrator.</p>
+                                      <div style='background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:20px;margin:15px 0;'>
+                                        <h3 style='margin:0 0 15px;color:#047857;'>Your New Password</h3>
+                                        <div style='font-family:monospace;font-size:18px;color:#047857;font-weight:bold;background:#e8f5e8;padding:10px;border-radius:4px;text-align:center;'>" . htmlspecialchars($new_password) . "</div>
+                                      </div>
+                                      <div style='background:#fff3cd;border:1px solid #ffeaa7;border-radius:6px;padding:15px;margin:15px 0;'>
+                                        <p style='margin:0;color:#856404;'><strong>Important:</strong> Please change your password after logging in for security purposes.</p>
+                                      </div>
+                                      <p>You can now log in using your email and the new password above.</p>
+                                      <p style='font-size:12px;color:#555;'>If you did not request this password reset, please contact the system administrator immediately.</p>
+                                      <p style='font-size:12px;color:#888;'>-- Barangay Health Management System</p>
+                                    </div>
+                                ";
+                                $text = "Password Reset Notification\n\n" .
+                                        "Hello " . $user['first_name'] . ' ' . $user['last_name'] . ",\n\n" .
+                                        "Your password has been reset.\n\n" .
+                                        "New Password: " . $new_password . "\n\n" .
+                                        "Please change your password after logging in.\n\n" .
+                                        "-- Barangay Health Management System";
+                                
+                                bhw_mail_send($user['email'], $subject, $html, $text);
+                            }
+                            
+                            exit(json_encode(['success' => true, 'new_password' => $new_password]));
+                        }
+                        $update_stmt->close();
+                    }
+                }
             }
+            exit(json_encode(['success' => false, 'error' => 'Failed to reset password']));
         }
         
-        // EDIT EVENT
-        if ($section === 'events' && isset($_POST['edit_event'])) {
-            $eid = intval($_POST['event_id']);
-            $title = $mysqli->real_escape_string($_POST['event_title']);
-            $desc = $mysqli->real_escape_string($_POST['event_description']);
-            $type = $mysqli->real_escape_string($_POST['event_type']);
-            $date = $mysqli->real_escape_string($_POST['event_date']);
-            $time = $mysqli->real_escape_string($_POST['event_time']);
-            $loc = $mysqli->real_escape_string($_POST['location']);
-            $stmt = $mysqli->prepare("
-                UPDATE events 
-                SET event_title = ?, event_description = ?, event_type = ?, event_date = ?, event_time = ?, location = ? 
-                WHERE event_id = ?
-            ");
-            if ($stmt === false) {
-                $msg = "<div class='alert alert-danger'>Database error: Unable to update event.</div>";
-            } else {
-                $stmt->bind_param("ssssssi", $title, $desc, $type, $date, $time, $loc, $eid);
-                if ($stmt->execute()) {
-                    $msg = "<div class='alert alert-success'>Event updated!</div>";
-                } else {
-                    $msg = "<div class='alert alert-danger'>Failed to update event: " . $mysqli->error . "</div>";
-                }
-                $stmt->close();
-            }
-        }
         
     }
 }
@@ -679,7 +617,6 @@ $titles = [
     'control-panel' => 'Control Panel',
     'accounts' => 'Account Management',
     'reports' => 'System Reports',
-    'events' => 'Event Management',
     'health_records' => 'Health Records',
     'immunization' => 'Immunization Management',
     'maternal_patients' => 'Maternal Patients',
@@ -693,7 +630,6 @@ $descs = [
     'control-panel' => 'Monitor system performance and user activity',
     'accounts' => 'Manage BHW / BNS user accounts',
     'reports' => 'View health and nutrition statistics',
-    'events' => 'Schedule and manage community events',
     'health_records' => 'Manage maternal health records',
     'immunization' => 'Track child immunizations',
     'maternal_patients' => 'Manage maternal patient records',
@@ -1148,51 +1084,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
             padding: 1rem;
             margin-bottom: 1rem;
         }
-        .calendar-box {
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-        }
-        .calendar-header {
-            font-weight: 600;
-            font-size: 1.01em;
-            margin-bottom: 0.5rem;
-        }
-        .calendar-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .calendar-table th, .calendar-table td {
-            text-align: center;
-            padding: 0.5rem;
-            font-size: 0.9rem;
-        }
-        .calendar-table td.selected {
-            background: var(--green-soft);
-            border-radius: 50%;
-        }
-        .event-card {
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 0.8rem;
-            margin-bottom: 0.5rem;
-        }
-        .timeline-list {
-            list-style: none;
-            padding: 0;
-        }
-        .timeline-list li {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        .timeline-icon {
-            font-size: 1.2rem;
-            color: var(--green);
-        }
         .required::after {
             content: '*';
             color: #dc3545;
@@ -1297,7 +1188,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                     <li><a class="<?php echo $section === 'control-panel' ? 'active' : ''; ?>" href="?section=control-panel"><i class="bi bi-grid"></i><span>Control Panel</span></a></li>
                     <li><a class="<?php echo $section === 'accounts' ? 'active' : ''; ?>" href="?section=accounts"><i class="bi bi-people"></i><span>Account Management</span></a></li>
                     <li><a class="<?php echo $section === 'reports' ? 'active' : ''; ?>" href="?section=reports"><i class="bi bi-file-bar-graph"></i><span>System Reports</span></a></li>
-                    <li><a class="<?php echo $section === 'events' ? 'active' : ''; ?>" href="?section=events"><i class="bi bi-calendar-event"></i><span>Event Management</span></a></li>
                 </ul>
             </div>
             <!-- Shortcuts to external role interfaces -->
@@ -1411,30 +1301,11 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                 </div>
                             </button>
                         </div>
-                        <div class="col-md-6 col-lg-4">
-                            <button type="button" class="card-action w-100" onclick="exportUsers()">
-                                <div class="icon"><i class="bi bi-download"></i></div>
-                                <div>
-                                    <div style="font-weight:600;">Export Users</div>
-                                    <div style="font-size:.97em;color:#5c6872;">Download user list</div>
-                                </div>
-                            </button>
-                        </div>
-                        <div class="col-md-6 col-lg-4">
-                            <button type="button" class="card-action w-100" onclick="bulkActions()">
-                                <div class="icon"><i class="bi bi-gear"></i></div>
-                                <div>
-                                    <div style="font-weight:600;">Bulk Actions</div>
-                                    <div style="font-size:.97em;color:#5c6872;">Manage multiple users</div>
-                                </div>
-                            </button>
-                        </div>
                     </div>
                     
                     <div class="tabs-bar mb-3">
                         <button class="tab-btn <?php echo !isset($_GET['tab']) || $_GET['tab'] == 'user' ? 'active' : ''; ?>" onclick="location.href='?section=accounts&tab=user'">User Management</button>
                         <button class="tab-btn <?php echo isset($_GET['tab']) && $_GET['tab'] == 'audit' ? 'active' : ''; ?>" onclick="location.href='?section=accounts&tab=audit'">Audit Log</button>
-                        <button class="tab-btn <?php echo isset($_GET['tab']) && $_GET['tab'] == 'role' ? 'active' : ''; ?>" onclick="location.href='?section=accounts&tab=role'">Role Permissions</button>
                     </div>
                     
                     <?php if (!isset($_GET['tab']) || $_GET['tab'] == 'user') : ?>
@@ -1489,7 +1360,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                                         </div>
                                                         <div>
                                                             <div style="font-weight: 600;"><?php echo htmlspecialchars($ac['name']); ?></div>
-                                                            <div style="font-size: 0.75rem; color: #6c757d;">ID: <?php echo $ac['user_id']; ?></div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1519,27 +1389,27 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                    <label class="switch">
-                                                        <input type="checkbox" <?php echo $ac['is_active'] ? 'checked' : ''; ?> onchange="toggleActive(<?php echo $ac['user_id']; ?>, this.checked); window.location.reload();">
-                                                        <span class="slider"></span>
-                                                    </label>
-                                                    <span class="status-label <?php echo $ac['is_active'] ? '' : 'inactive'; ?>">
-                                                        <?php echo $ac['is_active'] ? 'active' : 'inactive'; ?>
+                                                    <span class="badge <?php echo $ac['is_active'] ? 'bg-success' : 'bg-secondary'; ?>">
+                                                        <?php echo $ac['is_active'] ? 'Active' : 'Inactive'; ?>
                                                     </span>
-                                                    </div>
                                                 </td>
                                                 <td>
                                                     <div class="btn-group" role="group">
-                                                        <a class="btn btn-outline-primary btn-sm" href="?section=accounts&edit=<?php echo $ac['user_id']; ?>">
+                                                        <a class="btn btn-outline-primary btn-sm" href="?section=accounts&edit=<?php echo $ac['user_id']; ?>" title="Edit Account">
                                                             <i class="bi bi-pencil"></i>
                                                         </a>
-                                                        <button class="btn btn-outline-info btn-sm" onclick="viewUserDetails(<?php echo $ac['user_id']; ?>)">
-                                                            <i class="bi bi-eye"></i>
+                                                        <button class="btn btn-outline-success btn-sm" onclick="resetPassword(<?php echo $ac['user_id']; ?>)" title="Reset Password">
+                                                            <i class="bi bi-arrow-clockwise"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-warning btn-sm" onclick="resetPassword(<?php echo $ac['user_id']; ?>)">
-                                                            <i class="bi bi-key"></i>
-                                                        </button>
+                                                        <?php if ($ac['is_active']) : ?>
+                                                            <button class="btn btn-outline-danger btn-sm" onclick="toggleUserStatus(<?php echo $ac['user_id']; ?>, 0)" title="Deactivate User">
+                                                                <i class="bi bi-person-x"></i>
+                                                            </button>
+                                                        <?php else : ?>
+                                                            <button class="btn btn-outline-success btn-sm" onclick="toggleUserStatus(<?php echo $ac['user_id']; ?>, 1)" title="Activate User">
+                                                                <i class="bi bi-person-check"></i>
+                                                            </button>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1581,13 +1451,27 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                               <h5>Edit Account</h5>
                                           </div>
                                           <div class="modal-body">
-                                              <label class="required">First Name</label>
-                                              <input type="text" name="first_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['first_name']); ?>" placeholder="First Name">
-                                              <label class="required">Last Name</label>
-                                              <input type="text" name="last_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['last_name']); ?>" placeholder="Last Name">
-                                              <label class="required">Email</label>
-                                              <input type="email" name="email" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['email']); ?>" placeholder="Email">
-                                              <label>Password</label>
+                                              <div class="row">
+                                                  <div class="col-md-6">
+                                                      <label class="required">First Name</label>
+                                                      <input type="text" name="first_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['first_name']); ?>" placeholder="First Name">
+                                                  </div>
+                                                  <div class="col-md-6">
+                                                      <label>Middle Name</label>
+                                                      <input type="text" name="middle_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['middle_name'] ?? ''); ?>" placeholder="Middle Name">
+                                                  </div>
+                                              </div>
+                                              <div class="row">
+                                                  <div class="col-md-6">
+                                                      <label class="required">Last Name</label>
+                                                      <input type="text" name="last_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['last_name']); ?>" placeholder="Last Name">
+                                                  </div>
+                                                  <div class="col-md-6">
+                                                      <label class="required">Email</label>
+                                                      <input type="email" name="email" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['email']); ?>" placeholder="Email">
+                                                  </div>
+                                              </div>
+                                              <label>Current Password</label>
                                               <input type="text" value="<?php echo htmlspecialchars($edit_account['password'] ?? 'Not available'); ?>" class="form-control mb-2" readonly>
                                           </div>
                                           <div class="modal-footer">
@@ -1612,7 +1496,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                 <table class="table table-borderless align-middle">
                                     <thead>
                                         <tr>
-                                            <th>User</th>
                                             <th>Account Type</th>
                                             <th>Created By</th>
                                             <th>Reason</th>
@@ -1622,38 +1505,10 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                     <tbody>
                                         <?php foreach ($audit_logs as $log) : ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($log['created_user_id']); ?></td>
                                                 <td><?php echo htmlspecialchars($log['account_type']); ?></td>
                                                 <td><?php echo htmlspecialchars($log['first_name'] . ' ' . $log['last_name']); ?></td>
                                                 <td><?php echo htmlspecialchars($log['creation_reason']); ?></td>
                                                 <td><?php echo htmlspecialchars($log['created_at']); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    <?php elseif (isset($_GET['tab']) && $_GET['tab'] == 'role') : ?>
-                        <div class="panel">
-                            <div class="panel-header mb-2">
-                                <h6>Role Permissions</h6>
-                                <p>System roles and descriptions</p>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-borderless align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>Role Name</th>
-                                            <th>Description</th>
-                                            <th>Created At</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($roles as $r) : ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($r['role_name']); ?></td>
-                                                <td><?php echo htmlspecialchars($r['role_description']); ?></td>
-                                                <td><?php echo htmlspecialchars($r['created_at']); ?></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -1794,177 +1649,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                         </div>
                     </div>
                     
-                <?php elseif ($section === 'events') : ?>
-                    <div class="alert-reminder">
-                        <strong>Reminder: Complete Vaccination Records</strong>
-                        <span class="badge bg-danger ms-2">Important</span><br>
-                        <span style="font-size:.97em;">Please ensure all vaccination records are updated before the end of the month.</span>
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-5">
-                            <div class="calendar-box mb-4">
-                                <div class="calendar-header">Community Calendar</div>
-                                <div style="font-size:.98em;color:#5c6872;">Schedule of health and nutrition activities</div>
-                                <div class="mt-2 mb-3">
-                                    <table class="calendar-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Su</th>
-                                                <th>Mo</th>
-                                                <th>Tu</th>
-                                                <th>We</th>
-                                                <th>Th</th>
-                                                <th>Fr</th>
-                                                <th>Sa</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php
-                                            $firstDay = strtotime('2025-10-01');
-                                            $startWeekDay = date('w', $firstDay);
-                                            $daysInMonth = 31;
-                                            $week = [];
-                                            $day = 1;
-                                            for ($r = 0; $r < 6; $r++) {
-                                                echo '<tr>';
-                                                for ($c = 0; $c < 7; $c++) {
-                                                    if ($r == 0 && $c < $startWeekDay) {
-                                                        echo '<td></td>';
-                                                    } elseif ($day > $daysInMonth) {
-                                                        echo '<td></td>';
-                                                    } else {
-                                                        $selected = ($day == 3) ? 'selected' : '';
-                                                        echo "<td class='$selected'>$day</td>";
-                                                        $day++;
-                                                    }
-                                                }
-                                                echo '</tr>';
-                                            }
-                                            ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal"><i class="bi bi-calendar-plus"></i> New Event</button>
-                            </div>
-                            <div>
-                                <div style="font-weight:600;font-size:1.01em;">Upcoming Events</div>
-                                <?php foreach ($events as $ev) : ?>
-                                    <div class="event-card mb-2">
-                                        <div style="font-weight:600;"><?php echo htmlspecialchars($ev['title']); ?></div>
-                                        <div>
-                                            <span class="badge bg-<?php echo htmlspecialchars($ev['color']); ?> me-2"><?php echo htmlspecialchars($ev['type']); ?></span>
-                                            <i class="bi bi-calendar-event me-2"></i><?php echo htmlspecialchars($ev['date']); ?>
-                                            <?php if ($ev['time']) : ?>
-                                                <i class="bi bi-clock ms-2 me-1"></i><?php echo htmlspecialchars($ev['time']); ?>
-                                            <?php endif; ?>
-                                            <a class="btn btn-link btn-sm p-0 ms-2" href="?section=events&edit=<?php echo $ev['event_id']; ?>">Edit</a>
-                                        </div>
-                                        <div style="font-size:.97em;color:#5c6872;"><?php echo htmlspecialchars($ev['desc']); ?></div>
-                                        <div style="font-size:.97em;color:#5c6872;"><i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($ev['location']); ?></div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div class="col-lg-7">
-                            <div style="font-weight:600;font-size:1.01em;margin-bottom:.7em;">Event Timeline</div>
-                            <ul class="timeline-list">
-                                <?php foreach ($timeline as $te) : ?>
-                                    <li>
-                                        <div class="timeline-icon"><i class="bi bi-calendar-check"></i></div>
-                                        <div>
-                                            <div style="font-weight:600;"><?php echo htmlspecialchars($te['title']); ?></div>
-                                            <div style="font-size:.98em;color:#5c6872;"><?php echo htmlspecialchars($te['date']); ?> <span class="ms-2 text-success"><?php echo $te['participants']; ?> expected participants</span></div>
-                                        </div>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="modal fade" id="addEventModal" tabindex="-1">
-                        <div class="modal-dialog">
-                            <form method="POST" action="?section=events">
-                                <input type="hidden" name="add_event" value="1">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5>New Event</h5>
-                                    </div>
-                                    <div class="modal-body">
-                                        <label class="required">Event Title</label>
-                                        <input type="text" name="event_title" required class="form-control mb-2" placeholder="Event Title">
-                                        <label>Description</label>
-                                        <textarea name="event_description" class="form-control mb-2" placeholder="Description"></textarea>
-                                        <label class="required">Event Type</label>
-                                        <select name="event_type" class="form-control mb-2" required>
-                                            <option value="vaccination">Vaccination</option>
-                                            <option value="nutrition">Nutrition</option>
-                                            <option value="education">Education</option>
-                                            <option value="maternal">Maternal</option>
-                                            <option value="supplementation">Supplementation</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                        <label class="required">Event Date</label>
-                                        <input type="date" name="event_date" required class="form-control mb-2">
-                                        <label>Event Time</label>
-                                        <input type="time" name="event_time" class="form-control mb-2">
-                                        <label>Location</label>
-                                        <input type="text" name="location" class="form-control mb-2" placeholder="Location">
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-success">Add Event</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    
-                    <?php if ($edit_event) : ?>
-                        <div class="modal fade show" id="editEventModal" tabindex="-1" style="display:block" aria-modal="true" role="dialog">
-                            <div class="modal-dialog">
-                                <form method="POST" action="?section=events">
-                                    <input type="hidden" name="edit_event" value="1">
-                                    <input type="hidden" name="event_id" value="<?php echo $edit_event['event_id']; ?>">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5>Edit Event</h5>
-                                        </div>
-                                        <div class="modal-body">
-                                            <label class="required">Event Title</label>
-                                            <input type="text" name="event_title" required class="form-control mb-2" value="<?php echo htmlspecialchars($edit_event['event_title']); ?>" placeholder="Event Title">
-                                            <label>Description</label>
-                                            <textarea name="event_description" class="form-control mb-2" placeholder="Description"><?php echo htmlspecialchars($edit_event['event_description']); ?></textarea>
-                                            <label class="required">Event Type</label>
-                                            <select name="event_type" class="form-control mb-2" required>
-                                                <?php
-                                                $types = ['vaccination', 'nutrition', 'education', 'maternal', 'supplementation', 'other'];
-                                                foreach ($types as $type) {
-                                                    echo "<option value='$type'" . ($type == $edit_event['event_type'] ? ' selected' : '') . ">$type</option>";
-                                                }
-                                                ?>
-                                            </select>
-                                            <label class="required">Event Date</label>
-                                            <input type="date" name="event_date" required class="form-control mb-2" value="<?php echo htmlspecialchars($edit_event['event_date']); ?>">
-                                            <label>Event Time</label>
-                                            <input type="time" name="event_time" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_event['event_time']); ?>">
-                                            <label>Location</label>
-                                            <input type="text" name="location" class="form-control mb-2" placeholder="Location" value="<?php echo htmlspecialchars($edit_event['location']); ?>">
-                                        </div>
-                                        <div class="modal-footer">
-                                            <a href="?section=events" class="btn btn-outline-secondary">Cancel</a>
-                                            <button type="submit" class="btn btn-success">Save</button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        <script>
-                            document.body.style.overflow = 'hidden';
-                        </script>
-                    <?php endif; ?>
-                    
                 <?php else : ?>
                     <div class="mb-4">
                         <h6 class="mb-3" style="font-size:.75rem; font-weight:600; color:#162630;">System Overview</h6>
@@ -2027,15 +1711,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                     <div>
                                         <div style="font-weight:600;">Generate Report</div>
                                         <div style="font-size:.85em;color:#5c6872;">Health & nutrition data</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="card-action" onclick="location.href='?section=parent_accounts'">
-                                    <div class="icon"><i class="bi bi-people"></i></div>
-                                    <div>
-                                        <div style="font-weight:600;">Parent Portal</div>
-                                        <div style="font-size:.85em;color:#5c6872;">Manage parent accounts</div>
                                     </div>
                                 </div>
                             </div>
@@ -2205,13 +1880,65 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
             alert('Bulk actions panel will be implemented');
         };
         
-        window.viewUserDetails = function(userId) {
-            alert('User details view for ID: ' + userId);
+        window.resetPassword = function(userId) {
+            if (confirm('Are you sure you want to reset the password for this user? A new password will be generated and sent to their email.')) {
+                // Show loading state
+                const button = event.target.closest('button');
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+                button.disabled = true;
+                
+                // Simulate API call
+                fetch('?section=accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `reset_password=1&user_id=${userId}&csrf_token=${window.__ADMIN_CSRF}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Password reset successfully! New password: ' + data.new_password);
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to reset password'));
+                    }
+                })
+                .catch(() => {
+                    alert('Error resetting password. Please try again.');
+                })
+                .finally(() => {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                });
+            }
         };
         
-        window.resetPassword = function(userId) {
-            if (confirm('Are you sure you want to reset the password for this user?')) {
-                alert('Password reset functionality will be implemented for ID: ' + userId);
+        window.toggleUserStatus = function(userId, newStatus) {
+            const action = newStatus ? 'activate' : 'deactivate';
+            const message = newStatus 
+                ? 'Are you sure you want to activate this user? They will be able to log in again.'
+                : 'Are you sure you want to deactivate this user? They will not be able to log in until reactivated.';
+            
+            if (confirm(message)) {
+                fetch('?section=accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `toggle_active=1&user_id=${userId}&is_active=${newStatus}&csrf_token=${window.__ADMIN_CSRF}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || `Failed to ${action} user`));
+                    }
+                })
+                .catch(() => {
+                    alert(`Error ${action}ing user. Please try again.`);
+                });
             }
         };
         
@@ -2236,26 +1963,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
             }
         };
         
-        function toggleActive(userId, isChecked) {
-            fetch('?section=accounts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: `toggle_active=1&user_id=${userId}&is_active=${isChecked ? 1 : 0}&csrf_token=${window.__ADMIN_CSRF}`
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.ok) {
-                        alert('Failed to update status: ' + (data.error || 'Unknown error'));
-                        location.reload();
-                    }
-                })
-                .catch(() => {
-                    alert('Error updating status');
-                    location.reload();
-                });
-        }
         
         // Auto-generate username and password
         function generateCredentials() {
@@ -2310,14 +2017,66 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                 }, 2000);
             }
             
-            // Add event listeners for auto-generation
-            const firstNameField = document.querySelector('input[name="first_name"]');
-            const lastNameField = document.querySelector('input[name="last_name"]');
-            const birthdayField = document.querySelector('input[name="birthday"]');
-            
-            if (firstNameField) firstNameField.addEventListener('input', generateCredentials);
-            if (lastNameField) lastNameField.addEventListener('input', generateCredentials);
-            if (birthdayField) birthdayField.addEventListener('input', generateCredentials);
+        // Add event listeners for auto-generation
+        const firstNameField = document.querySelector('input[name="first_name"]');
+        const lastNameField = document.querySelector('input[name="last_name"]');
+        const birthdayField = document.querySelector('input[name="birthday"]');
+        
+        if (firstNameField) firstNameField.addEventListener('input', generateCredentials);
+        if (lastNameField) lastNameField.addEventListener('input', generateCredentials);
+        if (birthdayField) birthdayField.addEventListener('input', generateCredentials);
+        
+        
+        // Auto-dismiss success/error messages
+        const alertMessages = document.querySelectorAll('.alert');
+        alertMessages.forEach(alert => {
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+                if (alert.classList.contains('alert-success') || alert.classList.contains('alert-danger')) {
+                    alert.style.transition = 'opacity 0.5s ease-out';
+                    alert.style.opacity = '0';
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 500);
+                }
+            }, 3000);
+        });
+        
+        // Specific auto-dismiss for event success messages
+        const eventSuccessMessages = document.querySelectorAll('.alert-success');
+        eventSuccessMessages.forEach(alert => {
+            // Check if it's an event-related success message
+            if (alert.textContent.includes('Event') || alert.textContent.includes('event')) {
+                // Add close button if not present
+                if (!alert.querySelector('.btn-close')) {
+                    const closeBtn = document.createElement('button');
+                    closeBtn.className = 'btn-close';
+                    closeBtn.setAttribute('aria-label', 'Close');
+                    closeBtn.style.position = 'absolute';
+                    closeBtn.style.right = '10px';
+                    closeBtn.style.top = '50%';
+                    closeBtn.style.transform = 'translateY(-50%)';
+                    closeBtn.onclick = () => {
+                        alert.style.transition = 'opacity 0.3s ease-out';
+                        alert.style.opacity = '0';
+                        setTimeout(() => alert.remove(), 300);
+                    };
+                    alert.style.position = 'relative';
+                    alert.style.paddingRight = '40px';
+                    alert.appendChild(closeBtn);
+                }
+                
+                // Auto-dismiss after 2.5 seconds
+                setTimeout(() => {
+                    alert.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 500);
+                }, 2500);
+            }
+        });
             
             // Nutrition chart
             const ctx = document.getElementById('nutritionChart')?.getContext('2d');
@@ -2368,6 +2127,7 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                 });
             }
         });
+        
     </script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
