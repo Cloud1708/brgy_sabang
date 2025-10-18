@@ -282,34 +282,206 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 /* Focus */
 :focus-visible{outline:3px solid var(--focus);outline-offset:3px;}
 
-/* Mobile */
+/* Mobile Responsive Design */
 @media (max-width: 991.98px){
+  /* Fix dark screen issue - only show overlay when sidebar is open */
   .sidebar-modern{
     position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%);transition:.35s;
+    z-index:1050;width:280px;
+  }
+  .sidebar-modern.show{
+    transform:translateX(0);
     box-shadow:0 0 0 400vmax rgba(0,0,0,.35);
   }
-  .sidebar-modern.show{transform:translateX(0);}
-  .topbar-modern{position:fixed;top:0;left:0;right:0;z-index:50;}
-  .content-area{padding-top:70px;}
-  #moduleContent{padding:1.5rem 1.3rem 2.4rem;}
+  
+  /* Mobile topbar */
+  .topbar-modern{
+    position:fixed;top:0;left:0;right:0;z-index:50;height:60px;
+    padding:0 1rem;display:flex;align-items:center;gap:1rem;
+    background:var(--surface);border-bottom:1px solid var(--border);
+  }
+  
+  /* Mobile content area */
+  .content-area{
+    padding-top:60px;width:100%;height:100vh;overflow:hidden;
+  }
+  
+  #moduleContent{
+    padding:1rem;height:calc(100vh - 60px);overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  
   .mobile-toggle-btn{display:inline-flex;}
+  
+  /* Mobile metric cards - single column */
+  .metric-grid{
+    display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:1.5rem;
+  }
+  
+  .metric-card{
+    min-height:100px;padding:1rem;
+  }
+  
+  .metric-value{font-size:1.5rem;}
+  .metric-title{font-size:.75rem;}
+  
+  /* Mobile dashboard panels */
+  .dashboard-panels{
+    display:flex;flex-direction:column;gap:1rem;
+  }
+  
+  .panel-card{
+    padding:1rem;
+  }
+  
+  /* Mobile tables */
+  .table-responsive-custom{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,.1);
+  }
+  
+  .table-clean{
+    font-size:.8rem;min-width:600px;
+  }
+  
+  .table-clean thead th{
+    padding:.5rem;font-size:.7rem;
+  }
+  
+  .table-clean tbody td{
+    padding:.5rem;
+  }
+}
+
+/* Extra Small Mobile (320px - 480px) */
+@media (max-width: 480px){
+  .topbar-modern{
+    height:55px;padding:0 .75rem;
+  }
+  
+  .content-area{padding-top:55px;}
+  #moduleContent{padding:.75rem;height:calc(100vh - 55px);}
+  
+  .metric-card{
+    min-height:80px;padding:.75rem;
+  }
+  
+  .metric-value{font-size:1.3rem;}
+  .metric-title{font-size:.7rem;}
+  
+  .dashboard-welcome{font-size:1.1rem;}
+  .dashboard-sub{font-size:.8rem;}
+  
+  .user-chip{
+    padding:.4rem .6rem;font-size:.75rem;
+  }
+  
+  .user-avatar{
+    height:30px;width:30px;font-size:.8rem;
+  }
+  
+  .btn{padding:.4rem .6rem;font-size:.8rem;}
+  .btn-sm{padding:.3rem .5rem;font-size:.75rem;}
+  
+  .form-control, .form-select{
+    font-size:.85rem;padding:.5rem .6rem;
+  }
+}
+
+/* Small Mobile (481px - 576px) */
+@media (min-width: 481px) and (max-width: 576px){
+  .metric-grid{grid-template-columns:repeat(2,1fr);gap:1rem;}
+  .metric-card{min-height:90px;}
+  .metric-value{font-size:1.4rem;}
+}
+
+/* Medium Mobile (577px - 768px) */
+@media (min-width: 577px) and (max-width: 768px){
+  .metric-grid{grid-template-columns:repeat(2,1fr);gap:1.2rem;}
+  .metric-card{min-height:110px;}
+  .metric-value{font-size:1.6rem;}
+}
+
+/* Large Mobile/Small Tablet (769px - 991px) */
+@media (min-width: 769px) and (max-width: 991px){
+  .metric-grid{grid-template-columns:repeat(3,1fr);gap:1.3rem;}
+  .metric-card{min-height:120px;}
+  .metric-value{font-size:1.7rem;}
+}
+
+/* Mobile Bottom Navigation */
+@media (max-width: 991.98px){
+  .mobile-bottom-nav{
+    display:none;
+  }
+  
+  .mobile-nav-item{
+    display:flex;flex-direction:column;align-items:center;
+    padding:.5rem;cursor:pointer;transition:all .2s;
+    color:var(--sidebar-muted);font-size:.7rem;
+    min-width:60px;
+  }
+  
+  .mobile-nav-item i{
+    font-size:1.2rem;margin-bottom:.2rem;
+  }
+  
+  .mobile-nav-item.active{
+    color:var(--sidebar-accent);
+  }
+  
+  .mobile-nav-item:hover{
+    color:var(--sidebar-accent-hover);
+    transform:translateY(-2px);
+  }
+  
+  /* Adjust content area for bottom nav */
+  #moduleContent{
+    padding-bottom:80px; /* Space for bottom nav */
+  }
+  
+  /* Touch-friendly improvements */
+  .btn, .nav-link-modern, .form-control, .form-select{
+    min-height:44px; /* iOS recommended touch target */
+  }
+  
+  /* Mobile navigation improvements */
+  .nav-link-modern{
+    padding:.8rem 1rem;margin-bottom:.25rem;
+  }
+  
+  .nav-list{
+    padding:0 .5rem 1rem;
+  }
+  
+  .nav-section-title{
+    padding:1rem 1rem .5rem;font-size:.7rem;
+  }
+  
+  /* Mobile brand block */
+  .brand-block{
+    padding:1rem;border-bottom:1px solid var(--sidebar-border);
+  }
+  
+  .brand-icon{
+    height:45px;width:45px;font-size:20px;
+  }
+  
+  .brand-text{
+    font-size:.95rem;
+  }
+  
+  .brand-text small{
+    font-size:.6rem;
+  }
 }
 
 /* Fade */
 .fade-in{animation:fadeIn .5s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 
-/* Zoom Control */
-.zoom-controls{
-  position:fixed;bottom:14px;right:14px;z-index:100;display:flex;flex-direction:column;gap:.35rem;
-}
-.zoom-controls button{
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  font-size:.85rem;font-weight:700;padding:.55rem .75rem;color:#1c2f36;min-width:46px;
-  box-shadow:var(--shadow-sm);
-}
-.zoom-controls button:hover{background:#eef5f2;}
-.zoom-controls button:active{transform:translateY(1px);}
 
 /* === Navigation Dropdown === */
 .nav-dropdown{position:relative;}
@@ -1153,12 +1325,30 @@ datalist option {
   </div>
 </div>
 
-<!-- Zoom Controls -->
-<div class="zoom-controls" id="zoomControls">
-  <button id="zoomIn" title="Larger (A+)">A+</button>
-  <button id="zoomOut" title="Smaller (A-)">A-</button>
-  <button id="zoomReset" title="Reset Size">Reset</button>
-</div>
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-bottom-nav d-lg-none">
+  <div class="mobile-nav-item active" data-module="health_stats">
+    <i class="bi bi-grid-1x2"></i>
+    <span>Dashboard</span>
+  </div>
+  <div class="mobile-nav-item" data-module="maternal_health">
+    <i class="bi bi-person-heart"></i>
+    <span>Maternal</span>
+  </div>
+  <div class="mobile-nav-item" data-module="vaccination_entry">
+    <i class="bi bi-capsule"></i>
+    <span>Vaccines</span>
+  </div>
+  <div class="mobile-nav-item" data-module="health_records_all">
+    <i class="bi bi-journal-medical"></i>
+    <span>Records</span>
+  </div>
+  <div class="mobile-nav-item" data-module="health_calendar">
+    <i class="bi bi-calendar3"></i>
+    <span>Events</span>
+  </div>
+</nav>
+
 
 <script>
 /* CSRF */
@@ -9084,17 +9274,26 @@ document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
       // Close all other dropdowns
       document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
       
-      // Toggle current dropdown
-      if(!isActive) {
-        dropdown.classList.add('active');
-        // Only load module if not already loaded
-        if(!document.querySelector('.nav-link-modern[data-module="maternal_health"]').classList.contains('active')) {
-          setActiveLink(link);
-          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+      if (window.innerWidth < 992) {
+        // Mobile: only toggle dropdown, don't load module, don't close sidebar
+        if(!isActive) {
+          dropdown.classList.add('active');
+        } else {
+          dropdown.classList.remove('active');
         }
       } else {
-        // If already active, just toggle dropdown without reloading
-        dropdown.classList.remove('active');
+        // Desktop: toggle dropdown and load module
+        if(!isActive) {
+          dropdown.classList.add('active');
+          // Only load module if not already loaded
+          if(!document.querySelector('.nav-link-modern[data-module="maternal_health"]').classList.contains('active')) {
+            setActiveLink(link);
+            loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+          }
+        } else {
+          // If already active, just toggle dropdown without reloading
+          dropdown.classList.remove('active');
+        }
       }
     }
     // Handle dropdown toggle for event scheduling
@@ -9105,17 +9304,26 @@ document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
       // Close all other dropdowns
       document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
       
-      // Toggle current dropdown
-      if(!isActive) {
-        dropdown.classList.add('active');
-        // Only load module if not already loaded
-        if(!document.querySelector('.nav-link-modern[data-module="health_calendar"]').classList.contains('active')) {
-          setActiveLink(link);
-          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+      if (window.innerWidth < 992) {
+        // Mobile: only toggle dropdown, don't load module, don't close sidebar
+        if(!isActive) {
+          dropdown.classList.add('active');
+        } else {
+          dropdown.classList.remove('active');
         }
       } else {
-        // If already active, just toggle dropdown without reloading
-        dropdown.classList.remove('active');
+        // Desktop: toggle dropdown and load module
+        if(!isActive) {
+          dropdown.classList.add('active');
+          // Only load module if not already loaded
+          if(!document.querySelector('.nav-link-modern[data-module="health_calendar"]').classList.contains('active')) {
+            setActiveLink(link);
+            loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+          }
+        } else {
+          // If already active, just toggle dropdown without reloading
+          dropdown.classList.remove('active');
+        }
       }
     }
     // Handle dropdown toggle for immunization
@@ -9126,17 +9334,26 @@ document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
       // Close all other dropdowns
       document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
       
-      // Toggle current dropdown
-      if(!isActive) {
-        dropdown.classList.add('active');
-        // Only load module if not already loaded
-        if(!document.querySelector('.nav-link-modern[data-module="vaccination_entry"]').classList.contains('active')) {
-          setActiveLink(link);
-          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+      if (window.innerWidth < 992) {
+        // Mobile: only toggle dropdown, don't load module, don't close sidebar
+        if(!isActive) {
+          dropdown.classList.add('active');
+        } else {
+          dropdown.classList.remove('active');
         }
       } else {
-        // If already active, just toggle dropdown without reloading
-        dropdown.classList.remove('active');
+        // Desktop: toggle dropdown and load module
+        if(!isActive) {
+          dropdown.classList.add('active');
+          // Only load module if not already loaded
+          if(!document.querySelector('.nav-link-modern[data-module="vaccination_entry"]').classList.contains('active')) {
+            setActiveLink(link);
+            loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+          }
+        } else {
+          // If already active, just toggle dropdown without reloading
+          dropdown.classList.remove('active');
+        }
       }
     }
     // Handle dropdown toggle for health reports
@@ -9147,17 +9364,26 @@ document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
       // Close all other dropdowns
       document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
       
-      // Toggle current dropdown
-      if(!isActive) {
-        dropdown.classList.add('active');
-        // Only load module if not already loaded
-        if(!document.querySelector('.nav-link-modern[data-module="health_reports"]').classList.contains('active')) {
-          setActiveLink(link);
-          loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+      if (window.innerWidth < 992) {
+        // Mobile: only toggle dropdown, don't load module, don't close sidebar
+        if(!isActive) {
+          dropdown.classList.add('active');
+        } else {
+          dropdown.classList.remove('active');
         }
       } else {
-        // If already active, just toggle dropdown without reloading
-        dropdown.classList.remove('active');
+        // Desktop: toggle dropdown and load module
+        if(!isActive) {
+          dropdown.classList.add('active');
+          // Only load module if not already loaded
+          if(!document.querySelector('.nav-link-modern[data-module="health_reports"]').classList.contains('active')) {
+            setActiveLink(link);
+            loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
+          }
+        } else {
+          // If already active, just toggle dropdown without reloading
+          dropdown.classList.remove('active');
+        }
       }
     } 
     else {
@@ -9168,7 +9394,10 @@ document.querySelectorAll('.nav-link-modern[data-module]').forEach(link=>{
       loadModule(link.dataset.module, link.dataset.label||link.textContent.trim());
     }
     
-    if(window.innerWidth<992) document.getElementById('sidebar').classList.remove('show');
+    // Only close sidebar on mobile if it's not a dropdown toggle
+    if(window.innerWidth<992 && !link.classList.contains('dropdown-toggle')) {
+      document.getElementById('sidebar').classList.remove('show');
+    }
     
     // Reset debounce flag after a short delay
     setTimeout(() => {
@@ -9279,6 +9508,11 @@ document.querySelectorAll('.dropdown-item[data-tab]').forEach(item=>{
       }
     }
     
+    // Close sidebar on mobile after dropdown item selection
+    if (window.innerWidth < 992) {
+      document.getElementById('sidebar').classList.remove('show');
+    }
+    
     // Reset debounce flag after a short delay
     setTimeout(() => {
       isTabProcessing = false;
@@ -9286,18 +9520,50 @@ document.querySelectorAll('.dropdown-item[data-tab]').forEach(item=>{
   });
 });
 
-const sidebar=document.getElementById('sidebar');
-document.getElementById('sidebarToggle')?.addEventListener('click',()=>sidebar.classList.toggle('show'));
-document.addEventListener('click',e=>{
-  if(window.innerWidth>=992) return;
-  if(sidebar.classList.contains('show') && !sidebar.contains(e.target) && !e.target.closest('#sidebarToggle')){
-    sidebar.classList.remove('show');
+// Mobile Sidebar Toggle
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+
+sidebarToggle?.addEventListener('click', () => {
+  sidebar.classList.toggle('show');
+});
+
+// Close sidebar when clicking outside
+document.addEventListener('click', e => {
+  if (window.innerWidth < 992) {
+    // Mobile behavior
+    if (sidebar.classList.contains('show') && 
+        !sidebar.contains(e.target) && 
+        !e.target.closest('#sidebarToggle')) {
+      sidebar.classList.remove('show');
+    }
   }
   
   // Close dropdowns when clicking outside
-  if(!e.target.closest('.nav-dropdown')) {
+  if (!e.target.closest('.nav-dropdown')) {
     document.querySelectorAll('.nav-dropdown').forEach(dd => dd.classList.remove('active'));
   }
+});
+
+// Mobile Bottom Navigation
+document.querySelectorAll('.mobile-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    // Remove active class from all items
+    document.querySelectorAll('.mobile-nav-item').forEach(nav => nav.classList.remove('active'));
+    
+    // Add active class to clicked item
+    item.classList.add('active');
+    
+    // Get module from data attribute
+    const module = item.getAttribute('data-module');
+    if (module) {
+      // Trigger the same navigation as sidebar
+      const navLink = document.querySelector(`[data-module="${module}"]`);
+      if (navLink) {
+        navLink.click();
+      }
+    }
+  });
 });
 
 /* Capability-based hiding */
@@ -9313,25 +9579,6 @@ fetch(api.caps).then(r=>r.json()).then(j=>{
     });
 }).catch(()=>{});
 
-/* Font Zoom Controls */
-const zoomKey='bhw_zoom_px';
-function applyZoom(px){
-  document.documentElement.style.setProperty('--zoom-step', px+'px');
-}
-function currentZoom(){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom-step'))||0;}
-(function initZoom(){
-  const stored=localStorage.getItem(zoomKey);
-  if(stored) applyZoom(parseFloat(stored));
-  document.getElementById('zoomIn').addEventListener('click',()=>{
-    let z=currentZoom()+1; if(z>6) z=6; applyZoom(z); localStorage.setItem(zoomKey,z);
-  });
-  document.getElementById('zoomOut').addEventListener('click',()=>{
-    let z=currentZoom()-1; if(z<-2) z=-2; applyZoom(z); localStorage.setItem(zoomKey,z);
-  });
-  document.getElementById('zoomReset').addEventListener('click',()=>{
-    applyZoom(0); localStorage.removeItem(zoomKey);
-  });
-})();
 
 
 /* === Mother Registration Two-Step Wizard (single source) === */

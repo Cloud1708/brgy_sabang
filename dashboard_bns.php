@@ -33,6 +33,90 @@ $backUrl =
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
+body, .layout-wrapper, .content-area, .topbar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+@media (max-width: 576px) {
+  .table-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+  }
+  .table-responsive table {
+    min-width: 800px !important;
+  }
+}
+/* Sidebar overlay covers content, sidebar is below sidebar */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 1040;
+}
+.sidebar {
+  z-index: 1051;
+}
+/* === Responsive Patch (drop-in, non-breaking) === */
+
+/* Use real viewport height on mobile (paired with JS snippet below) */
+.layout-wrapper{ height:calc(var(--vh, 1vh) * 100); }
+
+/* Sticky table headers on scroll, keeps your current header color */
+.table-responsive > table thead th{
+  position:sticky; top:0; z-index:2; background:#f8faf9;
+}
+
+/* General small‑screen refinements */
+@media (max-width: 992px){
+  .topbar{ padding:0 .9rem; }
+  main{ padding: .9rem .9rem calc(1.8rem + env(safe-area-inset-bottom)); }
+  .user-chip{ padding:.45rem .6rem; }
+  .user-avatar{ width:30px; height:30px; font-size:.72rem; }
+  /* Optional: hide search in very tight layouts */
+  .search-wrap{ display:none; }
+}
+
+/* Phone sizes */
+@media (max-width: 576px){
+  /* Stack stat tiles and lower tiles to single column */
+  .stat-grid{ grid-template-columns:1fr !important; }
+  .lower-grid{ grid-template-columns:1fr !important; }
+  .tile{ padding:.9rem; }
+  h1.page-title{ font-size:1.1rem; }
+  .page-header{ padding-bottom:.6rem; margin-bottom:1rem; }
+  .tile-header h5{ font-size:.62rem; }
+  .event-details{ flex-wrap:wrap; row-gap:.25rem; }
+  .event-title{ font-size:.72rem; }
+  .table-responsive{ -webkit-overflow-scrolling:touch; }
+    .topbar { margin-top: 0 !important; }
+}
+
+/* Ultra‑narrow devices: compress the user chip text */
+@media (max-width: 380px){
+  .user-chip span{ display:none; }             /* hide full name text label */
+  .user-chip .bi-chevron-down{ display:none; } /* hide small chevron */
+}
+
+/* Keep charts fluid */
+.svg-chart{ max-width:100%; height:auto; }
+
+/* Better tap targets for calendar days on touch devices */
+.calendar-day{
+  min-height:36px; display:flex; align-items:center; justify-content:center; border-radius:6px;
+}
+
+/* Modals: prevent content from overflowing the viewport on mobile */
+.modal-dialog{ margin:.75rem; }
+.modal-body{ max-height:calc(100dvh - 180px); overflow:auto; }
+
+/* Keep status chips from breaking oddly */
+.status-pill, .badge-status{ white-space:nowrap; }
+
+/* Allow alert rows/cards to wrap nicely on small screens */
+.case-item, .alert-row{ flex-wrap:wrap; row-gap:.35rem; }
 #quickStatsBox { display: none !important; }
 </style>
 
@@ -478,6 +562,9 @@ body{
   padding:0 1.6rem;
   font-size:.78rem;
   flex-shrink:0;
+  position: sticky;
+  top: 0;
+  z-index: 1040;
 }
 .btn-toggle{display:none;}
 /* NEW: current module title in the navbar */
@@ -1073,85 +1160,6 @@ h1.page-title{
   background:#f0f8f1;
 }
 .combobox-item .sub{ font-size:.6rem; color:#6a7a6d; }
-
-/* ——— BNS KPI sizing to match BHW ——— */
-
-/* Base font sizing (BHW uses 17px) */
-html { font-size: 17px; }
-
-/* Uniform grid for the top KPI row */
-.kpi-row, .metrics-row, .summary-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
-  gap: 1rem;
-}
-
-/* Card box sizing (catch-all for common class names) */
-.kpi-card, .metric-card, .summary-card, .stat-card {
-  padding: 1rem 1.2rem;
-  border-radius: 16px;
-  min-height: 122px; /* close to BHW card height */
-}
-
-/* Title/label sizing */
-.kpi-card .title,
-.metric-card .title,
-.summary-card .title,
-.stat-card .title,
-.kpi-title, .summary-title, .stat-title {
-  font-size: 0.72rem;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  font-weight: 700;
-  margin: 0;
-  color: #5e6a73;
-}
-
-/* Value/number sizing */
-.kpi-card .value,
-.metric-card .value,
-.summary-card .value,
-.stat-card .value,
-.kpi-value, .summary-value, .stat-value {
-  font-size: 2rem;
-  line-height: 1;
-  font-weight: 800;
-  color: #16242e;
-}
-
-/* Subtext (delta/status) */
-.kpi-card .sub,
-.metric-card .delta,
-.summary-card .sub,
-.stat-card .sub,
-.kpi-sub, .summary-sub, .stat-sub {
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-/* Icon sizing/position (if present) */
-.kpi-icon, .metric-icon {
-  position: absolute;
-  top: .8rem;
-  right: .8rem;
-  width: 42px;
-  height: 42px;
-  font-size: 1.15rem;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-}
-
-/* Responsive breakpoints like BHW */
-@media (max-width: 1100px) {
-  .kpi-row, .metrics-row, .summary-row {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
-  }
-}
-@media (max-width: 560px) {
-  .kpi-row, .metrics-row, .summary-row {
-    grid-template-columns: 1fr;
-  }
-}
 
 </style>
 
@@ -9907,6 +9915,21 @@ function loadPreviousRecords(childId, childProfile = null) {
     `;
   });
 }
+// ...existing code...
+</script>
+
+<script>
+/* Real viewport height for mobile (pairs with .layout-wrapper height) */
+(function(){
+  function setVh(){
+    var vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', vh + 'px');
+  }
+  setVh();
+  window.addEventListener('resize', setVh, { passive:true });
+  window.addEventListener('orientationchange', setVh, { passive:true });
+  window.addEventListener('pageshow', setVh, { passive:true });
+})();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

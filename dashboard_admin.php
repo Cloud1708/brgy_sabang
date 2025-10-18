@@ -1404,7 +1404,7 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                                         <?php if ($ac['is_active']) : ?>
                                                             <button class="btn btn-outline-danger btn-sm" onclick="toggleUserStatus(<?php echo $ac['user_id']; ?>, 0)" title="Deactivate User">
                                                                 <i class="bi bi-person-x"></i>
-                                                            </button>
+                                                        </button>
                                                         <?php else : ?>
                                                             <button class="btn btn-outline-success btn-sm" onclick="toggleUserStatus(<?php echo $ac['user_id']; ?>, 1)" title="Activate User">
                                                                 <i class="bi bi-person-check"></i>
@@ -1453,8 +1453,8 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                           <div class="modal-body">
                                               <div class="row">
                                                   <div class="col-md-6">
-                                                      <label class="required">First Name</label>
-                                                      <input type="text" name="first_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['first_name']); ?>" placeholder="First Name">
+                                              <label class="required">First Name</label>
+                                              <input type="text" name="first_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['first_name']); ?>" placeholder="First Name">
                                                   </div>
                                                   <div class="col-md-6">
                                                       <label>Middle Name</label>
@@ -1463,12 +1463,12 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                                               </div>
                                               <div class="row">
                                                   <div class="col-md-6">
-                                                      <label class="required">Last Name</label>
-                                                      <input type="text" name="last_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['last_name']); ?>" placeholder="Last Name">
+                                              <label class="required">Last Name</label>
+                                              <input type="text" name="last_name" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['last_name']); ?>" placeholder="Last Name">
                                                   </div>
                                                   <div class="col-md-6">
-                                                      <label class="required">Email</label>
-                                                      <input type="email" name="email" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['email']); ?>" placeholder="Email">
+                                              <label class="required">Email</label>
+                                              <input type="email" name="email" class="form-control mb-2" value="<?php echo htmlspecialchars($edit_account['email']); ?>" placeholder="Email">
                                                   </div>
                                               </div>
                                               <label>Current Password</label>
@@ -2017,14 +2017,14 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                 }, 2000);
             }
             
-        // Add event listeners for auto-generation
-        const firstNameField = document.querySelector('input[name="first_name"]');
-        const lastNameField = document.querySelector('input[name="last_name"]');
-        const birthdayField = document.querySelector('input[name="birthday"]');
-        
-        if (firstNameField) firstNameField.addEventListener('input', generateCredentials);
-        if (lastNameField) lastNameField.addEventListener('input', generateCredentials);
-        if (birthdayField) birthdayField.addEventListener('input', generateCredentials);
+            // Add event listeners for auto-generation
+            const firstNameField = document.querySelector('input[name="first_name"]');
+            const lastNameField = document.querySelector('input[name="last_name"]');
+            const birthdayField = document.querySelector('input[name="birthday"]');
+            
+            if (firstNameField) firstNameField.addEventListener('input', generateCredentials);
+            if (lastNameField) lastNameField.addEventListener('input', generateCredentials);
+            if (birthdayField) birthdayField.addEventListener('input', generateCredentials);
         
         
         // Auto-dismiss success/error messages
