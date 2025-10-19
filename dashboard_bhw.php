@@ -1209,7 +1209,7 @@ datalist option {
   <!-- Sidebar -->
   <aside class="sidebar-modern" id="sidebar">
     <div class="brand-block">
-      <div class="brand-icon"><i class="bi bi-heart-pulse"></i></div>
+      <img src="assets/img/sabang.jpg" alt="Barangay Sabang Logo" class="brand-icon" style="object-fit: cover; border: 2px solid rgba(4, 120, 87, 0.2);">
       <div class="brand-text">BHW Portal<small>Health Dashboard</small></div>
     </div>
     <div class="nav-section-title">Navigation</div>

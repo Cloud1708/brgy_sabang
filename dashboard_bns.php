@@ -1184,7 +1184,7 @@ h1.page-title{
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-icon">🌿</div>
+      <img src="assets/img/sabang.jpg" alt="Barangay Sabang Logo" class="brand-icon" style="object-fit: cover; border: 2px solid rgba(4, 120, 87, 0.2);">
       <div class="brand-text">
           Barangay Nutrition Scholars Portal
         <small>Nutrition System</small>
