@@ -62,6 +62,8 @@ if ($uid > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HealthKids Portal - Child Health Dashboard</title>
+    <link rel="icon" type="image/jpeg" href="assets/img/sabang.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="assets/img/sabang.jpg">
    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>

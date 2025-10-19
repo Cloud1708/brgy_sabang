@@ -151,6 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['username'])) {
   <meta charset="utf-8">
   <title>Parent Login | Barangay Health & Nutrition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/jpeg" href="assets/img/sabang.jpg">
+  <link rel="shortcut icon" type="image/jpeg" href="assets/img/sabang.jpg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css?v=20251005">
