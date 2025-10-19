@@ -18,7 +18,7 @@
     <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
       <img src="assets/img/Lipa_City_Seal.svg.png" alt="" width="60" height="60" class="d-inline-block align-text-top rounded-circle border">
       <img src="assets/img/sabang.jpg" alt="" width="60" height="60" class="d-inline-block align-text-top rounded-circle border">
-      <span class="px-3">Brgy. Sabang Health</span>
+  <span class="px-3">Brgy. Sabang Health Portal</span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
       <span class="navbar-toggler-icon"></span>
