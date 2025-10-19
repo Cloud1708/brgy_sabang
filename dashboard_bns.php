@@ -6664,6 +6664,53 @@ function renderFeedingProgramsModule(label) {
 }
 
 function renderNutritionCalendarModule(label) {
+  // SNIPPET B: Filter helpers and state
+  const filterState = { q: '', type: '', status: '' };
+
+  function wireEventFilters(onChange){
+    const search = document.getElementById('eventSearchInput');
+    const type   = document.getElementById('eventTypeFilter');
+    const status = document.getElementById('eventStatusFilter');
+
+    const apply = () => {
+      filterState.q = (search?.value || '').trim().toLowerCase();
+      filterState.type = (type?.value || '').trim();
+      filterState.status = (status?.value || '').trim();
+      if (typeof onChange === 'function') onChange();
+    };
+
+    search?.addEventListener('input', apply);
+    type?.addEventListener('change', apply);
+    status?.addEventListener('change', apply);
+
+    // initialize
+    apply();
+  }
+
+  function getFilterValues(){
+    return { ...filterState };
+  }
+
+  function isEventCompleted(ev){
+    return ev?.status === 'completed' || ev?.is_completed === 1 || !!ev?.completed_at;
+  }
+
+  function matchesEventFilters(ev, fv){
+    // Type
+    if (fv.type && String(ev.event_type || '') !== fv.type) return false;
+
+    // Status
+    if (fv.status === 'completed' && !isEventCompleted(ev)) return false;
+    if (fv.status === 'scheduled' && isEventCompleted(ev)) return false;
+
+    // Search across title/description/location
+    const q = fv.q;
+    if (q){
+      const hay = `${ev.event_title||''} ${ev.event_description||''} ${ev.location||''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
   showLoading(label);
 
   // Submenu default type; empty means parent "Event Scheduling" was clicked
@@ -6713,7 +6760,10 @@ function renderNutritionCalendarModule(label) {
       setupCalendarNavigation(events, currentCalendarDate, (newSelectedStr) => {
         selectedDateStr = newSelectedStr;
         // Update date-panel list when in list mode
-        if (!isFormMode) renderEventsForSelectedDate(events, selectedDateStr);
+        if (!isFormMode) {
+          const fv = getFilterValues();
+          renderEventsForSelectedDate(events, selectedDateStr, fv);
+        }
       });
 
       // Mode-specific wiring
@@ -6732,9 +6782,16 @@ function renderNutritionCalendarModule(label) {
           document.getElementById('eventFormPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       } else {
-        // List mode: prepare “Events on [date]” and “Upcoming” lists and wire modal scheduling
-        renderEventsForSelectedDate(events, selectedDateStr);
-        renderUpcomingEvents(events);
+        // SNIPPET C: Wire filters and do first render (list mode)
+        wireEventFilters(() => {
+          const fv = getFilterValues();
+          renderEventsForSelectedDate(events, selectedDateStr, fv);
+          renderUpcomingEvents(events, fv);
+        });
+        // Initial paint with filters
+        const fv = getFilterValues();
+        renderEventsForSelectedDate(events, selectedDateStr, fv);
+        renderUpcomingEvents(events, fv);
         wireModalScheduleForm(); // opens + saves via existing modal
         document.getElementById('scheduleEventActionBtn')?.addEventListener('click', (e) => {
           e.preventDefault();
@@ -6814,6 +6871,34 @@ function renderNutritionCalendarModule(label) {
 
         <!-- Right: Lists -->
         <div class="col-md-8">
+            <!-- SNIPPET A: Filter Bar -->
+            <div class="tile mb-3" id="eventsFilterBar">
+              <div class="tile-header mb-2">
+                <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">SEARCH & FILTER</h5>
+              </div>
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-6">
+                  <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.35rem;">Search</label>
+                  <div class="position-relative">
+                    <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.75rem;color:var(--muted);"></i>
+                    <input type="text" id="eventSearchInput" class="form-control"
+                           placeholder="Title, description, location..."
+                           style="font-size:.7rem;padding:.55rem .8rem .55rem 2.2rem;">
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label" style="font-size:.65rem;font-weight:600;color:var(--muted);margin-bottom:.35rem;">Type</label>
+                  <select id="eventTypeFilter" class="form-select" style="font-size:.7rem;padding:.55rem .8rem;">
+                    <option value="">All Types</option>
+                    <option value="health">Health</option>
+                    <option value="feeding">Feeding Program</option>
+                    <option value="weighing">Weighing</option>
+                    <option value="nutrition">Nutrition Education</option>
+                  </select>
+                </div>
+                <!-- Status filter removed as requested -->
+              </div>
+            </div>
           <div class="tile mb-3">
             <div class="tile-header mb-1">
               <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">EVENTS ON <span id="selectedDateLabel">${escapeHtml(selectedLabel)}</span></h5>
@@ -6935,13 +7020,7 @@ function renderNutritionCalendarModule(label) {
                 </div>
                 <div class="form-grid">
                   <div class="form-group"><label class="form-label">Target Audience *</label><input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255" required></div>
-                  <div class="form-group">
-                    <label class="form-label">Publication Status</label>
-                    <select class="form-select" name="is_published">
-                      <option value="1">Published (Visible to public)</option>
-                      <option value="0">Draft (Not visible yet)</option>
-                    </select>
-                  </div>
+                  <!-- Publication Status removed: auto-publish is enforced in JS -->
                 </div>
               </div>
 
@@ -6994,8 +7073,13 @@ function renderNutritionCalendarModule(label) {
             document.getElementById('eventFormPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
 
-          // If list mode, update the "Events on [date]" panel
+          // If list mode, update the "Events on [date]" panel using current filters
           if (typeof onDaySelected === 'function') onDaySelected(phStr);
+          // SNIPPET F: Always re-render day list with current filters
+          if (document.getElementById('eventsOnDayList')) {
+            const fv = getFilterValues();
+            renderEventsForSelectedDate(events, phStr, fv);
+          }
         });
       });
     }
@@ -7016,37 +7100,36 @@ function renderNutritionCalendarModule(label) {
     return `${hh}:${mm} ${suffix}`;
   }
 
-  function renderEventsForSelectedDate(events, selectedStr) {
+  function renderEventsForSelectedDate(events, selectedStr, fv){
     const host = document.getElementById('eventsOnDayList');
     const labelEl = document.getElementById('selectedDateLabel');
     if (labelEl) {
-      labelEl.textContent = toPH(selectedStr + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+      labelEl.textContent = new Date(selectedStr+'T00:00:00').toLocaleDateString('en-PH', { month:'long', day:'numeric', year:'numeric' });
     }
-    const sameDay = (ev) => (ev.event_date && String(ev.event_date).slice(0,10) === selectedStr);
-    const rows = events.filter(sameDay).sort(sortByDateTimeAsc);
+    const sameDay = (ev)=> ev.event_date && String(ev.event_date).slice(0,10) === selectedStr;
 
-    host.innerHTML = rows.length ? rows.map(renderEventItem).join('') :
-      `<div class="text-muted" style="font-size:.65rem;">No events for this date.</div>`;
+    const rows = (events||[])
+      .filter(sameDay)
+      .filter(ev => matchesEventFilters(ev, fv))
+      .sort(sortByDateTimeAsc);
+
+    host.innerHTML = rows.length
+      ? rows.map(renderEventItem).join('')
+      : `<div class="text-muted" style="font-size:.65rem;">No events for this date${fv.q||fv.type||fv.status?' (filters applied)':''}.</div>`;
   }
 
-  function renderUpcomingEvents(events) {
-  const host = document.getElementById('upcomingEventsList');
+  function renderUpcomingEvents(events, fv){
+    const host = document.getElementById('upcomingEventsList');
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone:'Asia/Manila' });
 
-  // PH "today" in YYYY-MM-DD
-  const todayStr = yyyyMmDd(new Date());
+    const list = (events||[])
+      .filter(ev => ev.event_date && String(ev.event_date).slice(0,10) > todayStr) // strictly future
+      .filter(ev => matchesEventFilters(ev, fv))
+      .sort(sortByDateTimeAsc);
 
-  // Only strictly future dates (exclude today)
-  const base = (events || [])
-    .filter(ev => {
-      if (!ev.event_date) return false;
-      const d = String(ev.event_date).slice(0, 10);
-      return d > todayStr; // exclude same-day events from Upcoming
-    })
-    .sort(sortByDateTimeAsc);
-
-  host.innerHTML = base.length
-    ? base.map(renderEventItem).join('')
-    : `<div class="text-muted" style="font-size:.65rem;">No upcoming events found.</div>`;
+    host.innerHTML = list.length
+      ? list.map(renderEventItem).join('')
+      : `<div class="text-muted" style="font-size:.65rem;">No upcoming events found${fv.q||fv.type||fv.status?' (filters applied)':''}.</div>`;
   }
 
   function sortByDateTimeAsc(a, b) {
@@ -7322,7 +7405,6 @@ function renderNutritionCalendarModule(label) {
       const time  = form.querySelector('input[name="event_time"]')?.value;
       const loc   = form.querySelector('input[name="location"]')?.value.trim();
       const aud   = form.querySelector('input[name="target_audience"]')?.value.trim() || '';
-      const pub   = parseInt(form.querySelector('select[name="is_published"]')?.value || '1', 10);
 
       const missing = [];
       if (!title) missing.push('Event Title');
@@ -7345,7 +7427,7 @@ function renderNutritionCalendarModule(label) {
         event_time: time,           // keep time in edit mode
         location: loc,
         target_audience: aud,
-        is_published: pub
+        is_published: 1 // auto-publish
       };
 
       if (mode === 'edit') {
@@ -7415,7 +7497,6 @@ function renderNutritionCalendarModule(label) {
       form.querySelector('input[name="event_time"]').value           = (ev.event_time || '').slice(0,5);
       form.querySelector('input[name="location"]').value             = ev.location || '';
       form.querySelector('input[name="target_audience"]').value      = ev.target_audience || '';
-      form.querySelector('select[name="is_published"]').value        = String(ev.is_published ?? 1);
 
       const bs = new bootstrap.Modal(modalEl);
       bs.show();
@@ -7440,133 +7521,108 @@ function renderNutritionCalendarModule(label) {
   // ---------- Inline form wiring (Form mode) ----------
 
   function wireInlineEventForm(defaultType) {
-    const form = document.getElementById('scheduleEventFormInline');
-    const saveBtn = document.getElementById('saveEventInlineBtn');
-    if (!form || !saveBtn) return;
+      const form = document.getElementById('scheduleEventFormInline');
+      const saveBtn = document.getElementById('saveEventInlineBtn');
+      if (!form || !saveBtn) return;
 
-    const titleInput = form.querySelector('input[name="event_title"]');
-    const typeSelect = form.querySelector('select[name="event_type"]');
-    const descInput  = form.querySelector('textarea[name="event_description"]');
-    const dateInput  = form.querySelector('input[name="event_date"]');
-    const timeInput  = form.querySelector('input[name="event_time"]');
-    const locInput   = form.querySelector('input[name="location"]');
-    const audInput   = form.querySelector('input[name="target_audience"]');
-    const pubSelect  = form.querySelector('select[name="is_published"]');
+      const titleInput = form.querySelector('input[name="event_title"]');
+      const typeSelect = form.querySelector('select[name="event_type"]');
+      const descInput  = form.querySelector('textarea[name="event_description"]');
+      const dateInput  = form.querySelector('input[name="event_date"]');
+      const timeInput  = form.querySelector('input[name="event_time"]');
+      const locInput   = form.querySelector('input[name="location"]');
+      const audInput   = form.querySelector('input[name="target_audience"]');
 
-    // Min date = today (PH)
-    if (dateInput) {
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-      dateInput.min = today;
-      if (!dateInput.value) dateInput.value = today;
-    }
+      // Min date = today (PH)
+      if (dateInput) {
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+        dateInput.min = today;
+        if (!dateInput.value) dateInput.value = today;
+      }
 
-    function applyDefaultType(dt) {
-      const def = (dt || '').trim();
-
-      // Preselect and lock the Event Type when coming from a submenu,
-      // but DO NOT auto-fill the Event Title. Keep it blank.
-      if (typeSelect) {
-        if (def) {
-          typeSelect.value = def;
-          typeSelect.disabled = true;
-        } else {
-          typeSelect.value = '';
-          typeSelect.disabled = false;
+      function applyDefaultType(dt) {
+        const def = (dt || '').trim();
+        if (typeSelect) {
+          if (def) { typeSelect.value = def; typeSelect.disabled = true; }
+          else { typeSelect.value = ''; typeSelect.disabled = false; }
         }
+        if (titleInput) titleInput.value = '';
+      }
+      function resetInlineFormForCreate(dt) {
+        form.reset();
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+        if (dateInput) dateInput.value = today;
+        applyDefaultType(dt);
+      }
+      window.resetInlineFormForCreate = resetInlineFormForCreate;
+      applyDefaultType(defaultType);
+
+      if (typeSelect && titleInput) {
+        typeSelect.addEventListener('change', function() {
+          const map = {
+            'health': 'Health Consultation Session',
+            'nutrition': 'Nutrition Education Seminar',
+            'feeding': 'Supplementary Feeding Program',
+            'weighing': 'Monthly Weighing Session',
+            'general': 'Community Health Meeting',
+            'other': 'Special Health Activity'
+          };
+          if (!titleInput.value.trim() && this.value && map[this.value]) {
+            titleInput.value = map[this.value];
+          }
+        });
       }
 
-      // Ensure the title starts blank for UI consistency
-      if (titleInput) {
-        titleInput.value = '';
-      }
-    }
-    function resetInlineFormForCreate(dt) {
-      form.reset();
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-      if (dateInput) dateInput.value = today;
-      if (pubSelect) pubSelect.value = '1';
-      applyDefaultType(dt);
-    }
-    window.resetInlineFormForCreate = resetInlineFormForCreate;
-    applyDefaultType(defaultType);
+      if (saveBtn.__handlerRef) saveBtn.removeEventListener('click', saveBtn.__handlerRef);
+      const onSave = () => {
+        form.classList.add('was-validated');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
 
-    // Auto-suggest title
-    if (typeSelect && titleInput) {
-      typeSelect.addEventListener('change', function() {
-        const map = {
-          'health': 'Health Consultation Session',
-          'nutrition': 'Nutrition Education Seminar',
-          'feeding': 'Supplementary Feeding Program',
-          'weighing': 'Monthly Weighing Session',
-          'general': 'Community Health Meeting',
-          'other': 'Special Health Activity'
+        const missing = [];
+        if (!dateInput.value) missing.push('Event Date');
+        if (!timeInput.value) missing.push('Event Time');
+        if (!titleInput.value.trim()) missing.push('Event Title');
+        if (!typeSelect.value) missing.push('Event Type');
+        if (!descInput.value.trim()) missing.push('Event Description');
+        if (!locInput.value.trim()) missing.push('Location');
+        if (!audInput.value.trim()) missing.push('Target Audience');
+        if (missing.length) { alert('❌ Please fill in all required fields: \n\n• ' + missing.join('\n• ')); return; }
+
+        const payload = {
+          event_title: titleInput.value.trim(),
+          event_type: typeSelect.value,
+          event_description: descInput.value.trim(),
+          event_date: dateInput.value,
+          event_time: timeInput.value,
+          location: locInput.value.trim(),
+          target_audience: audInput.value.trim(),
+          is_published: 1 // auto-publish
         };
-        if (!titleInput.value.trim() && this.value && map[this.value]) {
-          titleInput.value = map[this.value];
-        }
-      });
+
+        const makeBusy = (b) => {
+          saveBtn.disabled = b;
+          saveBtn.innerHTML = b
+            ? '<span class="spinner-border spinner-border-sm me-2"></span>Scheduling...'
+            : '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
+        };
+        makeBusy(true);
+
+        fetchJSON('bns_modules/api_events.php?action=create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(res => {
+          if (!res.success) throw new Error(res.error || 'Failed');
+          showToast('<strong>Success!</strong> Event scheduled successfully.');
+          loadModule('nutrition_calendar', 'Event Scheduling');
+        })
+        .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
+        .finally(() => makeBusy(false));
+      };
+      saveBtn.addEventListener('click', onSave);
+      saveBtn.__handlerRef = onSave;
     }
-
-    // Save inline
-    if (saveBtn.__handlerRef) saveBtn.removeEventListener('click', saveBtn.__handlerRef);
-    const onSave = () => {
-      // Add validation class to trigger visual feedback
-      form.classList.add('was-validated');
-      
-      // Check HTML5 form validity first
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
-
-      const missing = [];
-      if (!dateInput.value) missing.push('Event Date');
-      if (!timeInput.value) missing.push('Event Time');
-      if (!titleInput.value.trim()) missing.push('Event Title');
-      if (!typeSelect.value) missing.push('Event Type');
-      if (!descInput.value.trim()) missing.push('Event Description');
-      if (!locInput.value.trim()) missing.push('Location');
-      if (!audInput.value.trim()) missing.push('Target Audience');
-      if (missing.length) { 
-        alert('❌ Please fill in all required fields: \n\n• ' + missing.join('\n• ')); 
-        return; 
-      }
-
-      const payload = {
-        event_title: titleInput.value.trim(),
-        event_type: typeSelect.value,
-        event_description: descInput.value.trim(),
-        event_date: dateInput.value,
-        event_time: timeInput.value,
-        location: locInput.value.trim(),
-        target_audience: audInput.value.trim(),
-        is_published: parseInt(pubSelect.value || '1', 10)
-      };
-
-      const makeBusy = (b) => {
-        saveBtn.disabled = b;
-        saveBtn.innerHTML = b
-          ? '<span class="spinner-border spinner-border-sm me-2"></span>Scheduling...'
-          : '<i class="bi bi-calendar-plus me-1"></i> Schedule Event';
-      };
-      makeBusy(true);
-
-      fetchJSON('bns_modules/api_events.php?action=create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => {
-        if (!res.success) throw new Error(res.error || 'Failed');
-        showToast('<strong>Success!</strong> Event scheduled successfully.');
-        loadModule('nutrition_calendar', 'Event Scheduling');
-      })
-      .catch(err => { console.error(err); alert('❌ ' + (err.message || err)); })
-      .finally(() => makeBusy(false));
-    };
-    saveBtn.addEventListener('click', onSave);
-    saveBtn.__handlerRef = onSave;
-  }
 
   function prettyType(key) {
     return {
@@ -10094,7 +10150,6 @@ function loadPreviousRecords(childId, childProfile = null) {
             </div>
           </div>
 
-          <!-- Additional Information Section -->
           <div class="form-section">
             <div class="form-section-header">
               <div class="form-section-icon" style="background:#f3e8ff;color:#a259c6;">
@@ -10107,13 +10162,7 @@ function loadPreviousRecords(childId, childProfile = null) {
                 <label class="form-label">Target Audience *</label>
                 <input type="text" class="form-control" name="target_audience" placeholder="Who should attend? (e.g., Children 0-5 years, Pregnant mothers)" maxlength="255" required>
               </div>
-              <div class="form-group">
-                <label class="form-label">Publication Status</label>
-                <select class="form-select" name="is_published">
-                  <option value="1">Published (Visible to public)</option>
-                  <option value="0">Draft (Not visible yet)</option>
-                </select>
-              </div>
+              <!-- Publication Status removed: auto-publish enforced in JS -->
             </div>
           </div>
         </form>
