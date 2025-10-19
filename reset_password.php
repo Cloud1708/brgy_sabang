@@ -25,29 +25,36 @@ $token = $_GET['token'] ?? '';
 if (!empty($token)) {
     // Debug: Log token for troubleshooting
     error_log("Reset password attempt with token: " . substr($token, 0, 10) . "...");
-    $stmt = $mysqli->prepare("
-        SELECT prt.user_id, prt.expires_at, u.username, u.email, r.role_name
-        FROM password_reset_tokens prt
-        JOIN users u ON prt.user_id = u.user_id
-        JOIN roles r ON u.role_id = r.role_id
-        WHERE prt.token = ? AND prt.expires_at > NOW() AND u.is_active = 1
-        LIMIT 1
-    ");
     
-    if ($stmt !== false) {
-        $stmt->bind_param("s", $token);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($row = $result->fetch_assoc()) {
-            $valid_token = true;
-            $user_info = $row;
-        } else {
-            $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid or expired reset token. Please request a new password reset.</div>";
-        }
-        $stmt->close();
+    // First check if the password_reset_tokens table exists
+    $table_check = $mysqli->query("SHOW TABLES LIKE 'password_reset_tokens'");
+    if ($table_check->num_rows == 0) {
+        $msg = "<div class='alert alert-danger py-2 small mb-3'>Password reset system is not properly configured. Please contact the administrator.</div>";
     } else {
-        $msg = "<div class='alert alert-danger py-2 small mb-3'>Database error: " . $mysqli->error . ". Please try again later.</div>";
+        $stmt = $mysqli->prepare("
+            SELECT prt.user_id, prt.expires_at, u.username, u.email, r.role_name
+            FROM password_reset_tokens prt
+            JOIN users u ON prt.user_id = u.user_id
+            JOIN roles r ON u.role_id = r.role_id
+            WHERE prt.token = ? AND prt.expires_at > NOW() AND u.is_active = 1
+            LIMIT 1
+        ");
+        
+        if ($stmt !== false) {
+            $stmt->bind_param("s", $token);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($row = $result->fetch_assoc()) {
+                $valid_token = true;
+                $user_info = $row;
+            } else {
+                $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid or expired reset token. Please request a new password reset.</div>";
+            }
+            $stmt->close();
+        } else {
+            $msg = "<div class='alert alert-danger py-2 small mb-3'>Database error: " . $mysqli->error . ". Please try again later.</div>";
+        }
     }
 } else {
     $msg = "<div class='alert alert-danger py-2 small mb-3'>No reset token provided. Please use the link from your email.</div>";

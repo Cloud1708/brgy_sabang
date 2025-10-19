@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 19, 2025 at 12:15 PM
+-- Generation Time: Oct 19, 2025 at 06:26 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -473,7 +473,8 @@ CREATE TABLE `login_attempts` (
 INSERT INTO `login_attempts` (`attempt_id`, `username`, `ip_address`, `attempt_count`, `last_attempt`, `locked_until`, `is_locked`, `created_at`, `updated_at`) VALUES
 (2, 'csd', '::1', 1, '2025-10-19 09:32:40', NULL, 0, '2025-10-19 09:32:40', '2025-10-19 09:32:40'),
 (8, 'gabriellero', '::1', 5, '2025-10-19 10:12:59', '2025-10-19 10:17:59', 1, '2025-10-19 10:12:56', '2025-10-19 10:12:59'),
-(13, 'brianms', '::1', 5, '2025-10-19 10:14:18', '2025-10-19 10:19:18', 1, '2025-10-19 10:14:13', '2025-10-19 10:14:18');
+(13, 'brianms', '::1', 5, '2025-10-19 10:14:18', '2025-10-19 10:19:18', 1, '2025-10-19 10:14:13', '2025-10-19 10:14:18'),
+(18, 'althea gabrielles', '::1', 2, '2025-10-19 16:00:28', NULL, 0, '2025-10-19 15:59:43', '2025-10-19 16:00:28');
 
 -- --------------------------------------------------------
 
@@ -804,6 +805,29 @@ INSERT INTO `parent_notifications` (`notification_id`, `parent_user_id`, `child_
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `password_reset_tokens`
+--
+
+CREATE TABLE `password_reset_tokens` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `token` varchar(64) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `password_reset_tokens`
+--
+
+INSERT INTO `password_reset_tokens` (`id`, `user_id`, `token`, `expires_at`, `created_at`) VALUES
+(1, 11, 'b60e09b53e33717a04ba297e751b1398451aed793abbf34d7aef1b548e6d6a4a', '2025-10-20 00:51:29', '2025-10-19 23:51:29'),
+(2, 11, 'e0f226cd3c0cfa7b3eec60b7b341c623bc1de386850d1f6aeff26892d8c0b11c', '2025-10-20 00:57:08', '2025-10-19 23:57:08'),
+(4, 11, '42af419fdeaaa160de0934fc7c5323717ad4a7625053498dd3f3f70b29004a74', '2025-10-20 01:15:27', '2025-10-20 00:15:27');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `postnatal_visits`
 --
 
@@ -958,10 +982,10 @@ INSERT INTO `users` (`user_id`, `username`, `email`, `password`, `password_hash`
 (2, 'admin', NULL, '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', '', NULL, '', 1, NULL, NULL, 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, NULL),
 (9, 'cris', 'sdasd@gmail.com', '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', 'Cris', NULL, 'Hernandez', 2, 'Sabang', NULL, 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, 2),
 (10, 'bnsses', 'bns@gmail.com', 'aZWuutmpYeP#', '$2y$10$f5GWswXUOel3fyDoVE9y1ebI31eBd8hEzrtHoHd8yculCI/gD7cdm', 'bnss', NULL, 'reyes', 2, 'Sabang', NULL, 1, '2025-10-08 07:36:03', '2025-10-18 07:10:27', NULL, 2),
-(11, 'althea gabriellees', 'raltheagabrielle@gmail.com', 'reyes49341', '$2y$10$p.qXQF4FkaE/4RJstceFE.cjk5GVpHdkRkTuCGCnvRwA6gFwUucH2', 'Althea Gabrielle', NULL, 'Reyes', 3, 'Sabang', NULL, 1, '2025-10-08 07:38:06', '2025-10-14 20:09:05', NULL, 2),
+(11, 'althea gabriellees', 'ch512291@gmail.com', 'reyes49341', '$2y$10$e.2uUvvBspgvt1njQ2cWUOZioZtNGnrEZ2p.Q9iUeRG2fqk2RPFJ6', 'Althea Gabrielle', NULL, 'Reyes', 3, 'Sabang', NULL, 1, '2025-10-08 07:38:06', '2025-10-19 15:59:29', NULL, 2),
 (12, 'althears', 'criscarloh@gmail.com', '', '$2y$10$MpaexbnG1orDEQAR9T2QjuKbdUnzsovwqi5gCG6ISa0nReDsPoqwu', 'Althea', NULL, 'Reyes', 4, 'Sabang', NULL, 1, '2025-10-08 18:58:06', '2025-10-08 18:58:06', NULL, 9),
 (13, 'brianms', 'jmbmaines17@gmail.com', '', '$2y$10$9araDtt1HhwtBiIyRTHfhekFzzswSzlAUsVxboL3BjBa6FERQRFNS', 'Brian', NULL, 'Maines', 4, 'Sabang', NULL, 1, '2025-10-08 19:04:46', '2025-10-08 19:04:46', NULL, 9),
-(14, 'gabriellero', 'ch512291@gmail.com', '', '$2y$10$u7KVj7ImMfzbFUX3J0S0W.BYJOl4kIy1f1QhBA46M6VfMEu4vScom', 'Gabrielle', NULL, 'Resuello', 4, 'Sabang', NULL, 1, '2025-10-08 19:06:58', '2025-10-08 19:06:58', NULL, 9),
+(14, 'gabriellero', 'c512291@gmail.com', '', '$2y$10$u7KVj7ImMfzbFUX3J0S0W.BYJOl4kIy1f1QhBA46M6VfMEu4vScom', 'Gabrielle', NULL, 'Resuello', 4, 'Sabang', NULL, 1, '2025-10-08 19:06:58', '2025-10-19 15:58:29', NULL, 9),
 (15, 'vfgdfsdfds', 'criscarloh1@gmail.com', '', '$2y$10$czjtVw/a5bbRBkitnffnUOUDFSVEG90V7fml0KDc1ycBtxDyGSS66', 'vfgdfsdf', 'ds', 'dsdas', 4, 'Sabang', NULL, 1, '2025-10-14 19:14:35', '2025-10-14 19:14:35', NULL, 9),
 (16, 'cxxczsa', 'dsd@gmail.com', '', '$2y$10$WdW01BsH3RbO32rTUHaDYuB.uREMD8ngsp/xvkfU7aEUgnsDNTXRO', 'cxxcz', 'sda', 'sada', 4, 'Sabang', '2000-02-15', 1, '2025-10-15 10:20:20', '2025-10-18 07:13:38', NULL, 9);
 
@@ -1240,6 +1264,16 @@ ALTER TABLE `parent_notifications`
   ADD KEY `idx_pn_batch` (`batch_key`);
 
 --
+-- Indexes for table `password_reset_tokens`
+--
+ALTER TABLE `password_reset_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token` (`token`),
+  ADD KEY `idx_token` (`token`),
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_expires_at` (`expires_at`);
+
+--
 -- Indexes for table `postnatal_visits`
 --
 ALTER TABLE `postnatal_visits`
@@ -1350,7 +1384,7 @@ ALTER TABLE `labor_delivery_records`
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `attempt_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `attempt_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `maternal_patients`
@@ -1393,6 +1427,12 @@ ALTER TABLE `parent_child_access`
 --
 ALTER TABLE `parent_notifications`
   MODIFY `notification_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `password_reset_tokens`
+--
+ALTER TABLE `password_reset_tokens`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `postnatal_visits`

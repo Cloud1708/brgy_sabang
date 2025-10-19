@@ -42,26 +42,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = $stmt->get_result();
                 
                 if ($row = $result->fetch_assoc()) {
-                    // Generate reset token
-                    $reset_token = bin2hex(random_bytes(32));
-                    $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour')); // Token expires in 1 hour
-                    
-                    // Store reset token in database
-                    $token_stmt = $mysqli->prepare("
-                        INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at) 
-                        VALUES (?, ?, ?, NOW())
-                        ON DUPLICATE KEY UPDATE 
-                        token = VALUES(token), 
-                        expires_at = VALUES(expires_at), 
-                        created_at = NOW()
-                    ");
-                    
-                    if ($token_stmt === false) {
-                        $msg = "<div class='alert alert-danger py-2 small mb-3'>Database error. Please try again later.</div>";
+                    // Check if password_reset_tokens table exists
+                    $table_check = $mysqli->query("SHOW TABLES LIKE 'password_reset_tokens'");
+                    if ($table_check->num_rows == 0) {
+                        $msg = "<div class='alert alert-danger py-2 small mb-3'>Password reset system is not properly configured. Please contact the administrator.</div>";
                     } else {
-                        $token_stmt->bind_param("iss", $row['user_id'], $reset_token, $expires_at);
+                        // Generate reset token
+                        $reset_token = bin2hex(random_bytes(32));
+                        $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour')); // Token expires in 1 hour
                         
-                        if ($token_stmt->execute()) {
+                        // Store reset token in database
+                        $token_stmt = $mysqli->prepare("
+                            INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at) 
+                            VALUES (?, ?, ?, NOW())
+                            ON DUPLICATE KEY UPDATE 
+                            token = VALUES(token), 
+                            expires_at = VALUES(expires_at), 
+                            created_at = NOW()
+                        ");
+                        
+                        if ($token_stmt === false) {
+                            $msg = "<div class='alert alert-danger py-2 small mb-3'>Database error. Please try again later.</div>";
+                        } else {
+                            $token_stmt->bind_param("iss", $row['user_id'], $reset_token, $expires_at);
+                            
+                            if ($token_stmt->execute()) {
                             // Send reset email
                             $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
                             $base_url = $protocol . '://' . $_SERVER['HTTP_HOST'];
@@ -108,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $msg = "<div class='alert alert-danger py-2 small mb-3'>Failed to generate reset token. Please try again.</div>";
                         }
                         $token_stmt->close();
+                        }
                     }
                 } else {
                     // Don't reveal if email exists or not for security
