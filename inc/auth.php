@@ -15,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
  * ibig sabihin base path = /
  */
 
-define('APP_BASE_PATH', '/');  // IMPORTANT
+ define('APP_BASE_PATH', '/brgy_sabangbackup/');  // IMPORTANT
 
 // Canonical role names
 const ROLE_CANON = ['Admin','BHW','BNS','Parent'];

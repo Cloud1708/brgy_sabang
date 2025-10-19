@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 15, 2025 at 12:20 PM
+-- Generation Time: Oct 19, 2025 at 11:24 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -276,7 +276,8 @@ CREATE TABLE `events` (
 
 INSERT INTO `events` (`event_id`, `event_title`, `event_description`, `event_type`, `event_date`, `event_time`, `location`, `target_audience`, `is_published`, `is_completed`, `completed_at`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'hindi ko alam', '', 'vaccination', '2025-10-13', '12:25:00', 'Center', NULL, 1, 1, '2025-10-13 03:25:53', 9, '2025-10-12 19:25:46', '2025-10-12 19:25:53'),
-(2, 'dsdas', '', 'vaccination', '2025-10-14', '03:50:00', 'sadsa', NULL, 1, 1, '2025-10-14 02:54:28', 9, '2025-10-13 18:50:37', '2025-10-13 18:54:28');
+(2, 'dsdas', '', 'vaccination', '2025-10-14', '03:50:00', 'sadsa', NULL, 1, 1, '2025-10-14 02:54:28', 9, '2025-10-13 18:50:37', '2025-10-13 18:54:28'),
+(3, 'sdasd', 'dsada', 'vaccination', '2025-10-19', '08:26:00', 'qweqw', NULL, 1, 0, NULL, 2, '2025-10-18 07:26:10', '2025-10-18 07:45:05');
 
 -- --------------------------------------------------------
 
@@ -606,27 +607,27 @@ CREATE TABLE `overdue_notifications` (
 --
 
 INSERT INTO `overdue_notifications` (`id`, `child_id`, `vaccine_id`, `dose_number`, `status`, `created_at`, `dismissed_at`, `expires_at`) VALUES
-(1, 1, 1, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(2, 1, 2, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(3, 1, 5, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(4, 1, 4, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(5, 1, 4, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(6, 1, 4, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(7, 1, 3, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(8, 1, 3, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(9, 1, 3, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(10, 1, 6, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(11, 1, 6, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(12, 2, 1, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(13, 2, 2, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(14, 2, 5, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(15, 2, 4, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(16, 2, 4, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(17, 2, 4, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(18, 2, 3, 1, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(19, 2, 3, 2, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(20, 2, 3, 3, 'active', '2025-10-08 16:10:39', NULL, NULL),
-(21, 2, 6, 1, 'active', '2025-10-08 16:10:39', NULL, NULL);
+(1, 1, 1, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(2, 1, 2, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(3, 1, 5, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(4, 1, 4, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(5, 1, 4, 2, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(6, 1, 4, 3, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(7, 1, 3, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(8, 1, 3, 2, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(9, 1, 3, 3, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(10, 1, 6, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(11, 1, 6, 2, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(12, 2, 1, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(13, 2, 2, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(14, 2, 5, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(15, 2, 4, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(16, 2, 4, 2, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(17, 2, 4, 3, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(18, 2, 3, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(19, 2, 3, 2, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(20, 2, 3, 3, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00'),
+(21, 2, 6, 1, 'expired', '2025-10-08 16:10:39', NULL, '2025-10-18 04:38:00');
 
 -- --------------------------------------------------------
 
@@ -929,13 +930,13 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`user_id`, `username`, `email`, `password`, `password_hash`, `first_name`, `middle_name`, `last_name`, `role_id`, `barangay`, `birthday`, `is_active`, `created_at`, `updated_at`, `last_login_at`, `created_by_user_id`) VALUES
 (2, 'admin', NULL, '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', '', NULL, '', 1, NULL, NULL, 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, NULL),
 (9, 'cris', 'sdasd@gmail.com', '', '$2y$10$sHL0FeWDe2/kJaxlFtcvkOXHgPFF7yfadgiO56cfckVIYP/ewdwyG', 'Cris', NULL, 'Hernandez', 2, 'Sabang', NULL, 1, '2025-10-08 05:37:41', '2025-10-08 05:37:41', NULL, 2),
-(10, 'bnsses', 'bns@gmail.com', 'reyes77488', '$2y$10$BziwBgsgBhk3ZUIm3qS3dutrp0FJn/KuRxOK2Rmp6zgFlhHTVTWjy', 'bnss', NULL, 'reyes', 2, 'Sabang', NULL, 1, '2025-10-08 07:36:03', '2025-10-08 07:36:03', NULL, 2),
+(10, 'bnsses', 'bns@gmail.com', 'aZWuutmpYeP#', '$2y$10$f5GWswXUOel3fyDoVE9y1ebI31eBd8hEzrtHoHd8yculCI/gD7cdm', 'bnss', NULL, 'reyes', 2, 'Sabang', NULL, 1, '2025-10-08 07:36:03', '2025-10-18 07:10:27', NULL, 2),
 (11, 'althea gabriellees', 'raltheagabrielle@gmail.com', 'reyes49341', '$2y$10$p.qXQF4FkaE/4RJstceFE.cjk5GVpHdkRkTuCGCnvRwA6gFwUucH2', 'Althea Gabrielle', NULL, 'Reyes', 3, 'Sabang', NULL, 1, '2025-10-08 07:38:06', '2025-10-14 20:09:05', NULL, 2),
 (12, 'althears', 'criscarloh@gmail.com', '', '$2y$10$MpaexbnG1orDEQAR9T2QjuKbdUnzsovwqi5gCG6ISa0nReDsPoqwu', 'Althea', NULL, 'Reyes', 4, 'Sabang', NULL, 1, '2025-10-08 18:58:06', '2025-10-08 18:58:06', NULL, 9),
 (13, 'brianms', 'jmbmaines17@gmail.com', '', '$2y$10$9araDtt1HhwtBiIyRTHfhekFzzswSzlAUsVxboL3BjBa6FERQRFNS', 'Brian', NULL, 'Maines', 4, 'Sabang', NULL, 1, '2025-10-08 19:04:46', '2025-10-08 19:04:46', NULL, 9),
 (14, 'gabriellero', 'ch512291@gmail.com', '', '$2y$10$u7KVj7ImMfzbFUX3J0S0W.BYJOl4kIy1f1QhBA46M6VfMEu4vScom', 'Gabrielle', NULL, 'Resuello', 4, 'Sabang', NULL, 1, '2025-10-08 19:06:58', '2025-10-08 19:06:58', NULL, 9),
 (15, 'vfgdfsdfds', 'criscarloh1@gmail.com', '', '$2y$10$czjtVw/a5bbRBkitnffnUOUDFSVEG90V7fml0KDc1ycBtxDyGSS66', 'vfgdfsdf', 'ds', 'dsdas', 4, 'Sabang', NULL, 1, '2025-10-14 19:14:35', '2025-10-14 19:14:35', NULL, 9),
-(16, 'cxxczsa', 'dsd@gmail.com', '', '$2y$10$WdW01BsH3RbO32rTUHaDYuB.uREMD8ngsp/xvkfU7aEUgnsDNTXRO', 'cxxcz', 'sda', 'sada', 4, 'Sabang', '2000-02-15', 1, '2025-10-15 10:20:20', '2025-10-15 10:20:20', NULL, 9);
+(16, 'cxxczsa', 'dsd@gmail.com', '', '$2y$10$WdW01BsH3RbO32rTUHaDYuB.uREMD8ngsp/xvkfU7aEUgnsDNTXRO', 'cxxcz', 'sda', 'sada', 4, 'Sabang', '2000-02-15', 1, '2025-10-15 10:20:20', '2025-10-18 07:13:38', NULL, 9);
 
 --
 -- Triggers `users`
@@ -1288,7 +1289,7 @@ ALTER TABLE `child_immunizations`
 -- AUTO_INCREMENT for table `events`
 --
 ALTER TABLE `events`
-  MODIFY `event_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `event_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `health_records`
