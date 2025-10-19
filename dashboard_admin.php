@@ -114,6 +114,203 @@ function rel_time($ts) {
 }
 
 /* ------------------------------------------------------------------
+   Data fetching for Reports section
+-------------------------------------------------------------------*/
+if ($section === 'reports') {
+    // BHW Reports Data
+    $bhwStats = [];
+    
+    // Total health records
+    $stmt = $mysqli->prepare("SELECT COUNT(*) as total FROM health_records");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $bhwStats['total_health_records'] = $result->fetch_assoc()['total'] ?? 0;
+        $stmt->close();
+    }
+    
+    // Total maternal patients
+    $stmt = $mysqli->prepare("SELECT COUNT(*) as total FROM maternal_patients");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $bhwStats['total_maternal_patients'] = $result->fetch_assoc()['total'] ?? 0;
+        $stmt->close();
+    }
+    
+    // Total immunizations
+    $stmt = $mysqli->prepare("SELECT COUNT(*) as total FROM child_immunizations");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $bhwStats['total_immunizations'] = $result->fetch_assoc()['total'] ?? 0;
+        $stmt->close();
+    }
+    
+    // Health records by month (last 6 months)
+    $healthRecordsByMonth = [];
+    $stmt = $mysqli->prepare("
+        SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count 
+        FROM health_records 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month
+    ");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $healthRecordsByMonth[] = $row;
+        }
+        $stmt->close();
+    }
+    
+    // Risk factors distribution
+    $riskFactors = [];
+    $stmt = $mysqli->prepare("
+        SELECT 
+            SUM(vaginal_bleeding) as vaginal_bleeding,
+            SUM(urinary_infection) as urinary_infection,
+            SUM(high_blood_pressure) as high_blood_pressure,
+            SUM(fever_38_celsius) as fever_38_celsius,
+            SUM(pallor) as pallor,
+            SUM(abnormal_abdominal_size) as abnormal_abdominal_size,
+            SUM(abnormal_presentation) as abnormal_presentation,
+            SUM(absent_fetal_heartbeat) as absent_fetal_heartbeat,
+            SUM(swelling) as swelling,
+            SUM(vaginal_infection) as vaginal_infection
+        FROM health_records
+    ");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $riskFactors = $result->fetch_assoc() ?? [];
+        $stmt->close();
+    }
+    
+    // BNS Reports Data
+    $bnsStats = [];
+    
+    // Total nutrition records
+    $stmt = $mysqli->prepare("SELECT COUNT(*) as total FROM nutrition_records");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $bnsStats['total_nutrition_records'] = $result->fetch_assoc()['total'] ?? 0;
+        $stmt->close();
+    }
+    
+    // Total supplementation records
+    $stmt = $mysqli->prepare("SELECT COUNT(*) as total FROM supplementation_records");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $bnsStats['total_supplementation'] = $result->fetch_assoc()['total'] ?? 0;
+        $stmt->close();
+    }
+    
+    // Total children
+    $stmt = $mysqli->prepare("SELECT COUNT(*) as total FROM children");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $bnsStats['total_children'] = $result->fetch_assoc()['total'] ?? 0;
+        $stmt->close();
+    }
+    
+    // Nutrition records by month (last 6 months)
+    $nutritionRecordsByMonth = [];
+    $stmt = $mysqli->prepare("
+        SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count 
+        FROM nutrition_records 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ORDER BY month
+    ");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $nutritionRecordsByMonth[] = $row;
+        }
+        $stmt->close();
+    }
+    
+    // Weight-for-length status distribution
+    $wflStatus = [];
+    $stmt = $mysqli->prepare("
+        SELECT 
+            wst.status_description as wfl_status,
+            COUNT(*) as count
+        FROM nutrition_records nr
+        LEFT JOIN wfl_ht_status_types wst ON nr.wfl_ht_status_id = wst.status_id
+        WHERE nr.wfl_ht_status_id IS NOT NULL
+        GROUP BY nr.wfl_ht_status_id, wst.status_description
+    ");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $wflStatus[] = $row;
+        }
+        $stmt->close();
+    }
+    
+    // Supplementation by type
+    $supplementationByType = [];
+    $stmt = $mysqli->prepare("
+        SELECT 
+            supplement_type,
+            COUNT(*) as count
+        FROM supplementation_records 
+        GROUP BY supplement_type
+    ");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $supplementationByType[] = $row;
+        }
+        $stmt->close();
+    }
+    
+    // Recent activity (last 30 days)
+    $recentActivity = [];
+    $stmt = $mysqli->prepare("
+        SELECT 
+            'health_record' as type,
+            'Health Record Created' as description,
+            created_at
+        FROM health_records 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        UNION ALL
+        SELECT 
+            'nutrition_record' as type,
+            'Nutrition Record Created' as description,
+            created_at
+        FROM nutrition_records 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        UNION ALL
+        SELECT 
+            'immunization' as type,
+            'Immunization Recorded' as description,
+            created_at
+        FROM child_immunizations 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ORDER BY created_at DESC
+        LIMIT 20
+    ");
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $recentActivity[] = $row;
+        }
+        $stmt->close();
+    }
+}
+
+/* ------------------------------------------------------------------
    Data fetching for Accounts section
 -------------------------------------------------------------------*/
 if ($section === 'accounts') {
@@ -174,25 +371,6 @@ if ($section === 'accounts') {
 }
 
 
-/* ------------------------------------------------------------------
-   Data fetching for Reports section
--------------------------------------------------------------------*/
-if ($section === 'reports') {
-    $vaccination_coverage = ['completed' => 0, 'pending' => 0];
-    $completed = (int)($mysqli->query("SELECT COUNT(DISTINCT child_id) FROM child_immunizations WHERE vaccination_date IS NOT NULL")->fetch_row()[0] ?? 0);
-    $total_children = (int)($mysqli->query("SELECT COUNT(*) FROM children")->fetch_row()[0] ?? 0);
-    $vaccination_coverage['completed'] = $completed;
-    $vaccination_coverage['pending'] = $total_children - $completed;
-
-    $maternal_stats = [
-        'prenatal_checkups' => 0,
-        'prenatal_delta' => '+5%',
-        'postnatal_visits' => 0,
-        'postnatal_delta' => '+3%'
-    ];
-    $maternal_stats['prenatal_checkups'] = (int)($mysqli->query("SELECT COUNT(*) FROM health_records")->fetch_row()[0] ?? 0);
-    $maternal_stats['postnatal_visits'] = (int)($mysqli->query("SELECT COUNT(*) FROM postnatal_visits")->fetch_row()[0] ?? 0);
-}
 
 /* ------------------------------------------------------------------
    Data for Control Panel
@@ -583,23 +761,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// CSV EXPORT
-if ($section === 'reports' && isset($_GET['action']) && $_GET['action'] == 'export_csv') {
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename=nutrition_report.csv');
-    echo "Month,Normal,Overweight,Underweight,Severely Underweight\n";
-    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    $nutrition_stats = [
-        'Normal' => [450, 460, 455, 470, 480, 490],
-        'Overweight' => [40, 45, 44, 50, 48, 47],
-        'Underweight' => [120, 118, 115, 110, 112, 115],
-        'Severely Underweight' => [35, 37, 38, 36, 34, 32]
-    ];
-    for ($i = 0; $i < count($months); $i++) {
-        echo "{$months[$i]},{$nutrition_stats['Normal'][$i]},{$nutrition_stats['Overweight'][$i]},{$nutrition_stats['Underweight'][$i]},{$nutrition_stats['Severely Underweight'][$i]}\n";
-    }
-    exit;
-}
 
 $currentUsername = $_SESSION['username'] ?? 'Admin User';
 $currentRoleName = $_SESSION['role'] ?? 'System Administrator';
@@ -616,7 +777,7 @@ $initials = initials($currentUsername);
 $titles = [
     'control-panel' => 'Control Panel',
     'accounts' => 'Account Management',
-    'reports' => 'System Reports',
+    'reports' => 'Reports & Analytics',
     'health_records' => 'Health Records',
     'immunization' => 'Immunization Management',
     'maternal_patients' => 'Maternal Patients',
@@ -629,7 +790,7 @@ $titles = [
 $descs = [
     'control-panel' => 'Monitor system performance and user activity',
     'accounts' => 'Manage BHW / BNS user accounts',
-    'reports' => 'View health and nutrition statistics',
+    'reports' => 'View comprehensive reports and analytics for BHW and BNS activities',
     'health_records' => 'Manage maternal health records',
     'immunization' => 'Track child immunizations',
     'maternal_patients' => 'Manage maternal patient records',
@@ -654,7 +815,6 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --sidebar-width: 250px;
@@ -1141,6 +1301,18 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease;
         }
+        /* Chart container fixes */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
+        }
+        .chart-container canvas {
+            max-height: 300px !important;
+            max-width: 100% !important;
+        }
         @media (max-width: 900px) {
             .sidebar {
                 position: fixed;
@@ -1187,7 +1359,7 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                 <ul class="nav-list">
                     <li><a class="<?php echo $section === 'control-panel' ? 'active' : ''; ?>" href="?section=control-panel"><i class="bi bi-grid"></i><span>Control Panel</span></a></li>
                     <li><a class="<?php echo $section === 'accounts' ? 'active' : ''; ?>" href="?section=accounts"><i class="bi bi-people"></i><span>Account Management</span></a></li>
-                    <li><a class="<?php echo $section === 'reports' ? 'active' : ''; ?>" href="?section=reports"><i class="bi bi-file-bar-graph"></i><span>System Reports</span></a></li>
+                    <li><a class="<?php echo $section === 'reports' ? 'active' : ''; ?>" href="?section=reports"><i class="bi bi-graph-up"></i><span>Reports & Analytics</span></a></li>
                 </ul>
             </div>
             <!-- Shortcuts to external role interfaces -->
@@ -1605,48 +1777,216 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
                     </div>
                     
                 <?php elseif ($section === 'reports') : ?>
-                    <div class="reports-card mb-4">
-                        <div class="reports-tools-bar">
-                            <div style="font-weight:600;font-size:1.08em;">Data Export Tools</div>
-                            <div class="d-flex gap-2">
-                                <a href="?section=reports&action=export_csv" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
-                                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
-                                <button class="btn btn-success btn-sm"><i class="bi bi-bar-chart"></i> Full Report</button>
+                    <!-- Reports Overview -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="mb-1" style="font-size:.9rem; font-weight:600; color:#162630;">Comprehensive Reports</h6>
+                                <p class="mb-0" style="font-size:.75rem; color:#5c6872;">BHW and BNS activity analytics and insights</p>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-success btn-sm" onclick="exportReports()">
+                                    <i class="bi bi-download me-1"></i>Export
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" onclick="refreshReports()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                                </button>
                             </div>
                         </div>
-                        <div>
-                            <div style="font-weight:600;font-size:1.01em;">Nutrition Status Overview</div>
-                            <div style="font-size:.98em;color:#5c6872;">Monthly trends of nutritional status across the barangay</div>
-                            <canvas id="nutritionChart" style="max-width:100%;max-height:385px;margin-top:.7em;"></canvas>
-                            <div class="mt-2 text-center">
-                                <span style="color:#047857;font-weight:600;">Normal</span>
-                                <span style="color:#1aa09c;font-weight:600;margin-left:.9em;">Overweight</span>
-                                <span style="color:#d41a5a;font-weight:600;margin-left:.9em;">Severely Underweight</span>
-                                <span style="color:#e9b51a;font-weight:600;margin-left:.9em;">Underweight</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row gy-4">
-                        <div class="col-md-6">
-                            <div class="reports-card">
-                                <div style="font-weight:600;">Vaccination Coverage Report</div>
-                                <div style="color:#5c6872;">Immunization completion status</div>
-                                <div class="progress mt-2" style="height:11px;border-radius:6px;">
-                                    <div class="progress-bar bg-success" style="width:<?php echo $vaccination_coverage['completed']; ?>%"></div>
+                        
+                        <!-- BHW Reports Section -->
+                        <div class="panel mb-4">
+                            <div class="panel-header mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-heart-pulse text-success" style="font-size:1.2rem;"></i>
+                                    <h6 class="mb-0">BHW Health Reports</h6>
                                 </div>
-                                <div class="mt-2"><span style="font-weight:600;color:#047857;"><?php echo $vaccination_coverage['completed']; ?>%</span> completed, <span style="color:#aaa;"><?php echo $vaccination_coverage['pending']; ?>%</span> pending</div>
+                                <p class="mb-0" style="font-size:.75rem; color:#5c6872;">Barangay Health Worker activity and health data</p>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="reports-card">
-                                <div style="font-weight:600;">Maternal Health Statistics</div>
-                                <div style="color:#5c6872;">Prenatal and postnatal care summary</div>
-                                <div class="mt-2">
-                                    <div><i class="bi bi-heart-fill text-success"></i> Prenatal Checkups <span class="fw-bold ms-2"><?php echo $maternal_stats['prenatal_checkups']; ?></span> <span class="ms-2 text-success"><?php echo $maternal_stats['prenatal_delta']; ?></span></div>
-                                    <div class="mt-1"><i class="bi bi-person-bounding-box text-info"></i> Postnatal Visits <span class="fw-bold ms-2"><?php echo $maternal_stats['postnatal_visits']; ?></span> <span class="ms-2 text-info"><?php echo $maternal_stats['postnatal_delta']; ?></span></div>
+                            
+                            <!-- BHW Stats Cards -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">Health Records</p>
+                                        <div class="value"><?php echo number_format($bhwStats['total_health_records'] ?? 0); ?></div>
+                                        <span class="delta">Total Records</span>
+                                        <div class="metric-icon green"><i class="bi bi-file-medical"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">Maternal Patients</p>
+                                        <div class="value"><?php echo number_format($bhwStats['total_maternal_patients'] ?? 0); ?></div>
+                                        <span class="delta">Active Patients</span>
+                                        <div class="metric-icon up"><i class="bi bi-person-heart"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">Immunizations</p>
+                                        <div class="value"><?php echo number_format($bhwStats['total_immunizations'] ?? 0); ?></div>
+                                        <span class="delta">Vaccinations</span>
+                                        <div class="metric-icon purple"><i class="bi bi-shield-check"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">Risk Factors</p>
+                                        <div class="value"><?php echo number_format(array_sum($riskFactors)); ?></div>
+                                        <span class="delta">Total Cases</span>
+                                        <div class="metric-icon"><i class="bi bi-exclamation-triangle"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- BHW Charts Row -->
+                            <div class="row g-3">
+                                <div class="col-lg-8">
+                                    <div class="panel">
+                                        <div class="panel-header mb-2">
+                                            <h6>Health Records Trend (6 Months)</h6>
+                                            <p style="font-size:.7rem; color:#5c6872;">Monthly health record creation</p>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="healthRecordsChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="panel">
+                                        <div class="panel-header mb-2">
+                                            <h6>Risk Factors Distribution</h6>
+                                            <p style="font-size:.7rem; color:#5c6872;">Common health risk factors</p>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="riskFactorsChart"></canvas>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- BNS Reports Section -->
+                        <div class="panel mb-4">
+                            <div class="panel-header mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-shield-check text-primary" style="font-size:1.2rem;"></i>
+                                    <h6 class="mb-0">BNS Nutrition Reports</h6>
+                                </div>
+                                <p class="mb-0" style="font-size:.75rem; color:#5c6872;">Barangay Nutrition Scholar activity and nutrition data</p>
+                            </div>
+                            
+                            <!-- BNS Stats Cards -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">Nutrition Records</p>
+                                        <div class="value"><?php echo number_format($bnsStats['total_nutrition_records'] ?? 0); ?></div>
+                                        <span class="delta">Total Records</span>
+                                        <div class="metric-icon green"><i class="bi bi-clipboard-data"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">Children</p>
+                                        <div class="value"><?php echo number_format($bnsStats['total_children'] ?? 0); ?></div>
+                                        <span class="delta">Registered</span>
+                                        <div class="metric-icon up"><i class="bi bi-people"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">Supplementation</p>
+                                        <div class="value"><?php echo number_format($bnsStats['total_supplementation'] ?? 0); ?></div>
+                                        <span class="delta">Total Doses</span>
+                                        <div class="metric-icon purple"><i class="bi bi-capsule"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="metric-card">
+                                        <p class="title">WFL Status</p>
+                                        <div class="value"><?php echo count($wflStatus); ?></div>
+                                        <span class="delta">Categories</span>
+                                        <div class="metric-icon"><i class="bi bi-graph-up"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- BNS Charts Row -->
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <div class="panel">
+                                        <div class="panel-header mb-2">
+                                            <h6>Nutrition Records Trend (6 Months)</h6>
+                                            <p style="font-size:.7rem; color:#5c6872;">Monthly nutrition record creation</p>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="nutritionRecordsChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="panel">
+                                        <div class="panel-header mb-2">
+                                            <h6>Weight-for-Length Status</h6>
+                                            <p style="font-size:.7rem; color:#5c6872;">Child nutrition status distribution</p>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="wflStatusChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Supplementation Chart -->
+                            <div class="row g-3 mt-3">
+                                <div class="col-lg-6">
+                                    <div class="panel">
+                                        <div class="panel-header mb-2">
+                                            <h6>Supplementation by Type</h6>
+                                            <p style="font-size:.7rem; color:#5c6872;">Distribution of supplement types</p>
+                                        </div>
+                                        <div class="chart-container">
+                                            <canvas id="supplementationChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="panel">
+                                        <div class="panel-header mb-2">
+                                            <h6>Recent Activity</h6>
+                                            <p style="font-size:.7rem; color:#5c6872;">Last 30 days activity</p>
+                                        </div>
+                                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Type</th>
+                                                        <th>Description</th>
+                                                        <th>Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach (array_slice($recentActivity, 0, 10) as $activity) : ?>
+                                                        <tr>
+                                                            <td>
+                                                                <span class="badge bg-<?php echo $activity['type'] === 'health_record' ? 'success' : ($activity['type'] === 'nutrition_record' ? 'primary' : 'info'); ?>">
+                                                                    <?php echo ucfirst(str_replace('_', ' ', $activity['type'])); ?>
+                                                                </span>
+                                                            </td>
+                                                            <td><?php echo htmlspecialchars($activity['description']); ?></td>
+                                                            <td style="font-size:.75rem;"><?php echo date('M j, Y', strtotime($activity['created_at'])); ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                     </div>
                     
                 <?php else : ?>
@@ -2078,59 +2418,302 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
             }
         });
             
-            // Nutrition chart
-            const ctx = document.getElementById('nutritionChart')?.getContext('2d');
-            if (ctx) {
-                new Chart(ctx, {
+        });
+        
+        // Reports Charts Initialization
+        <?php if ($section === 'reports') : ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Force chart resize to prevent infinite stretching
+            function forceChartResize() {
+                const charts = Chart.instances;
+                Object.values(charts).forEach(chart => {
+                    if (chart && chart.resize) {
+                        chart.resize();
+                    }
+                });
+            }
+            
+            // Resize charts after a short delay
+            setTimeout(forceChartResize, 100);
+            setTimeout(forceChartResize, 500);
+            // Health Records Trend Chart
+            const healthRecordsCtx = document.getElementById('healthRecordsChart');
+            if (healthRecordsCtx) {
+                const healthRecordsData = <?php echo json_encode($healthRecordsByMonth); ?>;
+                const months = healthRecordsData.map(item => item.month);
+                const counts = healthRecordsData.map(item => parseInt(item.count));
+                
+                new Chart(healthRecordsCtx, {
                     type: 'line',
                     data: {
-                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                        datasets: [
-                            {
-                                label: 'Normal',
-                                data: [450, 460, 455, 470, 480, 490],
-                                borderColor: '#047857',
-                                backgroundColor: '#047857',
-                                fill: false
-                            },
-                            {
-                                label: 'Overweight',
-                                data: [40, 45, 44, 50, 48, 47],
-                                borderColor: '#1aa09c',
-                                backgroundColor: '#1aa09c',
-                                fill: false
-                            },
-                            {
-                                label: 'Underweight',
-                                data: [120, 118, 115, 110, 112, 115],
-                                borderColor: '#e9b51a',
-                                backgroundColor: '#e9b51a',
-                                fill: false
-                            },
-                            {
-                                label: 'Severely Underweight',
-                                data: [35, 37, 38, 36, 34, 32],
-                                borderColor: '#d41a5a',
-                                backgroundColor: '#d41a5a',
-                                fill: false
-                            }
-                        ]
+                        labels: months,
+                        datasets: [{
+                            label: 'Health Records',
+                            data: counts,
+                            borderColor: '#047857',
+                            backgroundColor: 'rgba(4, 120, 87, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
+                        aspectRatio: 2,
+                        resizeDelay: 0,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
                         scales: {
                             y: {
-                                beginAtZero: true
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#f0f0f0'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
                             }
                         }
                     }
                 });
             }
+            
+            // Risk Factors Chart
+            const riskFactorsCtx = document.getElementById('riskFactorsChart');
+            if (riskFactorsCtx) {
+                const riskData = <?php echo json_encode($riskFactors); ?>;
+                const labels = Object.keys(riskData).map(key => 
+                    key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                );
+                const values = Object.values(riskData);
+                
+                new Chart(riskFactorsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                '#dc3545',
+                                '#fd7e14',
+                                '#ffc107',
+                                '#20c997',
+                                '#6f42c1',
+                                '#0dcaf0',
+                                '#198754',
+                                '#fd7e14',
+                                '#6c757d',
+                                '#0d6efd'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        aspectRatio: 1,
+                        resizeDelay: 0,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 10,
+                                    usePointStyle: true,
+                                    boxWidth: 12
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Nutrition Records Trend Chart
+            const nutritionRecordsCtx = document.getElementById('nutritionRecordsChart');
+            if (nutritionRecordsCtx) {
+                const nutritionData = <?php echo json_encode($nutritionRecordsByMonth); ?>;
+                const months = nutritionData.map(item => item.month);
+                const counts = nutritionData.map(item => parseInt(item.count));
+                
+                new Chart(nutritionRecordsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Nutrition Records',
+                            data: counts,
+                            backgroundColor: '#0d6efd',
+                            borderColor: '#0d6efd',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        aspectRatio: 2,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#f0f0f0'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // WFL Status Chart
+            const wflStatusCtx = document.getElementById('wflStatusChart');
+            if (wflStatusCtx) {
+                const wflData = <?php echo json_encode($wflStatus); ?>;
+                const labels = wflData.map(item => item.wfl_status);
+                const counts = wflData.map(item => parseInt(item.count));
+                
+                new Chart(wflStatusCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: counts,
+                            backgroundColor: [
+                                '#28a745',
+                                '#ffc107',
+                                '#dc3545',
+                                '#17a2b8',
+                                '#6f42c1'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        aspectRatio: 1,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 10,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Supplementation Chart
+            const supplementationCtx = document.getElementById('supplementationChart');
+            if (supplementationCtx) {
+                const suppData = <?php echo json_encode($supplementationByType); ?>;
+                const labels = suppData.map(item => item.supplement_type);
+                const counts = suppData.map(item => parseInt(item.count));
+                
+                new Chart(supplementationCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Supplementation',
+                            data: counts,
+                            backgroundColor: '#6f42c1',
+                            borderColor: '#6f42c1',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        aspectRatio: 2,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#f0f0f0'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Final resize to ensure proper sizing
+            setTimeout(forceChartResize, 1000);
         });
+        
+        // Export and Refresh Functions
+        window.exportReports = function() {
+            // Create a simple CSV export
+            const data = {
+                bhw: {
+                    health_records: <?php echo $bhwStats['total_health_records'] ?? 0; ?>,
+                    maternal_patients: <?php echo $bhwStats['total_maternal_patients'] ?? 0; ?>,
+                    immunizations: <?php echo $bhwStats['total_immunizations'] ?? 0; ?>
+                },
+                bns: {
+                    nutrition_records: <?php echo $bnsStats['total_nutrition_records'] ?? 0; ?>,
+                    children: <?php echo $bnsStats['total_children'] ?? 0; ?>,
+                    supplementation: <?php echo $bnsStats['total_supplementation'] ?? 0; ?>
+                }
+            };
+            
+            const csvContent = "Report Type,Category,Value\n" +
+                "BHW,Health Records," + data.bhw.health_records + "\n" +
+                "BHW,Maternal Patients," + data.bhw.maternal_patients + "\n" +
+                "BHW,Immunizations," + data.bhw.immunizations + "\n" +
+                "BNS,Nutrition Records," + data.bns.nutrition_records + "\n" +
+                "BNS,Children," + data.bns.children + "\n" +
+                "BNS,Supplementation," + data.bns.supplementation;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'barangay_reports_' + new Date().toISOString().split('T')[0] + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
+        
+        window.refreshReports = function() {
+            location.reload();
+        };
+        <?php endif; ?>
+        
         
     </script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- LIGHT RUNTIME BRIDGE (Optional small enhancements) -->
 <script>
