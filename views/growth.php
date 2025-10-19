@@ -40,6 +40,67 @@ if ($children) {
     if ($selected_child_id === 0) { $selected_child_id = (int)$children[0]['child_id']; $selected_child_name = $children[0]['full_name']; }
 }
 
+// Build recent measurements for the selected child (up to 6)
+$recent_measures = [];
+$latest_info = null; $prev_info = null; $insights = [
+    'last_measured_text' => null,
+    'days_since' => null,
+    'weight_delta_text' => null,
+    'weight_delta_color' => '#6b7280',
+    'height_delta_text' => null,
+    'height_delta_color' => '#6b7280'
+];
+if ($selected_child_id > 0) {
+    if ($st_recent = $mysqli->prepare("SELECT nr.weighing_date, nr.weight_kg, nr.length_height_cm, st.status_description, st.status_code FROM nutrition_records nr LEFT JOIN wfl_ht_status_types st ON st.status_id = nr.wfl_ht_status_id WHERE nr.child_id = ? ORDER BY nr.weighing_date DESC, nr.record_id DESC LIMIT 6")) {
+        $st_recent->bind_param('i', $selected_child_id);
+        $st_recent->execute();
+        $rs = $st_recent->get_result();
+        while ($row = $rs->fetch_assoc()) {
+            $w_val = isset($row['weight_kg']) && $row['weight_kg']!==null ? (float)$row['weight_kg'] : null;
+            $h_val = isset($row['length_height_cm']) && $row['length_height_cm']!==null ? (float)$row['length_height_cm'] : null;
+            $code  = (string)($row['status_code'] ?? '');
+            $desc  = (string)($row['status_description'] ?? '');
+            $recent_measures[] = [
+                'date_raw'    => $row['weighing_date'] ?? null,
+                'date_text'   => !empty($row['weighing_date']) ? date('M d, Y', strtotime($row['weighing_date'])) : 'N/A',
+                'weight_val'  => $w_val,
+                'height_val'  => $h_val,
+                'status_code' => $code,
+                'status_text' => $desc,
+                'color'       => status_color($code)
+            ];
+        }
+        $st_recent->close();
+    }
+    // Compute insights chips data
+    if (!empty($recent_measures)) {
+        $latest_info = $recent_measures[0];
+        $insights['last_measured_text'] = $latest_info['date_text'];
+        if (!empty($latest_info['date_raw'])) {
+            try {
+                $today = new DateTime(date('Y-m-d'));
+                $ldate = new DateTime($latest_info['date_raw']);
+                $insights['days_since'] = (int)$ldate->diff($today)->format('%a');
+            } catch (Exception $e) { /* ignore */ }
+        }
+        if (count($recent_measures) > 1) {
+            $prev_info = $recent_measures[1];
+            // Weight delta (2 decimals)
+            if ($latest_info['weight_val'] !== null && $prev_info['weight_val'] !== null) {
+                $wd = (float)$latest_info['weight_val'] - (float)$prev_info['weight_val'];
+                $insights['weight_delta_text'] = ($wd>0?'+':'').number_format($wd, 2).' kg';
+                $insights['weight_delta_color'] = $wd>0 ? '#10b981' : ($wd<0 ? '#ef4444' : '#6b7280');
+            }
+            // Height delta (1 decimal)
+            if ($latest_info['height_val'] !== null && $prev_info['height_val'] !== null) {
+                $hd = (float)$latest_info['height_val'] - (float)$prev_info['height_val'];
+                $insights['height_delta_text'] = ($hd>0?'+':'').number_format($hd, 1).' cm';
+                $insights['height_delta_color'] = $hd>0 ? '#3b82f6' : ($hd<0 ? '#ef4444' : '#6b7280');
+            }
+        }
+    }
+}
+
 // Build nutrition status cards (latest per child)
 $nutrition_cards = [];
 if ($children) {
@@ -124,6 +185,27 @@ $class_bg_color     = $selected_status_color.'1A'; // ~10% opacity
         <?php endif; ?>
     </div>
 
+    <?php if ($selected_child_id > 0 && !empty($recent_measures)): ?>
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs" style="background:#f3f4f6; border:1px solid #e5e7eb; color:#374151;">
+            <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+            Last measured: <?php echo h($insights['last_measured_text'] ?? ''); ?><?php if ($insights['days_since'] !== null): ?> (<?php echo (int)$insights['days_since']; ?> days ago)<?php endif; ?>
+        </span>
+        <?php if (!empty($insights['weight_delta_text'])): ?>
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs" style="background: rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); color: <?php echo h($insights['weight_delta_color']); ?>;">
+            <i data-lucide="scale" class="w-4 h-4"></i>
+            Weight change: <?php echo h($insights['weight_delta_text']); ?>
+        </span>
+        <?php endif; ?>
+        <?php if (!empty($insights['height_delta_text'])): ?>
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs" style="background: rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); color: <?php echo h($insights['height_delta_color']); ?>;">
+            <i data-lucide="ruler" class="w-4 h-4"></i>
+            Height change: <?php echo h($insights['height_delta_text']); ?>
+        </span>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <?php if (empty($children)): ?>
         <div class="bg-white rounded-xl shadow-sm p-6" style="border:1px solid #e5e7eb;">
             <p class="text-sm" style="color:#6b7280;">No linked children yet. Please contact your BNS/BHW to link your child account.</p>
@@ -207,6 +289,44 @@ $class_bg_color     = $selected_status_color.'1A'; // ~10% opacity
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if (!empty($recent_measures)): ?>
+    <!-- Recent Measurements -->
+    <div class="bg-white rounded-xl shadow-sm p-6" style="border: 1px solid #e5e7eb;">
+        <h3 class="font-medium mb-2">Recent Measurements</h3>
+        <p class="text-sm mb-6" style="color: #6b7280;">Latest nutrition records for <?php echo h($selected_child_name); ?></p>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b" style="border-color: #e5e7eb;">
+                        <th class="text-left py-3 px-4 font-medium">Date</th>
+                        <th class="text-left py-3 px-4 font-medium">Weight (kg)</th>
+                        <th class="text-left py-3 px-4 font-medium">Height (cm)</th>
+                        <th class="text-left py-3 px-4 font-medium">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($recent_measures as $rm): ?>
+                    <tr class="border-b" style="border-color: #e5e7eb;">
+                        <td class="py-3 px-4"><?php echo h($rm['date_text']); ?></td>
+                        <td class="py-3 px-4"><?php echo $rm['weight_val']!==null ? h(number_format((float)$rm['weight_val'],2)) : '—'; ?></td>
+                        <td class="py-3 px-4"><?php echo $rm['height_val']!==null ? h(number_format((float)$rm['height_val'],1)) : '—'; ?></td>
+                        <td class="py-3 px-4">
+                            <?php if (!empty($rm['status_text'])): ?>
+                                <span class="px-2 py-1 rounded-full text-xs font-medium" style="color: <?php echo h($rm['color']); ?>; background-color: <?php echo h($rm['color']); ?>1A; border:1px solid <?php echo h($rm['color']); ?>55;">
+                                    <?php echo h($rm['status_text']); ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="text-sm" style="color:#6b7280;">—</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Nutrition Classification -->
     <div class="bg-white rounded-xl shadow-sm" style="border: 1px solid <?php echo h($class_border_color); ?>;">

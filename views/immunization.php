@@ -617,35 +617,7 @@ if ($parent_user_id) {
         </div>
         <?php endif; ?>
 
-    <!-- Recent Nutrition Measurements (still useful in Vaccines tab) -->
-    <?php $nhist = $nutrition_history_by_child[$child['id']] ?? []; if (!empty($nhist) && $active_tab==='vaccines'): ?>
-        <div class="bg-white rounded-xl shadow-sm p-6" style="border: 1px solid #e5e7eb;">
-            <h3 class="font-medium mb-2">Recent Measurements</h3>
-            <p class="text-sm mb-6" style="color: #6b7280;">Latest nutrition records for <?php echo htmlspecialchars($child['name']); ?><?php 
-                if (!empty($child['weight_trend'])) {
-                    echo ' • Trend: ' . ($child['weight_trend']==='up'?'⬆️':'') . ($child['weight_trend']==='down'?'⬇️':'') . ($child['weight_trend']==='flat'?'➡️':'');
-                }
-            ?></p>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b" style="border-color: #e5e7eb;">
-                            <th class="text-left py-3 px-4 font-medium">Date</th>
-                            <th class="text-left py-3 px-4 font-medium">Measurements</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($nhist as $nr): ?>
-                        <tr class="border-b" style="border-color: #e5e7eb;">
-                            <td class="py-3 px-4"><?php echo htmlspecialchars($nr['date']); ?></td>
-                            <td class="py-3 px-4"><?php echo htmlspecialchars($nr['display']); ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <?php endif; ?>
+    
 
         <!-- Vaccination History Table for this child -->
         <?php if ($active_tab==='vaccines'): ?>
