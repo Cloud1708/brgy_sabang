@@ -1313,6 +1313,15 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
             max-height: 300px !important;
             max-width: 100% !important;
         }
+        /* Logo styling */
+        .brand img, .topbar img {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(4, 120, 87, 0.2);
+        }
+        .brand img:hover, .topbar img:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s ease;
+        }
         @media (max-width: 900px) {
             .sidebar {
                 position: fixed;
@@ -1351,8 +1360,13 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="brand">
-                <h1>Barangay Sabang</h1>
-                <small>Health &amp; Nutrition Management System</small>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <img src="assets/img/sabang.jpg" alt="Barangay Sabang Logo" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+                    <div>
+                        <h1 style="font-size: 1.1rem; margin: 0;">Barangay Sabang</h1>
+                        <small style="font-size: 0.65rem;">Health &amp; Nutrition Management System</small>
+                    </div>
+                </div>
             </div>
             <div class="nav-section">
                 <small class="text-muted d-block mb-2" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding-left: 0.5rem;">Admin Navigation</small>
@@ -1392,9 +1406,12 @@ $bnsInterfaceUrl = $_ENV['BNS_URL'] ?? 'dashboard_bns';
         <div class="main">
             <div class="topbar">
                 <button class="btn btn-outline-secondary btn-sm d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
-                <h1 class="page-title mb-0">
-                    <?php echo htmlspecialchars($titles[$section]); ?>
-                </h1>
+                <div class="d-flex align-items-center gap-3">
+                    <img src="assets/img/sabang.jpg" alt="Barangay Sabang Logo" style="width: 35px; height: 35px; border-radius: 6px; object-fit: cover;">
+                    <h1 class="page-title mb-0">
+                        <?php echo htmlspecialchars($titles[$section]); ?>
+                    </h1>
+                </div>
                 <div class="ms-auto d-flex align-items-center gap-3">
                     <div class="position-relative">
                         <button class="btn btn-link text-decoration-none p-0 position-relative" style="color:#1c2a32;">
