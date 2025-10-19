@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-4">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#D4F4FF;color:#007bff;">
               <i class="bi bi-file-earmark-text"></i>
             </div>
             <h5 class="fw-semibold mb-0">Barangay Clearance</h5>
@@ -155,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-4">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#FAF7CC;color:#856404;">
               <i class="bi bi-shield"></i>
             </div>
             <h5 class="fw-semibold mb-0">Peace &amp; Order</h5>
@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-4">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#BBFFC7;color:#28a745;">
               <i class="bi bi-people"></i>
             </div>
             <h5 class="fw-semibold mb-0">Community Programs</h5>
@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-4">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#FFE2B2;color:#856404;">
               <i class="bi bi-buildings"></i>
             </div>
             <h5 class="fw-semibold mb-0">Business Permits</h5>
@@ -188,7 +188,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-4">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#C1FFFE;color:#17a2b8;">
               <i class="bi bi-bag"></i>
             </div>
             <h5 class="fw-semibold mb-0">Livelihood Programs</h5>
@@ -218,7 +218,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-3">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#FAF7CC;color:#856404;">
               <i class="bi bi-geo-alt"></i>
             </div>
             <h6 class="fw-semibold mb-0">Address</h6>
@@ -233,7 +233,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-3">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#BBFFC7;color:#28a745;">
               <i class="bi bi-telephone"></i>
             </div>
             <h6 class="fw-semibold mb-0">Phone</h6>
@@ -247,7 +247,7 @@ document.addEventListener("DOMContentLoaded", function() {
       <div class="col-md-6 col-lg-3">
         <div class="card h-100 shadow-lg border-0 p-4 rounded-4">
           <div class="d-flex align-items-center gap-3 mb-2">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#fdecec;color:#dc3545;">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-3" style="width:48px;height:48px;background:#D4F4FF;color:#007bff;">
               <i class="bi bi-envelope"></i>
             </div>
             <h6 class="fw-semibold mb-0">Email</h6>
@@ -293,24 +293,131 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
     <div class="row g-4 fs-5">
       <?php
+        // Helper to compute initials while ignoring honorifics
+        if (!function_exists('bgys_initials')) {
+          function bgys_initials(string $fullName): string {
+            $ignore = ['HON', 'HON.', 'MS', 'MS.', 'MR', 'MR.', 'MRS', 'MRS.', 'ENGR', 'ENGR.', 'DR', 'DR.'];
+            $parts = preg_split('/\s+/', trim($fullName));
+            $acc = '';
+            foreach ($parts as $p) {
+              $clean = strtoupper(rtrim(preg_replace('/[^A-Za-z\.]/', '', $p), '.'));
+              if ($clean === '' || in_array($clean, $ignore, true)) continue;
+              $acc .= $clean[0];
+              if (strlen($acc) >= 3) break;
+            }
+            return $acc ?: 'BGY';
+          }
+        }
+
+  // Barangay Officials (from org chart)
+  // To update names or titles, edit the array items below.
+  // Images can be added later by extending each item with an 'img' key and rendering conditionally.
         $officials = [
-          ['name'=>'Hon. Maria Santos','title'=>'Barangay Captain','initials'=>'MS'],
-          ['name'=>'Hon. Juan Dela Cruz','title'=>'Barangay Kagawad','initials'=>'JD'],
-          ['name'=>'Hon. Ana Reyes','title'=>'Barangay Kagawad','initials'=>'AR'],
-          ['name'=>'Hon. Roberto Garcia','title'=>'Barangay Kagawad','initials'=>'RG'],
-          ['name'=>'Hon. Elena Rodriguez','title'=>'Barangay Kagawad','initials'=>'ER'],
-          ['name'=>'Hon. Carlos Mendoza','title'=>'Barangay Kagawad','initials'=>'CM'],
-          ['name'=>'Hon. Patricia Cruz','title'=>'SK Chairperson','initials'=>'PC'],
-          ['name'=>'Jose Martinez','title'=>'Barangay Secretary','initials'=>'JM'],
+          ['name'=>'Hon. Nivend Lasin','title'=>'Barangay Chairman'],
+          ['name'=>'Ms. Shirley Famatiga','title'=>'Barangay Secretary'],
+          ['name'=>'Ms. Crystine Puertelano','title'=>'Barangay Treasurer'],
+          ['name'=>'Hon. Rosalie Vergara','title'=>'Barangay Councilor'],
+          ['name'=>'Hon. Vilma Hernandez','title'=>'Barangay Councilor'],
+          ['name'=>'Hon. Noel Mendoza','title'=>'Barangay Councilor'],
+          ['name'=>'Hon. Kristine Allen Bravo','title'=>'Barangay Councilor'],
+          ['name'=>'Hon. Estanislao Lasi','title'=>'Barangay Councilor'],
+          ['name'=>'Hon. Nestor Alcantara','title'=>'Barangay Councilor'],
+          ['name'=>'Hon. Bonifacio Enriquez','title'=>'Barangay Councilor'],
+          ['name'=>'Hon. Ysmael Latayan','title'=>'SK Chairman'],
         ];
+
+        // Explicit image mapping for Barangay Officials
+        // Keys must match the exact 'name' values from $officials
+        $officialImageMap = [
+          'Hon. Nivend Lasin' => 'assets/img/barangay_officials/nivend_lasin.png',
+          'Ms. Shirley Famatiga' => 'assets/img/barangay_officials/shirley_famatiga.png',
+          'Ms. Crystine Puertelano' => 'assets/img/barangay_officials/crystine_puertelano.png',
+          'Hon. Rosalie Vergara' => 'assets/img/barangay_officials/rosalie_vergara.png',
+          'Hon. Vilma Hernandez' => 'assets/img/barangay_officials/vilma_hernandez.png',
+          'Hon. Noel Mendoza' => 'assets/img/barangay_officials/noel_mendoza.png',
+          'Hon. Kristine Allen Bravo' => 'assets/img/barangay_officials/kristine_allen_bravo.png',
+          'Hon. Estanislao Lasi' => 'assets/img/barangay_officials/estanislao_lasi.png',
+          'Hon. Nestor Alcantara' => 'assets/img/barangay_officials/nestor_alcantara.png',
+          'Hon. Bonifacio Enriquez' => 'assets/img/barangay_officials/bonifacio enriquez.png',
+          'Hon. Ysmael Latayan' => 'assets/img/barangay_officials/ysmael_latayan.png',
+        ];
+
         foreach($officials as $o): ?>
-        <div class="col-6 col-md-4 col-lg-3">
+        <div class="col-12 col-md-6 col-lg-4">
           <div class="card h-100 shadow-lg border-0 p-4 text-center rounded-4">
-            <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center mb-3" style="width:88px;height:88px;background:#dc3545;color:#fff;border:6px solid #ffe3e3;font-weight:800;">
-              <?= htmlspecialchars($o['initials']) ?>
-            </div>
+            <?php
+              $name = $o['name'];
+              $imgRel = $officialImageMap[$name] ?? null;
+              $imgAbs = $imgRel ? __DIR__ . '/' . ltrim($imgRel, '/') : null;
+              $hasImg = $imgAbs && is_file($imgAbs);
+            ?>
+            <?php if ($hasImg): ?>
+              <img src="<?= htmlspecialchars($imgRel) ?>" alt="<?= htmlspecialchars($o['name']) ?>" class="mb-3 rounded-circle d-block mx-auto" style="width:88px;height:88px;object-fit:cover;border:6px solid #ffe3e3;" loading="lazy" />
+            <?php else: ?>
+              <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center mb-3" style="width:88px;height:88px;background:#dc3545;color:#fff;border:6px solid #ffe3e3;font-weight:800;">
+                <?= htmlspecialchars(bgys_initials($o['name'])) ?>
+              </div>
+            <?php endif; ?>
             <h6 class="fw-bold mb-1" style="min-height:40px;"><?= htmlspecialchars($o['name']) ?></h6>
             <div class="text-muted small"><?= htmlspecialchars($o['title']) ?></div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <!-- SK Officials (Sangguniang Kabataan) -->
+    <div class="text-center mt-5 mb-3 pt-5">
+      <h2 class="display-6 fw-bold" style="color:#dc3545;">Sangguniang Kabataan Officials</h2>
+      <p class="text-muted">Meet the youth leaders dedicated to serving our community</p>
+    </div>
+    <div class="row g-4 fs-6">
+      <?php
+  // SK Officials (from org chart) - edit entries here when roster changes
+  $sk_officials = [
+          ['name'=>'Hon. Ysmael Latayan','title'=>'SK Chairman'],
+          ['name'=>'Ruzzel Rhain Bautista','title'=>'SK Secretary'],
+          ['name'=>'Kenrick Legaspi','title'=>'SK Treasurer'],
+          ['name'=>'Hon. Kastine Maye Angeles','title'=>'SK Councilor'],
+          ['name'=>'Hon. Frances Julia Ayen Dimaala','title'=>'SK Councilor'],
+          ['name'=>'Hon. Aileen Villanueva','title'=>'SK Councilor'],
+          ['name'=>'Hon. Cielo Mae Nava','title'=>'SK Councilor'],
+          ['name'=>'Hon. Vinze Ervin Antiquerra','title'=>'SK Councilor'],
+          ['name'=>'Hon. Kim Adrian Manahan','title'=>'SK Councilor'],
+          ['name'=>'Hon. Benedict Lorens Macaraeg','title'=>'SK Councilor'],
+        ];
+
+        // Explicit image mapping for SK Officials
+        // Keys must match the exact 'name' values from $sk_officials
+        $skImageMap = [
+          'Hon. Ysmael Latayan' => 'assets/img/sangguniang_kabataan/ysmael_latayan.png',
+          'Ruzzel Rhain Bautista' => 'assets/img/sangguniang_kabataan/ruzzle_rhain_bautista.png',
+          'Kenrick Legaspi' => 'assets/img/sangguniang_kabataan/kenrick_legaspi.png',
+          'Hon. Kastine Maye Angeles' => 'assets/img/sangguniang_kabataan/kastine_maye_angeles.png',
+          'Hon. Frances Julia Ayen Dimaala' => 'assets/img/sangguniang_kabataan/frances_julia_ayen_dimaala.png',
+          'Hon. Aileen Villanueva' => 'assets/img/sangguniang_kabataan/aileen_villanueva.png',
+          'Hon. Cielo Mae Nava' => 'assets/img/sangguniang_kabataan/cielo_mae_nava.png',
+          'Hon. Vinze Ervin Antiquerra' => 'assets/img/sangguniang_kabataan/vinze_ervin_antiquerra.png',
+          'Hon. Kim Adrian Manahan' => 'assets/img/sangguniang_kabataan/kim_adrian_manahan.png',
+          'Hon. Benedict Lorens Macaraeg' => 'assets/img/sangguniang_kabataan/benedict_lorens_macaraeg.png',
+        ];
+        foreach($sk_officials as $o): ?>
+        <div class="col-6 col-md-4 col-lg-4">
+          <div class="card h-100 shadow-lg border-0 p-4 text-center rounded-4">
+            <?php
+              $name = $o['name'];
+              $imgRel = $skImageMap[$name] ?? null;
+              $imgAbs = $imgRel ? __DIR__ . '/' . ltrim($imgRel, '/') : null;
+              $hasImg = $imgAbs && is_file($imgAbs);
+            ?>
+            <?php if ($hasImg): ?>
+              <img src="<?= htmlspecialchars($imgRel) ?>" alt="<?= htmlspecialchars($o['name']) ?>" class="mb-3 rounded-circle d-block mx-auto" style="width:72px;height:72px;object-fit:cover;border:5px solid #ffe3e3;" loading="lazy" />
+            <?php else: ?>
+              <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center mb-3" style="width:72px;height:72px;background:#dc3545;color:#fff;border:5px solid #ffe3e3;font-weight:800;">
+                <?= htmlspecialchars(bgys_initials($o['name'])) ?>
+              </div>
+            <?php endif; ?>
+            <h6 class="fw-bold mb-1" style="min-height:40px;"><?= htmlspecialchars($o['name']) ?></h6>
+            <div class="text-muted" style="font-size: 17.5px;"><?= htmlspecialchars($o['title']) ?></div>
           </div>
         </div>
       <?php endforeach; ?>
