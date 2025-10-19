@@ -60,6 +60,7 @@ document.addEventListener("DOMContentLoaded", function() {
     btn.addEventListener("click", function() {
       const modal = document.getElementById("announcementModal");
       if (!modal) return;
+      
       const titleEl = modal.querySelector(".announcement-modal-title");
       const dateEl = modal.querySelector(".announcement-modal-date");
       const timeEl = modal.querySelector(".announcement-modal-time");
@@ -72,13 +73,20 @@ document.addEventListener("DOMContentLoaded", function() {
       if (locationEl) {
         const locText = this.getAttribute("data-location") || "";
         if (locText) {
-          locationEl.textContent = locText;
+          locationEl.innerHTML = locText;
           locationEl.classList.remove("d-none");
         } else {
           locationEl.classList.add("d-none");
         }
       }
-      if (bodyEl) bodyEl.textContent = this.getAttribute("data-body") || "";
+      if (bodyEl) {
+        const bodyText = this.getAttribute("data-body") || "";
+        bodyEl.innerHTML = bodyText.replace(/\n/g, '<br>');
+      }
+      
+      // Show the modal
+      const modalInstance = new bootstrap.Modal(modal);
+      modalInstance.show();
     });
   });
 
@@ -224,9 +232,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <h6 class="fw-semibold mb-0">Address</h6>
           </div>
           <div class="text-muted small">
-            Barangay Hall, Pawa Halaan<br>
-            Municipality, Province<br>
-            Philippines
+          Camagong St. 4217 Lipa City, Philippines
           </div>
         </div>
       </div>
@@ -253,8 +259,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <h6 class="fw-semibold mb-0">Email</h6>
           </div>
           <div class="text-muted small">
-            barangay.pawahalaan@gov.ph<br>
-            info@pawahalaan.gov.ph
+          brgy.sabang2016@gmail.com
           </div>
         </div>
       </div>
@@ -508,7 +513,6 @@ document.addEventListener("DOMContentLoaded", function() {
               <p class="small text-secondary">
                 Ensuring timely vaccination schedules to protect children from preventable diseases.
               </p>
-              <a href="programs#immunization" class="small text-danger text-decoration-none" aria-label="Learn more about child immunization">Learn More →</a>
             </div>
           </div>
           <div class="col-sm-12">
@@ -517,7 +521,6 @@ document.addEventListener("DOMContentLoaded", function() {
               <p class="small text-secondary">
                 Regular growth assessments, weight-for-length/height evaluations, and supplementation tracking.
               </p>
-              <a href="programs#nutrition" class="small text-danger text-decoration-none" aria-label="Learn more about nutrition monitoring">Learn More →</a>
             </div>
           </div>
           <div class="col-sm-12">
@@ -526,7 +529,6 @@ document.addEventListener("DOMContentLoaded", function() {
               <p class="small text-secondary">
                 Prenatal check-ups and risk screening to support safe and healthy pregnancies.
               </p>
-              <a href="programs#maternal" class="small text-danger text-decoration-none" aria-label="Learn more about maternal health">Learn More →</a>
             </div>
           </div>
         </div>
@@ -570,23 +572,30 @@ document.addEventListener("DOMContentLoaded", function() {
 <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" role="dialog">
   <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title announcement-modal-title" id="announcementModalLabel"></h5>
+      <div class="modal-header bg-light">
+        <h5 class="modal-title announcement-modal-title fw-bold" id="announcementModalLabel" style="color: #dc3545;"></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="small text-secondary mb-2">
-          <span class="announcement-modal-date"></span> •
-          <span class="announcement-modal-time"></span>
+        <div class="d-flex flex-wrap gap-3 mb-3">
+          <div class="d-flex align-items-center text-muted small">
+            <i class="bi bi-calendar-event me-1"></i>
+            <span class="announcement-modal-date"></span>
+          </div>
+          <div class="d-flex align-items-center text-muted small">
+            <i class="bi bi-clock me-1"></i>
+            <span class="announcement-modal-time"></span>
+          </div>
         </div>
-        <div class="announcement-modal-location small mb-3 text-muted d-none"></div>
-        <div class="announcement-modal-body" style="font-size:1rem;line-height:1.7;"></div>
+        <div class="announcement-modal-location small mb-3 text-muted d-none">
+          <i class="bi bi-geo-alt"></i>
+        </div>
+        <div class="announcement-modal-body" style="font-size:1rem;line-height:1.7;white-space: pre-wrap;"></div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-primary" onclick="navigator.share ? navigator.share({title: document.querySelector('.announcement-modal-title').textContent, text: document.querySelector('.announcement-modal-body').textContent, url: window.location.href}) : alert('Share feature not supported');" aria-label="Share announcement">
-          <i class="bi bi-share"></i> Share
+      <div class="modal-footer bg-light">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close modal">
+          <i class="bi bi-x-circle"></i> Close
         </button>
-        <button class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close modal">Close</button>
       </div>
     </div>
   </div>
