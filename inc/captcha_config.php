@@ -4,8 +4,8 @@
 // https://www.google.com/recaptcha/admin
 
 // Test keys (for development - always pass)
-define('RECAPTCHA_SITE_KEY', '6Ldu1u8rAAAAAPpY7QR8YvYpYlJLcBEgko_CwBxd');
-define('RECAPTCHA_SECRET_KEY', '6Ldu1u8rAAAAAKc4b89WgUQHzAxUK1oMQtfE9pf5');
+define('RECAPTCHA_SITE_KEY', '6Ldi3O8rAAAAAPjWDDauBuNzP4BMa8HDlQy2rMp9');
+define('RECAPTCHA_SECRET_KEY', '6Ldi3O8rAAAAAE4--j8_M9l31xREkSFciPkebArD');
 
 // Production keys (replace with your actual keys)
 // define('RECAPTCHA_SITE_KEY', 'YOUR_SITE_KEY_HERE');
