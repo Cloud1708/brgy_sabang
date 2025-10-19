@@ -22,7 +22,7 @@
                     <p class="font-medium"><?php echo $user['first_name'] . ' ' . $user['last_name']; ?></p>
                     <p class="text-sm" style="color: #6b7280;"><?php echo $user['role']; ?></p>
                 </div>
-                <a href="logout.php" class="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
+                <a href="logout" class="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium"
                    style="background-color:#ef4444; color:white;">
                     <i data-lucide="log-out" class="w-4 h-4"></i>
                     <span class="hidden sm:inline">Logout</span>

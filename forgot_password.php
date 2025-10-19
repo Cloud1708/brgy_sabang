@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $current_dir = '';
                             }
                             
-                            $reset_link = $base_url . $current_dir . '/reset_password.php?token=' . $reset_token;
+                            $reset_link = $base_url . $current_dir . '/token_submit?token=' . $reset_token;
                             
                             $subject = "Password Reset - Barangay Health & Nutrition System";
                             $message = "

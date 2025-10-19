@@ -1,11 +1,7 @@
 <?php
+// This file now handles the token submission via POST
 date_default_timezone_set('Asia/Manila');
 require_once __DIR__ . '/inc/db.php';
-
-// Check database connection
-if ($mysqli->connect_error) {
-    die("Database connection failed: " . $mysqli->connect_error);
-}
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -21,49 +17,53 @@ $valid_token = false;
 $user_info = null;
 $user_role = null;
 
-// Check if token is provided and valid
-$token = $_GET['token'] ?? '';
-if (!empty($token)) {
-    // Debug: Log token for troubleshooting
-    error_log("Reset password attempt with token: " . substr($token, 0, 10) . "...");
+// Handle token submission via POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['token'] ?? '';
     
-    // First check if the password_reset_tokens table exists
-    $table_check = $mysqli->query("SHOW TABLES LIKE 'password_reset_tokens'");
-    if ($table_check->num_rows == 0) {
-        $msg = "<div class='alert alert-danger py-2 small mb-3'>Password reset system is not properly configured. Please contact the administrator.</div>";
-    } else {
-        $stmt = $mysqli->prepare("
-            SELECT prt.user_id, prt.expires_at, u.username, u.email, r.role_name
-            FROM password_reset_tokens prt
-            JOIN users u ON prt.user_id = u.user_id
-            JOIN roles r ON u.role_id = r.role_id
-            WHERE prt.token = ? AND prt.expires_at > NOW() AND u.is_active = 1
-            LIMIT 1
-        ");
-        
-        if ($stmt !== false) {
-            $stmt->bind_param("s", $token);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if ($row = $result->fetch_assoc()) {
-                $valid_token = true;
-                $user_info = $row;
-                $user_role = $row['role_name'];
-            } else {
-                $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid or expired reset token. Please request a new password reset.</div>";
-            }
-            $stmt->close();
+    if (!empty($token)) {
+        // First check if the password_reset_tokens table exists
+        $table_check = $mysqli->query("SHOW TABLES LIKE 'password_reset_tokens'");
+        if ($table_check->num_rows == 0) {
+            $msg = "<div class='alert alert-danger py-2 small mb-3'>Password reset system is not properly configured. Please contact the administrator.</div>";
         } else {
-            $msg = "<div class='alert alert-danger py-2 small mb-3'>Database error: " . $mysqli->error . ". Please try again later.</div>";
+            $stmt = $mysqli->prepare("
+                SELECT prt.user_id, prt.expires_at, u.username, u.email, r.role_name
+                FROM password_reset_tokens prt
+                JOIN users u ON prt.user_id = u.user_id
+                JOIN roles r ON u.role_id = r.role_id
+                WHERE prt.token = ? AND prt.expires_at > NOW() AND u.is_active = 1
+                LIMIT 1
+            ");
+            
+            if ($stmt !== false) {
+                $stmt->bind_param("s", $token);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                
+                if ($row = $result->fetch_assoc()) {
+                    $valid_token = true;
+                    $user_info = $row;
+                    $user_role = $row['role_name'];
+                } else {
+                    $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid or expired reset token. Please request a new password reset.</div>";
+                }
+                $stmt->close();
+            } else {
+                $msg = "<div class='alert alert-danger py-2 small mb-3'>Database error: " . $mysqli->error . ". Please try again later.</div>";
+            }
         }
+    } else {
+        $msg = "<div class='alert alert-danger py-2 small mb-3'>No reset token provided. Please use the link from your email.</div>";
     }
 } else {
-    $msg = "<div class='alert alert-danger py-2 small mb-3'>No reset token provided. Please use the link from your email.</div>";
+    // If accessed directly without POST, redirect to forgot password
+    header('Location: forgot_password');
+    exit;
 }
 
 // Handle password reset form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token && isset($_POST['new_password'])) {
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid request. Please try again.</div>";
     } else {
@@ -172,7 +172,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
                 <?php echo $msg; ?>
 
                 <?php if ($valid_token && $user_info && !$success): ?>
-                <form method="post" action="reset_password.php?token=<?php echo htmlspecialchars($token); ?>" novalidate>
+                <form method="post" action="reset_password" novalidate>
+                    <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">New Password</label>
                         <div class="input-group">

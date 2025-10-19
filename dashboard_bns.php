@@ -1306,7 +1306,7 @@ h1.page-title{
           <i class="bi bi-arrow-left me-1"></i> Back to Admin
         </a>
       <?php else: ?>
-        <a href="logout.php" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
+        <a href="logout" class="btn btn-outline-danger w-100" style="font-size:.7rem;font-weight:600;border-radius:10px;">
           <i class="bi bi-box-arrow-right me-1"></i> Logout
         </a>
       <?php endif; ?>
