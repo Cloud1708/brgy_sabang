@@ -235,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['username'])) {
           <?php endif; ?>
 
           <div class="text-center mt-3">
-            <a href="index#contact" class="small d-inline-block mt-2">Need help? Contact us</a>
+            <a href="forgot_password" class="small d-inline-block mt-2">Forgot Password?</a>
           </div>
         </form>
       </div>

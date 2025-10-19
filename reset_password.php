@@ -19,6 +19,7 @@ $msg = '';
 $success = false;
 $valid_token = false;
 $user_info = null;
+$user_role = null;
 
 // Check if token is provided and valid
 $token = $_GET['token'] ?? '';
@@ -48,6 +49,7 @@ if (!empty($token)) {
             if ($row = $result->fetch_assoc()) {
                 $valid_token = true;
                 $user_info = $row;
+                $user_role = $row['role_name'];
             } else {
                 $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid or expired reset token. Please request a new password reset.</div>";
             }
@@ -206,7 +208,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
 
                 <div class="text-center mt-3">
                     <?php if ($success): ?>
-                    <a href="staff_login" class="btn btn-primary btn-sm">
+                    <?php 
+                        // Determine the correct login page based on user role
+                        $login_url = ($user_role === 'Parent') ? 'parent_login' : 'staff_login';
+                    ?>
+                    <a href="<?php echo $login_url; ?>" class="btn btn-primary btn-sm">
                         <i class="bi bi-box-arrow-in-right me-1"></i>Go to Login
                     </a>
                     <?php else: ?>

@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <h6 class="fw-semibold mb-0">Address</h6>
           </div>
           <div class="text-muted small">
-          Camagong St. 4217 Lipa City, Philippines
+          Barangay Sabang, Camagong St. 4217 Lipa City, Philippines
           </div>
         </div>
       </div>
