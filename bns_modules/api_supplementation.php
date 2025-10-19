@@ -174,24 +174,25 @@ if ($method === 'GET') {
 
     $sql = "
       SELECT 
-        s.supplement_id,
-        s.child_id,
-        c.full_name AS child_name,
-        s.supplement_type,
-        s.supplement_date,
-        s.dosage,
-        s.next_due_date,
-        s.administered_by,
-        u.first_name AS admin_first_name,
-        u.last_name  AS admin_last_name,
-        s.notes,
-        s.created_at,
-        DATEDIFF(s.next_due_date, CURDATE()) AS days_until_due,
-        CASE
-          WHEN s.next_due_date IS NULL THEN 'completed'
-          WHEN s.next_due_date < CURDATE() THEN 'overdue'
-          ELSE 'completed'
-        END AS status
+                s.supplement_id,
+                s.child_id,
+                c.full_name AS child_name,
+                TIMESTAMPDIFF(MONTH, c.birth_date, CURDATE()) AS current_age_months,
+                s.supplement_type,
+                s.supplement_date,
+                s.dosage,
+                s.next_due_date,
+                s.administered_by,
+                u.first_name AS admin_first_name,
+                u.last_name  AS admin_last_name,
+                s.notes,
+                s.created_at,
+                DATEDIFF(s.next_due_date, CURDATE()) AS days_until_due,
+                CASE
+                    WHEN s.next_due_date IS NULL THEN 'completed'
+                    WHEN s.next_due_date < CURDATE() THEN 'overdue'
+                    ELSE 'completed'
+                END AS status
       FROM supplementation_records s
       JOIN children c ON c.child_id = s.child_id
       LEFT JOIN users u ON u.user_id = s.administered_by
@@ -291,22 +292,24 @@ if ($method === 'POST') {
     // Return the inserted row
     $get = $mysqli->prepare("
       SELECT 
-        s.supplement_id,
-        s.child_id,
-        c.full_name AS child_name,
-        s.supplement_type,
-        s.supplement_date,
-        s.dosage,
-        s.next_due_date,
-        s.administered_by,
-        s.notes,
-        s.created_at,
-        DATEDIFF(s.next_due_date, CURDATE()) AS days_until_due,
-        CASE
-          WHEN s.next_due_date IS NULL THEN 'completed'
-          WHEN s.next_due_date < CURDATE() THEN 'overdue'
-          ELSE 'completed'
-        END AS status
+                s.supplement_id,
+                s.child_id,
+                c.full_name AS child_name,
+                c.birth_date,
+                TIMESTAMPDIFF(MONTH, c.birth_date, CURDATE()) AS current_age_months,
+                s.supplement_type,
+                s.supplement_date,
+                s.dosage,
+                s.next_due_date,
+                s.administered_by,
+                s.notes,
+                s.created_at,
+                DATEDIFF(s.next_due_date, CURDATE()) AS days_until_due,
+                CASE
+                    WHEN s.next_due_date IS NULL THEN 'completed'
+                    WHEN s.next_due_date < CURDATE() THEN 'overdue'
+                    ELSE 'completed'
+                END AS status
       FROM supplementation_records s
       JOIN children c ON c.child_id = s.child_id
       WHERE s.supplement_id = ?

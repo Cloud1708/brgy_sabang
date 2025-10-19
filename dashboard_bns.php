@@ -1761,6 +1761,15 @@ function showToast(message, type = 'success', duration = 4000) {
 let __suppChildrenCache = [];     // full list from API
 let __suppCbActiveIndex = -1;     // keyboard highlight index
 
+// Helper: Check if selected child is OA (over-age)
+function isSelectedChildOA() {
+  const id = parseInt(document.getElementById('suppChildId')?.value || '0', 10);
+  if (!id) return false;
+  const c = (__suppChildrenCache || []).find(x => Number(x.child_id) === id);
+  const age = Number(c?.current_age_months);
+  return Number.isFinite(age) && age > 59;
+}
+
 function setupSuppChildCombobox(children){
   __suppChildrenCache = Array.isArray(children) ? children : [];
   const input = document.getElementById('suppChildInput');
@@ -6056,6 +6065,11 @@ function renderFeedingProgramsModule(label) {
               ${records.map(r => {
                 const ico = typeIcon(r.supplement_type || '');
                 const safeNotes = r.notes ? escapeHtml(r.notes) : '';
+                const mo = Number(r.current_age_months);
+                const isOA = Number.isFinite(mo) && mo > 59;
+                const nextDueText = (!isOA && r.next_due_date) ? formatDate(r.next_due_date) : '—';
+                const daysText = (!isOA && Number.isFinite(Number(r.days_until_due))) ? `${r.days_until_due} days` : '—';
+
                 return `
                   <tr style="border-bottom:1px solid #f0f4f1;">
                     <td style="padding:.8rem;border:none;">
@@ -6073,8 +6087,8 @@ function renderFeedingProgramsModule(label) {
                       </div>
                     </td>
                     <td style="padding:.8rem;border:none;color:#586c5d;">${formatDate(r.supplement_date)}</td>
-                    <td style="padding:.8rem;border:none;color:#586c5d;">${formatDate(r.next_due_date)}</td>
-                    <td style="padding:.8rem;border:none;">${daysDisplay(r.days_until_due)}</td>
+                    <td style="padding:.8rem;border:none;color:#586c5d;">${nextDueText}</td>
+                    <td style="padding:.8rem;border:none;">${daysText}</td>
                     <td style="padding:.8rem;border:none;">${statusBadge(r.status)}</td>
                     <td style="padding:.8rem;border:none;color:#586c5d;">
                       ${safeNotes
@@ -6082,9 +6096,10 @@ function renderFeedingProgramsModule(label) {
                         : '—'}
                     </td>
                     <td style="padding:.8rem;border:none;">
-                      <button class="btn btn-sm btn-outline-primary" data-supp-id="${r.supplement_id}" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">
-                        Update
-                      </button>
+                      ${isOA
+                        ? `<span class="badge-status" style="background:#ffe4e4;color:#b02020;">OA</span>`
+                        : `<button class="btn btn-sm btn-outline-primary" data-supp-id="${r.supplement_id}" style="padding:.3rem .6rem;border:1px solid #1c79d0;background:#fff;border-radius:6px;font-size:.6rem;color:#1c79d0;">Update</button>`
+                      }
                     </td>
                   </tr>
                 `;
@@ -6098,7 +6113,11 @@ function renderFeedingProgramsModule(label) {
 
   function renderSchedulePanel() {
     const items = (allSuppRecords || [])
-      .filter(r => r.next_due_date)
+      .filter(r => {
+        const mo = Number(r.current_age_months);
+        const isOA = Number.isFinite(mo) && mo > 59;
+        return r.next_due_date && !isOA;
+      })
       .sort((a,b) => new Date(a.next_due_date) - new Date(b.next_due_date));
 
     document.getElementById('suppRecordsCount')?.replaceChildren(
@@ -6154,6 +6173,18 @@ function renderFeedingProgramsModule(label) {
            </div>`}
       </div>
     `;
+  }
+  // Helper: Render supplementation row (age/due logic)
+  function renderSuppRow(r, tdNextDue, tdDaysUntil) {
+    const mo = Number(r.current_age_months);
+    const isOA = Number.isFinite(mo) && mo > 59;
+
+    const nextDueText = (!isOA && r.next_due_date) ? formatDate(r.next_due_date) : '—';
+    const daysText = (!isOA && Number.isFinite(Number(r.days_until_due)))
+      ? `${r.days_until_due} days` : '—';
+
+    tdNextDue.textContent = nextDueText;
+    tdDaysUntil.textContent = daysText;
   }
 
   function applyFilters() {
@@ -6314,7 +6345,9 @@ function renderFeedingProgramsModule(label) {
           const childId  = parseInt(document.getElementById('suppChildId')?.value || '0', 10);
           const suppType = document.getElementById('suppType')?.value || '';
           const saveBtn  = document.getElementById('saveSuppRecordBtn');
-          const dup      = hasDuplicateSupp(childId, suppType);
+
+          // Duplicate warning (existing)
+          const dup = hasDuplicateSupp(childId, suppType);
 
           let warnEl = document.getElementById('suppDuplicateWarn');
           let txtEl  = document.getElementById('suppDuplicateText');
@@ -6322,11 +6355,33 @@ function renderFeedingProgramsModule(label) {
             if (childId && suppType && dup){
               txtEl.textContent = `This child already has a ${suppType} record.`;
               warnEl.classList.remove('d-none'); warnEl.classList.add('d-flex');
-              saveBtn.disabled = true; saveBtn.classList.add('disabled');
             } else {
               warnEl.classList.add('d-none'); warnEl.classList.remove('d-flex');
-              saveBtn.disabled = false; saveBtn.classList.remove('disabled');
             }
+          }
+
+          // OA warning (new)
+          let oaEl = document.getElementById('suppOAWarn');
+          if (!oaEl) {
+            oaEl = document.createElement('div');
+            oaEl.id = 'suppOAWarn';
+            oaEl.className = 'alert alert-danger d-none align-items-center gap-2';
+            oaEl.style = 'font-size:.65rem;border-radius:10px;border:1px solid #f5c2c7;background:#f8d7da;color:#842029;';
+            oaEl.innerHTML = '<i class="bi bi-exclamation-octagon-fill"></i><span>Child is OA (over age). New supplementation is not allowed.</span>';
+            document.querySelector('#supplementationRecordModal .modal-body .form-section')?.prepend(oaEl);
+          }
+          const isOA = isSelectedChildOA();
+          if (isOA) {
+            oaEl.classList.remove('d-none'); oaEl.classList.add('d-flex');
+          } else {
+            oaEl.classList.add('d-none'); oaEl.classList.remove('d-flex');
+          }
+
+          // Disable/enable Save if either duplicate or OA
+          const shouldDisable = dup || isOA;
+          if (saveBtn) {
+            saveBtn.disabled = shouldDisable;
+            saveBtn.classList.toggle('disabled', shouldDisable);
           }
         }
 
