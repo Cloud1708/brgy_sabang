@@ -3527,8 +3527,13 @@ function renderMotherRow(m){
           pallor:0, abnormal_abdominal_size:0, abnormal_presentation:0, absent_fetal_heartbeat:0,
           swelling:0, vaginal_infection:0
         };
+        const interventionsCount = {
+          iron_folate_prescription:0, additional_iodine:0, malaria_prophylaxis:0, breastfeeding_plan:0,
+          danger_advice:0, dental_checkup:0, emergency_plan:0, general_risk:0
+        };
         records.forEach(r=>{
           Object.keys(flagsCount).forEach(k=>{ if(parseInt(r[k])===1) flagsCount[k]++; });
+          Object.keys(interventionsCount).forEach(k=>{ if(parseInt(r[k])===1) interventionsCount[k]++; });
         });
 
         const weightSeries = records.map(r=>num(r.weight_kg)).filter(v=>v!=null);
@@ -3563,6 +3568,19 @@ function renderMotherRow(m){
           return Object.keys(flagsCount).map(k=>{
             const on = flagsCount[k]>0;
             return `<span class="mh-risk-chip ${on?'on':'off'}" title="${mapLabels[k]}: ${flagsCount[k]} rec(s)">${mapLabels[k]}</span>`;
+          }).join('');
+        }
+
+        // Build intervention chip legend counts
+        function interventionChips(){
+          const mapLabels={
+            iron_folate_prescription:'IRON', additional_iodine:'IODINE', malaria_prophylaxis:'MALARIA', 
+            breastfeeding_plan:'BF', danger_advice:'ADVICE', dental_checkup:'DENTAL', 
+            emergency_plan:'EMERG', general_risk:'RISK'
+          };
+          return Object.keys(interventionsCount).map(k=>{
+            const on = interventionsCount[k]>0;
+            return `<span class="mh-risk-chip ${on?'on':'off'}" style="background:#fff3cd;color:#856404;" title="${mapLabels[k]}: ${interventionsCount[k]} rec(s)">${mapLabels[k]}</span>`;
           }).join('');
         }
 
@@ -3670,10 +3688,16 @@ function renderMotherRow(m){
               <div class="val">${Object.values(flagsCount).reduce((a,b)=>a+b,0)}</div>
               <small>Total occurrences</small>
             </div>
+            <div class="mh-mon-mini">
+              <h6>Interventions</h6>
+              <div class="val">${Object.values(interventionsCount).reduce((a,b)=>a+b,0)}</div>
+              <small>Total provided</small>
+            </div>
           </div>
 
           <div class="mh-trend-legend mb-2">
             <span><strong>Risk Flags:</strong> ${riskChips()}</span>
+            <span class="ms-3"><strong>Interventions:</strong> ${interventionChips()}</span>
           </div>
 
           <div class="mh-mon-trends">
