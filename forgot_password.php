@@ -70,7 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             // Send reset email
                             $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
                             $base_url = $protocol . '://' . $_SERVER['HTTP_HOST'];
-                            $reset_link = $base_url . '/brgy_sabangbackup/reset_password.php?token=' . $reset_token;
+                            
+                            // Get the current directory path relative to document root
+                            $current_dir = dirname($_SERVER['SCRIPT_NAME']);
+                            if ($current_dir === '/') {
+                                $current_dir = '';
+                            }
+                            
+                            $reset_link = $base_url . $current_dir . '/reset_password.php?token=' . $reset_token;
                             
                             $subject = "Password Reset - Barangay Health & Nutrition System";
                             $message = "
