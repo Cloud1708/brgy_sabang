@@ -7767,8 +7767,8 @@ function renderReportModule(label) {
         <div class="stat-grid" style="margin-top:.2rem;">
           ${summaryCard('Total Children', String(meta.totalChildren), 'In monitoring program', 'bi-people-fill')}
           ${summaryCard('Normal Rate', meta.normalRateText, 'Healthy nutrition status', 'bi-graph-up')}
-          ${summaryCard('Intervention Cases', String(meta.interventionCases), 'Under intervention', 'bi-clipboard-pulse')}
-          ${summaryCard('Recovery Rate', meta.recoveryRateText, 'Successful interventions', 'bi-graph-up-arrow')}
+          ${summaryCard('Coverage (≤45d)', meta.coverageText, 'Children weighed recently', 'bi-clipboard2-data')}
+          ${summaryCard('Supplements Given', String(sAgg.total), (monthsList.find(m=>m.value===selectedYM)?.label || 'This month'), 'bi-capsule-pill')}
         </div>
 
         <!-- Graphs side-by-side on large screens -->
@@ -8589,10 +8589,11 @@ function aggregateByPurok(children, ym) {
 }
 
   function computeSummary(children, recent, ym) {
-    const totalChildren = children.length;
+    const totalChildren = (children || []).length;
 
-    const inMonth = children.filter(c => isInSelectedMonth(c, ym));
-    const base = (inMonth.length ? inMonth : children);
+    // Base list for Normal Rate (prefer selected month, else all)
+    const inMonth = (children || []).filter(c => isInSelectedMonth(c, ym));
+    const base = (inMonth.length ? inMonth : (children || []));
 
     const normal = base.filter(c => c.nutrition_status === 'NOR').length;
     const mam = base.filter(c => c.nutrition_status === 'MAM').length;
@@ -8603,15 +8604,32 @@ function aggregateByPurok(children, ym) {
     const normalRate = (normal / denom) * 100;
     const interventionCases = mam + sam + uw;
 
-    // Recovery Rate: among children whose latest record is in selected month
+    // Recovery Rate (latest pair falling within selected month)
     const { improved, pairs } = computeImprovementForMonth(recent || [], ym);
     const recoveryRate = pairs ? (improved / pairs) * 100 : null;
+
+    // Coverage (≤45 days) across all children (PH time)
+    const todayPH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const coverageDen = totalChildren || 0;
+    let coverageNum = 0;
+
+    (children || []).forEach(c => {
+      const dStr = c?.last_weighing_date;
+      if (!dStr || dStr === 'Never') return;
+      // normalize to local midnight to avoid TZ drift
+      const d = new Date(dStr + 'T00:00:00');
+      const diffDays = Math.round((todayPH - d) / (1000*60*60*24));
+      if (Number.isFinite(diffDays) && diffDays <= 45) coverageNum++;
+    });
+
+    const coveragePct = coverageDen ? (coverageNum / coverageDen) * 100 : null;
 
     return {
       totalChildren,
       normalRateText: `${(Math.round(normalRate * 10) / 10).toFixed(1)}%`,
-      interventionCases,
-      recoveryRateText: recoveryRate == null ? '—' : `${(Math.round(recoveryRate * 10) / 10).toFixed(1)}%`
+      interventionCases,                                             // kept for future use
+      recoveryRateText: recoveryRate == null ? '—' : `${(Math.round(recoveryRate * 10) / 10).toFixed(1)}%`,
+      coverageText: coveragePct == null ? '—' : `${(Math.round(coveragePct * 10) / 10).toFixed(1)}%`
     };
   }
 
