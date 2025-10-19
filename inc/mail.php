@@ -213,4 +213,8 @@ if (!function_exists('bhw_mail_send')) {
                 "Please keep these credentials secure.\n\n-- Barangay Health Center";
         return bhw_mail_send($toEmail, $subject, $html, $text);
     }
+
+    function sendEmail(string $to, string $subject, string $message): bool {
+        return bhw_mail_send($to, $subject, $message);
+    }
 }
