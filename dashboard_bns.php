@@ -1637,7 +1637,29 @@ const api = {
   supplementation: 'bns_modules/api_supplementation.php'
 };
 
-function fetchJSON(u,o={}){o.headers=Object.assign({'X-Requested-With':'fetch','X-CSRF-Token':window.__BNS_CSRF, 'Accept':'application/json'},o.headers||{});return fetch(u,o).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+function fetchJSON(u, o = {}) {
+  o.headers = Object.assign({
+    'X-Requested-With': 'fetch',
+    'X-CSRF-Token': window.__BNS_CSRF,
+    'Accept': 'application/json'
+  }, o.headers || {});
+  return fetch(u, o).then(async r => {
+    let data;
+    try {
+      data = await r.clone().json();
+    } catch (e) {
+      data = null;
+    }
+    if (!r.ok) {
+      // If backend provides error message, throw that
+      if (data && (data.error || data.message)) {
+        throw new Error(data.error || data.message);
+      }
+      throw new Error('HTTP ' + r.status);
+    }
+    return data;
+  });
+}
 
 // Reusable Toast Notification Function
 function showToast(message, type = 'success', duration = 4000) {
