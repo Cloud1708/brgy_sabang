@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 19, 2025 at 11:24 AM
+-- Generation Time: Oct 19, 2025 at 12:15 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -447,6 +447,33 @@ CREATE TABLE `labor_delivery_records` (
 INSERT INTO `labor_delivery_records` (`labor_id`, `mother_id`, `child_id`, `delivery_date`, `delivery_type`, `place_of_delivery`, `attendant`, `immediate_breastfeeding`, `birth_weight_grams`, `postpartum_hemorrhage`, `baby_alive`, `baby_healthy`, `notes`, `recorded_by`, `created_at`) VALUES
 (1, 41, NULL, '2025-10-12', 'Normal Spontaneous Vaginal Delivery', 'Hospital', 'Doctor', 1, 2500, 0, 1, 1, NULL, 9, '2025-10-12 11:56:25'),
 (2, 41, NULL, '2025-10-12', 'Normal Spontaneous Vaginal Delivery', 'Birthing Center', 'Nurse', 1, 2500, 0, 1, 1, NULL, 9, '2025-10-12 11:57:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `login_attempts`
+--
+
+CREATE TABLE `login_attempts` (
+  `attempt_id` int(10) UNSIGNED NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `ip_address` varchar(64) NOT NULL,
+  `attempt_count` int(10) UNSIGNED NOT NULL DEFAULT 1,
+  `last_attempt` timestamp NOT NULL DEFAULT current_timestamp(),
+  `locked_until` timestamp NULL DEFAULT NULL,
+  `is_locked` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Login attempt tracking and lockout management';
+
+--
+-- Dumping data for table `login_attempts`
+--
+
+INSERT INTO `login_attempts` (`attempt_id`, `username`, `ip_address`, `attempt_count`, `last_attempt`, `locked_until`, `is_locked`, `created_at`, `updated_at`) VALUES
+(2, 'csd', '::1', 1, '2025-10-19 09:32:40', NULL, 0, '2025-10-19 09:32:40', '2025-10-19 09:32:40'),
+(8, 'gabriellero', '::1', 5, '2025-10-19 10:12:59', '2025-10-19 10:17:59', 1, '2025-10-19 10:12:56', '2025-10-19 10:12:59'),
+(13, 'brianms', '::1', 5, '2025-10-19 10:14:18', '2025-10-19 10:19:18', 1, '2025-10-19 10:14:13', '2025-10-19 10:14:18');
 
 -- --------------------------------------------------------
 
@@ -1133,6 +1160,16 @@ ALTER TABLE `labor_delivery_records`
   ADD KEY `idx_recorded_by` (`recorded_by`);
 
 --
+-- Indexes for table `login_attempts`
+--
+ALTER TABLE `login_attempts`
+  ADD PRIMARY KEY (`attempt_id`),
+  ADD UNIQUE KEY `uq_username_ip` (`username`,`ip_address`),
+  ADD KEY `idx_username` (`username`),
+  ADD KEY `idx_ip` (`ip_address`),
+  ADD KEY `idx_locked_until` (`locked_until`);
+
+--
 -- Indexes for table `maternal_patients`
 --
 ALTER TABLE `maternal_patients`
@@ -1308,6 +1345,12 @@ ALTER TABLE `immunization_schedule`
 --
 ALTER TABLE `labor_delivery_records`
   MODIFY `labor_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `login_attempts`
+--
+ALTER TABLE `login_attempts`
+  MODIFY `attempt_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `maternal_patients`
