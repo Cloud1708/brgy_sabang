@@ -1,6 +1,7 @@
 <?php
 date_default_timezone_set('Asia/Manila');
 require_once __DIR__ . '/inc/db.php';
+require_once __DIR__ . '/inc/captcha_config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -142,6 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['username'])) {
         $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid request. Please try again.</div>";
     } elseif ($err === 'db') {
         $msg = "<div class='alert alert-danger py-2 small mb-3'>Database error. Please try again later.</div>";
+    } elseif ($err === 'captcha') {
+        $msg = "<div class='alert alert-danger py-2 small mb-3'>CAPTCHA verification failed. Please try again.</div>";
     }
 }
 ?>
@@ -156,6 +159,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['username'])) {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css?v=20251005">
+  <!-- Google reCAPTCHA -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body class="auth-body brgy-bg">
   <header class="auth-topbar text-white">
@@ -219,6 +224,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['username'])) {
           </div>
 
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['parent_csrf']); ?>">
+
+          <div class="mb-3">
+            <div class="g-recaptcha" data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"></div>
+          </div>
 
           <div class="d-grid mt-3">
             <button class="btn btn-success btn-login fw-semibold" type="submit" 

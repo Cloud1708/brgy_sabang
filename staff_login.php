@@ -2,6 +2,7 @@
 date_default_timezone_set('Asia/Manila');
 require_once __DIR__ . '/inc/db.php';
 require_once __DIR__ . '/inc/auth.php';
+require_once __DIR__ . '/inc/captcha_config.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -119,10 +120,16 @@ $locked_until = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $msg = "<div class='alert alert-danger py-2 small mb-3'>Invalid request. Please try again.</div>";
+    } elseif (!isset($_POST['g-recaptcha-response']) || empty($_POST['g-recaptcha-response'])) {
+        $msg = "<div class='alert alert-danger py-2 small mb-3'>Please complete the CAPTCHA verification.</div>";
     } else {
-        $username = $_POST['username'] ?? '';
-        $password = $_POST['password'] ?? '';
-        $client_ip = getClientIP();
+        // Verify CAPTCHA
+        if (!verifyCaptcha($_POST['g-recaptcha-response'])) {
+            $msg = "<div class='alert alert-danger py-2 small mb-3'>CAPTCHA verification failed. Please try again.</div>";
+        } else {
+            $username = $_POST['username'] ?? '';
+            $password = $_POST['password'] ?? '';
+            $client_ip = getClientIP();
         
         // Check if account is locked
         $lock_status = isAccountLocked($mysqli, $username, $client_ip);
@@ -180,6 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
             }
         }
+        }
     }
     $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
 }
@@ -198,6 +206,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Project CSS (with cache-busting) -->
     <link rel="stylesheet" href="assets/css/style.css?v=20251005">
+    <!-- Google reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body class="auth-body brgy-bg">
     <header class="auth-topbar text-white">
@@ -263,6 +273,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+
+                    <div class="mb-3">
+                        <div class="g-recaptcha" data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"></div>
+                    </div>
 
                     <div class="d-grid mt-3">
                         <button class="btn btn-success btn-login fw-semibold" type="submit" 

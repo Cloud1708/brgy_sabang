@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/../inc/db.php';
 require_once __DIR__.'/../inc/auth.php'; // for redirect_by_role
+require_once __DIR__.'/../inc/captcha_config.php';
  
 session_start(); 
 
@@ -111,6 +112,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 if (empty($_POST['csrf_token']) || empty($_SESSION['parent_csrf']) ||
     !hash_equals($_SESSION['parent_csrf'], $_POST['csrf_token'])) {
     header('Location: '.APP_BASE_PATH.'parent_login?error=csrf'); exit;
+}
+
+// Verify CAPTCHA
+if (!isset($_POST['g-recaptcha-response']) || empty($_POST['g-recaptcha-response'])) {
+    header('Location: '.APP_BASE_PATH.'parent_login?error=captcha'); exit;
+}
+
+if (!verifyCaptcha($_POST['g-recaptcha-response'])) {
+    header('Location: '.APP_BASE_PATH.'parent_login?error=captcha'); exit;
 }
  
 $username = trim($_POST['username'] ?? '');
