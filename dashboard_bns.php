@@ -3349,13 +3349,13 @@ function renderWeighingModuleSplit(label){
         <div class="col-12 col-lg-4">
           <div class="tile" style="padding:1rem;">
             <div class="tile-header mb-2">
-              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">CHILDREN REGISTRY</h5>
+              <h5 style="font-size:.72rem;font-weight:800;color:#18432b;margin:0;">NUTRITION DATA ENTRY</h5>
             </div>
             <div class="position-relative mb-2">
               <i class="bi bi-search position-absolute" style="left:.8rem;top:50%;transform:translateY(-50%);font-size:.8rem;color:#7b8c7f;"></i>
               <input id="weighChildSearch" type="text" class="form-control" placeholder="Search child or mother/caregiver..." style="padding-left:2.2rem;font-size:.72rem;">
             </div>
-            <div class="pane-note mb-2">Select a child to view details and add a weighing record</div>
+            <div class="pane-note mb-2">Select a child to enter nutrition data and view records</div>
             <div id="weighChildList" class="child-list-wrap">
               <div class="text-center py-3" style="color:var(--muted);font-size:.65rem;">
                 <span class="spinner-border spinner-border-sm me-2"></span>Loading children...
