@@ -14,7 +14,7 @@ if (empty($_SESSION['parent_csrf'])) {
     $_SESSION['parent_csrf'] = bin2hex(random_bytes(16));
 }
 
-/* Events */
+/* Events - Get all published events for client-side pagination */
 $events = [];
 $stmt = $mysqli->prepare("
   SELECT event_id, event_title, event_description, event_type,
@@ -24,7 +24,6 @@ $stmt = $mysqli->prepare("
     AND is_completed = 0
     AND event_date >= CURDATE()
   ORDER BY event_date ASC, event_time ASC
-  LIMIT 20
 ");
 if ($stmt && $stmt->execute()) {
     $res = $stmt->get_result();
@@ -37,23 +36,152 @@ if ($stmt && $stmt->execute()) {
 document.addEventListener("DOMContentLoaded", function() {
   const filterBtns = document.querySelectorAll(".filter-controls button");
   const announcementCards = document.querySelectorAll(".announcement-card");
+  
+  // Pagination state
+  let currentPage = 1;
+  let currentPageSize = 6;
+  let currentFilter = 'all';
+  let totalPages = 0;
+  let filteredCards = [];
 
+  // Pagination elements
+  const paginationControls = document.getElementById('announcementPaginationControls');
+  const prevBtn = document.getElementById('announcementPrevBtn');
+  const nextBtn = document.getElementById('announcementNextBtn');
+  const pageNumbers = document.getElementById('announcementPageNumbers');
+  const pageSizeSelect = document.getElementById('announcementPageSize');
+  const pageInfo = document.getElementById('announcementPaginationInfo');
+
+  // Initialize pagination
+  function initializePagination() {
+    filteredCards = Array.from(announcementCards);
+    updatePagination();
+  }
+
+  // Update pagination based on current filter
+  function updatePagination() {
+    // Filter cards based on current filter
+    filteredCards = Array.from(announcementCards).filter(card => {
+      if (currentFilter === 'all') return true;
+      return card.getAttribute('data-type') === currentFilter;
+    });
+
+    totalPages = Math.ceil(filteredCards.length / currentPageSize);
+    currentPage = Math.min(currentPage, Math.max(1, totalPages));
+
+    // Show/hide pagination controls
+    if (filteredCards.length > currentPageSize) {
+      paginationControls.style.display = 'block';
+      updatePaginationControls();
+    } else {
+      paginationControls.style.display = 'none';
+    }
+
+    // Show/hide cards based on current page
+    announcementCards.forEach((card, index) => {
+      const cardIndex = filteredCards.indexOf(card);
+      if (cardIndex === -1) {
+        card.style.display = 'none';
+      } else {
+        const startIndex = (currentPage - 1) * currentPageSize;
+        const endIndex = startIndex + currentPageSize;
+        if (cardIndex >= startIndex && cardIndex < endIndex) {
+          card.style.display = '';
+          card.classList.add('animate__fadeIn');
+        } else {
+          card.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  // Update pagination controls
+  function updatePaginationControls() {
+    // Update prev/next buttons
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+
+    // Update page info
+    const startItem = filteredCards.length > 0 ? ((currentPage - 1) * currentPageSize) + 1 : 0;
+    const endItem = Math.min(currentPage * currentPageSize, filteredCards.length);
+    pageInfo.textContent = `Showing ${startItem}-${endItem} of ${filteredCards.length} announcements`;
+
+    // Generate page number buttons
+    let pageButtons = '';
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    if (startPage > 1) {
+      pageButtons += `<button class="btn btn-sm btn-outline-danger page-btn" data-page="1">1</button>`;
+      if (startPage > 2) {
+        pageButtons += `<span class="page-ellipsis">...</span>`;
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      const activeClass = i === currentPage ? 'active' : '';
+      pageButtons += `<button class="btn btn-sm btn-outline-danger page-btn ${activeClass}" data-page="${i}">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pageButtons += `<span class="page-ellipsis">...</span>`;
+      }
+      pageButtons += `<button class="btn btn-sm btn-outline-danger page-btn" data-page="${totalPages}">${totalPages}</button>`;
+    }
+
+    pageNumbers.innerHTML = pageButtons;
+
+    // Add click handlers to page buttons
+    pageNumbers.querySelectorAll('.page-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const page = parseInt(btn.getAttribute('data-page'));
+        if (page !== currentPage && page >= 1 && page <= totalPages) {
+          currentPage = page;
+          updatePagination();
+        }
+      });
+    });
+  }
+
+  // Event listeners
   filterBtns.forEach(btn => {
     btn.addEventListener("click", function() {
       filterBtns.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      const filter = btn.getAttribute("data-filter");
-      announcementCards.forEach(card => {
-        if (filter === "all") {
-          card.style.display = "";
-          card.classList.add("animate__fadeIn");
-        } else {
-          card.style.display = (card.getAttribute("data-type") === filter) ? "" : "none";
-          if (card.style.display === "") card.classList.add("animate__fadeIn");
-        }
-      });
+      currentFilter = btn.getAttribute("data-filter");
+      currentPage = 1;
+      updatePagination();
     });
   });
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      updatePagination();
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      updatePagination();
+    }
+  });
+
+  pageSizeSelect.addEventListener('change', (e) => {
+    currentPageSize = parseInt(e.target.value);
+    currentPage = 1;
+    updatePagination();
+  });
+
+  // Initialize pagination
+  initializePagination();
 
   // Announcement modal population
   document.querySelectorAll(".view-announcement").forEach(btn => {
@@ -287,6 +415,72 @@ document.addEventListener("DOMContentLoaded", function() {
     #services .card{border:1px solid #edf0f2;}
     #services .card:hover{transform:translateY(-2px);transition:.2s;box-shadow:0 6px 18px rgba(0,0,0,.06);}
   </style>
+  
+  <!-- Announcement Pagination Styles -->
+  <style>
+    .announcement-pagination-controls {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .announcement-pagination {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .announcement-page-numbers {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .announcement-page-numbers .page-btn {
+      min-width: 32px;
+      height: 32px;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .announcement-page-numbers .page-btn.active {
+      background-color: #dc3545;
+      border-color: #dc3545;
+      color: white;
+    }
+    
+    .announcement-page-numbers .page-ellipsis {
+      color: #6c757d;
+      font-size: 0.875rem;
+      padding: 0 0.25rem;
+    }
+    
+    .announcement-pagination-info {
+      font-size: 0.875rem;
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    .announcement-pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    @media (max-width: 768px) {
+      .announcement-pagination {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      .announcement-pagination-info {
+        text-align: center;
+      }
+    }
+  </style>
   </section>
 
 <!-- Barangay Officials -->
@@ -439,8 +633,10 @@ document.addEventListener("DOMContentLoaded", function() {
       <!-- Announcements Column -->
       <div class="col-12 col-lg-6" id="announcements">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 my-2 py-2">
-          <h2 class="display-6 fw-bold" style="color:#dc3545;">Announcements & Events</h2>
-          <p class="text-muted">Stay updated with the latest announcements and events in our community.</p>
+          <div>
+            <h2 class="display-6 fw-bold" style="color:#dc3545;">Announcements & Events</h2>
+            <p class="text-muted">Stay updated with the latest announcements and events in our community.</p>
+          </div>
           <div class="filter-controls">
             <button class="btn btn-sm btn-outline-danger active" data-filter="all">All</button>
             <button class="btn btn-sm btn-outline-danger" data-filter="general">General</button>
@@ -448,6 +644,28 @@ document.addEventListener("DOMContentLoaded", function() {
             <button class="btn btn-sm btn-outline-danger" data-filter="nutrition">Nutrition</button>
             <button class="btn btn-sm btn-outline-danger" data-filter="vaccination">Vaccination</button>
             <button class="btn btn-sm btn-outline-danger" data-filter="feeding">Feeding</button>
+          </div>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="announcement-pagination-controls" id="announcementPaginationControls" style="display: none;">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div class="announcement-pagination-info" id="announcementPaginationInfo"></div>
+            <div class="announcement-pagination" id="announcementPagination">
+              <button id="announcementPrevBtn" class="btn btn-sm btn-outline-danger" title="Previous page">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <div class="announcement-page-numbers" id="announcementPageNumbers"></div>
+              <button id="announcementNextBtn" class="btn btn-sm btn-outline-danger" title="Next page">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+              <select id="announcementPageSize" class="form-select form-select-sm" style="width: auto;" title="Items per page">
+                <option value="3">3 per page</option>
+                <option value="6" selected>6 per page</option>
+                <option value="9">9 per page</option>
+                <option value="12">12 per page</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="row g-4" id="announcementList">

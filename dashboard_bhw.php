@@ -720,6 +720,11 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .imm-cards-pagination button:hover:not(:disabled){background:#e9f4ef;color:#0a5c3d;}
 .imm-cards-pagination button.active{background:#0a5c3d;color:#fff;border-color:#0a5c3d;}
 .imm-cards-pagination button:disabled{opacity:.5;cursor:not-allowed;}
+.imm-cards-page-numbers{display:flex;align-items:center;gap:.25rem;}
+.imm-cards-page-numbers .page-btn{background:#f5f8fa;border:1px solid var(--border);padding:.25rem .5rem;border-radius:6px;font-size:.6rem;font-weight:600;color:#355155;cursor:pointer;min-width:28px;text-align:center;}
+.imm-cards-page-numbers .page-btn:hover{background:#e9f4ef;color:#0a5c3d;}
+.imm-cards-page-numbers .page-btn.active{background:#0a5c3d;color:#fff;border-color:#0a5c3d;}
+.imm-cards-page-numbers .page-ellipsis{color:#6a7b82;font-size:.6rem;padding:0 .25rem;}
 .imm-cards-page-info{font-size:.6rem;color:#6a7b82;font-weight:600;margin:0 .5rem;}
 .imm-cards-page-size{font-size:.65rem;padding:.35rem .5rem;border:1px solid var(--border);border-radius:8px;background:#fff;}
 
@@ -729,6 +734,11 @@ main#mainRegion{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .pa-activity-pagination button{background:#f5f8fa;border:1px solid var(--border);padding:.3rem .5rem;border-radius:6px;font-size:.6rem;font-weight:600;color:#355155;}
 .pa-activity-pagination button:hover:not(:disabled){background:#e9f4ef;color:#0a5c3d;}
 .pa-activity-pagination button:disabled{opacity:.5;cursor:not-allowed;}
+.pa-activity-page-numbers{display:flex;align-items:center;gap:.2rem;}
+.pa-activity-page-numbers .page-btn{background:#f5f8fa;border:1px solid var(--border);padding:.2rem .4rem;border-radius:4px;font-size:.55rem;font-weight:600;color:#355155;cursor:pointer;min-width:24px;text-align:center;}
+.pa-activity-page-numbers .page-btn:hover{background:#e9f4ef;color:#0a5c3d;}
+.pa-activity-page-numbers .page-btn.active{background:#0a5c3d;color:#fff;border-color:#0a5c3d;}
+.pa-activity-page-numbers .page-ellipsis{color:#6a7b82;font-size:.55rem;padding:0 .2rem;}
 .pa-activity-page-info{font-size:.55rem;color:#6a7b82;font-weight:600;margin:0 .4rem;}
 .pa-activity-page-size{font-size:.6rem;padding:.3rem .4rem;border:1px solid var(--border);border-radius:6px;background:#fff;}
 
@@ -5543,14 +5553,16 @@ function loadCardsPanel(){
           <button id="cardsPrevBtn" title="Previous page">
             <i class="bi bi-chevron-left"></i>
           </button>
-          <div class="imm-cards-page-info" id="cardsPageInfo"></div>
+          <div class="imm-cards-page-numbers" id="cardsPageNumbers"></div>
           <button id="cardsNextBtn" title="Next page">
             <i class="bi bi-chevron-right"></i>
           </button>
+          <div class="imm-cards-page-info" id="cardsPageInfo"></div>
           <select id="cardsPageSize" class="imm-cards-page-size" title="Items per page">
             <option value="5">5</option>
             <option value="10" selected>10</option>
             <option value="20">20</option>
+            <option value="50">50</option>
           </select>
         </div>
       </div>
@@ -5574,6 +5586,7 @@ function loadCardsPanel(){
   const pagination = panel.querySelector('#cardsPagination');
   const prevBtn = panel.querySelector('#cardsPrevBtn');
   const nextBtn = panel.querySelector('#cardsNextBtn');
+  const pageNumbers = panel.querySelector('#cardsPageNumbers');
   const pageSizeSelect = panel.querySelector('#cardsPageSize');
   const pageInfo = panel.querySelector('#cardsPageInfo');
 
@@ -5634,7 +5647,7 @@ function loadCardsPanel(){
       totalPages = j.total_pages || 0;
       
       // Update pagination visibility and info
-      if (totalPages > 1 || currentSearch) {
+      if (list.length > 0) {
         pagination.style.display = 'flex';
         updatePaginationControls(j);
       } else {
@@ -5703,6 +5716,48 @@ function loadCardsPanel(){
     
     pageInfo.textContent = `${startItem}-${endItem} of ${total_count}`;
     pageSizeSelect.value = page_size;
+    
+    // Generate page number buttons
+    let pageButtons = '';
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, current_page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(total_pages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    if (startPage > 1) {
+      pageButtons += `<button class="page-btn" data-page="1">1</button>`;
+      if (startPage > 2) {
+        pageButtons += `<span class="page-ellipsis">...</span>`;
+      }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const activeClass = i === current_page ? 'active' : '';
+      pageButtons += `<button class="page-btn ${activeClass}" data-page="${i}">${i}</button>`;
+    }
+    
+    if (endPage < total_pages) {
+      if (endPage < total_pages - 1) {
+        pageButtons += `<span class="page-ellipsis">...</span>`;
+      }
+      pageButtons += `<button class="page-btn" data-page="${total_pages}">${total_pages}</button>`;
+    }
+    
+    pageNumbers.innerHTML = pageButtons;
+    
+    // Add click handlers to page buttons
+    pageNumbers.querySelectorAll('.page-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const page = parseInt(btn.getAttribute('data-page'));
+        if (page !== current_page && page >= 1 && page <= total_pages) {
+          currentPage = page;
+          loadCards();
+        }
+      });
+    });
   }
 
   function formatShortDate(d){
@@ -6260,14 +6315,16 @@ function renderCreateParentAccounts(label){
                 <button id="paActivityPrevBtn" title="Previous page">
                   <i class="bi bi-chevron-left"></i>
                 </button>
-                <div class="pa-activity-page-info" id="paActivityPageInfo"></div>
+                <div class="pa-activity-page-numbers" id="paActivityPageNumbers"></div>
                 <button id="paActivityNextBtn" title="Next page">
                   <i class="bi bi-chevron-right"></i>
                 </button>
+                <div class="pa-activity-page-info" id="paActivityPageInfo"></div>
                 <select id="paActivityPageSize" class="pa-activity-page-size" title="Items per page">
                   <option value="5">5</option>
                   <option value="10" selected>10</option>
                   <option value="20">20</option>
+                  <option value="50">50</option>
                 </select>
               </div>
             </div>
@@ -6435,6 +6492,7 @@ function renderCreateParentAccounts(label){
     const activityControls = document.getElementById('paActivityControls');
     const activityPrevBtn = document.getElementById('paActivityPrevBtn');
     const activityNextBtn = document.getElementById('paActivityNextBtn');
+    const activityPageNumbers = document.getElementById('paActivityPageNumbers');
     const activityPageSizeSelect = document.getElementById('paActivityPageSize');
     const activityPageInfo = document.getElementById('paActivityPageInfo');
 
@@ -6488,7 +6546,7 @@ function renderCreateParentAccounts(label){
           activityTotalPages = j.total_pages || 0;
 
           // Update pagination visibility and controls
-          if (activityTotalPages > 1) {
+          if (logs.length > 0) {
             if (activityControls) activityControls.style.display = 'flex';
             updateActivityPaginationControls(j);
           } else {
@@ -6538,6 +6596,50 @@ function renderCreateParentAccounts(label){
       
       if (activityPageInfo) activityPageInfo.textContent = `${startItem}-${endItem} of ${total_count}`;
       if (activityPageSizeSelect) activityPageSizeSelect.value = page_size;
+      
+      // Generate page number buttons
+      if (activityPageNumbers) {
+        let pageButtons = '';
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, current_page - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(total_pages, startPage + maxVisiblePages - 1);
+        
+        if (endPage - startPage + 1 < maxVisiblePages) {
+          startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        if (startPage > 1) {
+          pageButtons += `<button class="page-btn" data-page="1">1</button>`;
+          if (startPage > 2) {
+            pageButtons += `<span class="page-ellipsis">...</span>`;
+          }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+          const activeClass = i === current_page ? 'active' : '';
+          pageButtons += `<button class="page-btn ${activeClass}" data-page="${i}">${i}</button>`;
+        }
+        
+        if (endPage < total_pages) {
+          if (endPage < total_pages - 1) {
+            pageButtons += `<span class="page-ellipsis">...</span>`;
+          }
+          pageButtons += `<button class="page-btn" data-page="${total_pages}">${total_pages}</button>`;
+        }
+        
+        activityPageNumbers.innerHTML = pageButtons;
+        
+        // Add click handlers to page buttons
+        activityPageNumbers.querySelectorAll('.page-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const page = parseInt(btn.getAttribute('data-page'));
+            if (page !== current_page && page >= 1 && page <= total_pages) {
+              activityCurrentPage = page;
+              loadActivityFeed();
+            }
+          });
+        });
+      }
     }
 
     // Initial load
