@@ -14,7 +14,7 @@ $navigation[] = $notifItem;
 ?>
 
 <!-- Sidebar -->
-<aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static -translate-x-full mt-16 lg:mt-0" style="border-color: #e5e7eb;">
+<aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:sticky lg:top-16 lg:self-start -translate-x-full mt-16 lg:mt-0 lg:h-[calc(100vh-64px)]" style="border-color: #e5e7eb;">
     <nav class="h-full overflow-y-auto p-4 space-y-2">
         <?php foreach ($navigation as $item): 
             $isActive = $current_view === $item['view'];

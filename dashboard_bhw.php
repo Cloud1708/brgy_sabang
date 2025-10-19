@@ -3477,17 +3477,10 @@ function renderMotherRow(m){
           box.innerHTML = `
             <div class="mh-mon-head d-flex justify-content-between align-items-center mb-2">
               <h6>Pregnancy Monitoring - ${escapeHtml(mother.full_name)}</h6>
-              <div class="mh-mon-actions">
-                <button class="btn btn-sm btn-outline-success" id="goAddConsult"><i class="bi bi-plus-lg me-1"></i>Add Consultation</button>
-              </div>
             </div>
             <div class="mh-mon-empty">
               Walang consultation records. Magdagdag muna ng consultation para makita ang monitoring timeline.
             </div>`;
-          box.querySelector('#goAddConsult')?.addEventListener('click',()=>{
-            const tabBtn=document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
-            tabBtn?.click();
-          });
           return;
         }
 
@@ -3609,10 +3602,6 @@ function renderMotherRow(m){
         box.innerHTML = `
           <div class="mh-mon-head d-flex flex-wrap justify-content-between align-items-center">
             <h6>Pregnancy Monitoring - ${escapeHtml(mother.full_name)}</h6>
-            <div class="mh-mon-actions">
-              <button class="btn btn-sm btn-outline-success" id="monAddConsult"><i class="bi bi-plus-lg me-1"></i>Add Consultation</button>
-              <button class="btn btn-sm btn-outline-primary" id="monViewConsults"><i class="bi bi-list-ul me-1"></i>Consult History</button>
-            </div>
           </div>
 
           <div class="mh-mon-summary">
@@ -3724,15 +3713,6 @@ function renderMotherRow(m){
           </div>
         `;
 
-        // Actions
-        box.querySelector('#monAddConsult')?.addEventListener('click',()=>{
-          const tabBtn=document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
-          tabBtn?.click();
-        });
-        box.querySelector('#monViewConsults')?.addEventListener('click',()=>{
-          const tabBtn=document.querySelector('#mhTabs .nav-link[data-tab="consults"]');
-          tabBtn?.click();
-        });
       }
     }
     
