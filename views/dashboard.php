@@ -175,7 +175,6 @@ if (!empty($dob)) {
 
 // Fetch prenatal health records and upcoming next visit
 $prenatal_visits = [];
-$postnatal_visits = [];
 $next_prenatal = null;
 if ($mother_id !== null) {
     if ($stmth = $mysqli->prepare("SELECT 
@@ -292,24 +291,7 @@ if ($mother_id !== null) {
         if ($nv = $resn->fetch_assoc()) { if (!empty($nv['next_visit'])) $next_prenatal = date('M d, Y', strtotime($nv['next_visit'])); }
         $stmtnext->close();
     }
-    if ($stmtpn = $mysqli->prepare("SELECT postnatal_visit_id, visit_date, postpartum_day, bp_systolic, bp_diastolic, temperature_c, danger_signs FROM postnatal_visits WHERE mother_id = ? ORDER BY visit_date DESC, postnatal_visit_id DESC LIMIT 10")) {
-        $stmtpn->bind_param('i', $mother_id);
-        $stmtpn->execute();
-        $respn = $stmtpn->get_result();
-        while ($pn = $respn->fetch_assoc()) {
-            $tempNum = is_null($pn['temperature_c']) ? null : (float)$pn['temperature_c'];
-            $postnatal_visits[] = [
-                'id' => (int)$pn['postnatal_visit_id'],
-                'date' => date('M d, Y', strtotime($pn['visit_date'])),
-                'pp_day' => $pn['postpartum_day'],
-                'bp' => (!is_null($pn['bp_systolic']) && !is_null($pn['bp_diastolic'])) ? ($pn['bp_systolic'] . '/' . $pn['bp_diastolic'] . ' mmHg') : '',
-                'temp' => is_null($pn['temperature_c']) ? '' : number_format((float)$pn['temperature_c'], 1) . ' °C',
-                'temp_num' => $tempNum,
-                'danger' => $pn['danger_signs'] ?? ''
-            ];
-        }
-        $stmtpn->close();
-    }
+    // Note:     visits retrieval removed per request (feature no longer used)
 }
 
 // Build quick stats
@@ -317,23 +299,7 @@ $stats = [
     'last_prenatal' => !empty($prenatal_visits) ? ($prenatal_visits[0]['date'] ?? null) : null,
     'next_prenatal' => $next_prenatal,
     'count_prenatal' => count($prenatal_visits),
-    'count_postnatal' => count($postnatal_visits),
-    'risk' => 'None',
-    'risk_color' => '#10b981', // green
 ];
-
-$riskLevel = 0; // 0 none, 1 monitor, 2 high
-foreach ($prenatal_visits as $pvcalc) {
-    $lbl = $pvcalc['bp_cat']['label'] ?? '';
-    if ($lbl === 'Crisis' || $lbl === 'Stage 2') { $riskLevel = max($riskLevel, 2); }
-    elseif ($lbl === 'Stage 1' || $lbl === 'Elevated') { $riskLevel = max($riskLevel, 1); }
-}
-foreach ($postnatal_visits as $pncalc) {
-    if (!empty($pncalc['danger'])) { $riskLevel = max($riskLevel, 2); }
-    if (!is_null($pncalc['temp_num']) && $pncalc['temp_num'] >= 38.0) { $riskLevel = max($riskLevel, 1); }
-}
-if ($riskLevel === 2) { $stats['risk'] = 'High-risk'; $stats['risk_color'] = '#ef4444'; }
-elseif ($riskLevel === 1) { $stats['risk'] = 'Monitor'; $stats['risk_color'] = '#f59e0b'; }
 
 // ... further code for children immunization, overdue, upcoming, etc. goes here ...
 ?>
@@ -409,7 +375,7 @@ elseif ($riskLevel === 1) { $stats['risk'] = 'Monitor'; $stats['risk_color'] = '
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid gap-4 md:grid-cols-4">
+    <div class="grid gap-4 md:grid-cols-3">
         <div class="bg-white rounded-xl shadow-sm p-4" style="border:1px solid #e5e7eb;">
             <p class="text-sm" style="color:#6b7280;">Last Prenatal</p>
             <p class="mt-1 font-medium"><?php echo htmlspecialchars($stats['last_prenatal'] ?: 'N/A'); ?></p>
@@ -421,13 +387,6 @@ elseif ($riskLevel === 1) { $stats['risk'] = 'Monitor'; $stats['risk_color'] = '
         <div class="bg-white rounded-xl shadow-sm p-4" style="border:1px solid #e5e7eb;">
             <p class="text-sm" style="color:#6b7280;">Prenatal Visits</p>
             <p class="mt-1 font-medium"><?php echo (int)$stats['count_prenatal']; ?></p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm p-4" style="border:1px solid #e5e7eb;">
-            <p class="text-sm" style="color:#6b7280;">Postnatal Visits</p>
-            <div class="mt-1 flex items-center gap-2">
-                <p class="font-medium" style="min-width:2rem;"><?php echo (int)$stats['count_postnatal']; ?></p>
-                <span class="text-xs px-2 py-1 rounded-full" style="background-color: <?php echo $stats['risk_color']; ?>; color:white;"><?php echo htmlspecialchars($stats['risk']); ?></span>
-            </div>
         </div>
     </div>
 
@@ -493,57 +452,7 @@ elseif ($riskLevel === 1) { $stats['risk'] = 'Monitor'; $stats['risk_color'] = '
         <?php endif; ?>
     </div>
 
-    <!-- Postnatal Visits -->
-    <div class="bg-white rounded-xl shadow-sm p-6" style="border:1px solid #e5e7eb;">
-        <h3 class="font-medium mb-2">Postnatal Visits</h3>
-        <?php if ($mother_id === null): ?>
-            <p class="text-sm" style="color:#6b7280;">No maternal profile linked to this account yet.</p>
-        <?php else: ?>
-            <?php if (empty($postnatal_visits)): ?>
-                <p class="text-sm" style="color:#6b7280;">No postnatal records found.</p>
-            <?php else: ?>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b" style="border-color:#e5e7eb;">
-                            <th class="text-left py-3 px-4 font-medium">Visit Date</th>
-                            <th class="text-left py-3 px-4 font-medium">Postpartum Day</th>
-                            <th class="text-left py-3 px-4 font-medium">Blood Pressure</th>
-                            <th class="text-left py-3 px-4 font-medium">Temperature</th>
-                            <th class="text-left py-3 px-4 font-medium">Danger Signs</th>
-                            <th class="text-left py-3 px-4 font-medium">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($postnatal_visits as $pn): ?>
-                        <tr class="border-b" style="border-color:#e5e7eb;">
-                            <td class="py-3 px-4"><?php echo htmlspecialchars($pn['date']); ?></td>
-                            <td class="py-3 px-4"><?php echo htmlspecialchars((string)$pn['pp_day']); ?></td>
-                            <td class="py-3 px-4"><?php echo htmlspecialchars($pn['bp']); ?></td>
-                            <td class="py-3 px-4"><?php echo htmlspecialchars($pn['temp']); ?></td>
-                            <td class="py-3 px-4"><?php echo htmlspecialchars($pn['danger']); ?></td>
-                            <td class="py-3 px-4">
-                                <?php
-                                    $payload = [
-                                        'type' => 'Postnatal Visit',
-                                        'Visit Date' => $pn['date'],
-                                        'Postpartum Day' => (string)$pn['pp_day'],
-                                        'Blood Pressure' => $pn['bp'] ?: 'N/A',
-                                        'Temperature' => $pn['temp'] ?: 'N/A',
-                                        'Danger Signs' => $pn['danger'] ?: 'None',
-                                    ];
-                                    $json = htmlspecialchars(json_encode($payload), ENT_QUOTES, 'UTF-8');
-                                ?>
-                                <button class="text-sm px-3 py-1 rounded-md" style="background-color:#eff6ff;color:#1d4ed8;" data-payload="<?php echo $json; ?>" onclick="openRecordModal(this)">View</button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            <?php endif; ?>
-        <?php endif; ?>
-    </div>
+    <!-- Postnatal Visits section removed as it's no longer used -->
 </div>
 
 <!-- Record Details Modal -->
